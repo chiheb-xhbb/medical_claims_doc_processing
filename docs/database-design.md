@@ -8,14 +8,14 @@ Définir une conception **conceptuelle** de la base de données (sans SQL ni mig
 - correction/validation Human-in-the-Loop (HITL)
 - traçabilité (audit)
 
-> Règle d’architecture : **Laravel** est responsable de la persistance (DB + fichiers). **FastAPI** est stateless.
+> Règle d'architecture : **Laravel** est responsable de la persistance (DB + fichiers). **FastAPI** est stateless.
 
 ---
 
-## Vue d’ensemble (entités)
+## Vue d'ensemble (entités)
 - **documents** : représente un document médical uploadé + son état (workflow).
 - **ai_requests** : trace chaque appel du backend vers le service IA.
-- **extractions** : stocke le résultat IA (JSON) lié à un document.
+- **extractions** : stocke le résultat IA (JSON) lié à un document + valeurs finales validées.
 - **field_corrections** : historise les corrections humaines champ par champ.
 
 ---
@@ -25,8 +25,8 @@ Définir une conception **conceptuelle** de la base de données (sans SQL ni mig
 
 Champs recommandés (MVP) :
 - `id` (PK)
-- `user_id` (FK, nullable si pas d’auth au début) : propriétaire du document
-- `original_filename` : nom d’origine du fichier (ex. `scan_001.pdf`)
+- `user_id` (FK, nullable si pas d'auth au début) : propriétaire du document
+- `original_filename` : nom d'origine du fichier (ex. `scan_001.pdf`)
 - `file_path` : chemin de stockage côté serveur (ex. `documents/uuid.pdf`)
 - `mime_type` : type MIME (ex. `application/pdf`, `image/png`)
 - `doc_type` : type métier (`pharmacy_invoice`, `lab_report`, `unknown`)
@@ -35,8 +35,8 @@ Champs recommandés (MVP) :
 - `created_at`, `updated_at`
 
 Notes :
-- Le fichier **n’est jamais stocké en base**, uniquement son `file_path`.
-- Le `status` est la “source de vérité” du workflow côté Laravel.
+- Le fichier **n'est jamais stocké en base**, uniquement son `file_path`.
+- Le `status` est la "source de vérité" du workflow côté Laravel.
 
 ---
 
@@ -47,7 +47,7 @@ Champs recommandés (MVP) :
 - `id` (PK)
 - `document_id` (FK → documents.id)
 - `request_id` : identifiant retourné par FastAPI (UUID)
-- `doc_type_sent` (nullable) : valeur de `doc_type` envoyée à l’IA
+- `doc_type_sent` (nullable) : valeur de `doc_type` envoyée à l'IA
 - `http_status` (nullable) : code HTTP de réponse (200/400/500…)
 - `status` : `SUCCESS | FAILED`
 - `processing_time_ms` (nullable) : temps de traitement mesuré (si disponible)
@@ -66,14 +66,18 @@ Notes :
 Champs recommandés (MVP) :
 - `id` (PK)
 - `document_id` (FK → documents.id)
-- `ai_request_id` (FK → ai_requests.id, nullable) : lien vers l’appel IA correspondant
-- `result_json` : JSON brut retourné par l’IA (fields + confidence + meta + warnings + errors)
+- `ai_request_id` (FK → ai_requests.id, nullable) : lien vers l'appel IA correspondant
+- `result_json` (JSON) : JSON brut retourné par l'IA (fields + confidence + meta + warnings + errors) — **jamais modifié**
+- `final_values` (JSON, nullable) : valeurs finales **après validation/correction HITL** — **source de vérité finale**
 - `version` (int, default 1) : versionnement simple des extractions
-- `created_at`
+- `created_at`, `updated_at`
 
 Notes :
-- `result_json` permet de garder l’output exact de l’IA (traçabilité).
-- `version` permet de comparer plusieurs extractions si on relance le traitement.
+- `result_json` = output IA brut (traçabilité, audit, analyse erreurs).
+- `final_values` = données validées/corrigées (exploitables par l'application).
+- `final_values` est rempli après que l'utilisateur valide/corrige les champs (status → `VALIDATED`).
+
+**Type recommandé** : `JSON` (MySQL 5.7+) ou `JSONB` (PostgreSQL), ou `TEXT` si DB plus ancienne.
 
 ---
 
@@ -84,15 +88,15 @@ Champs recommandés (MVP) :
 - `id` (PK)
 - `document_id` (FK → documents.id)
 - `field_name` : nom du champ corrigé (ex. `provider_name`, `total_ttc`)
-- `old_value` (nullable) : valeur avant correction (souvent issue de l’IA)
-- `new_value` (nullable) : valeur saisie/validée par l’utilisateur
+- `old_value` (nullable) : valeur avant correction (souvent issue de l'IA)
+- `new_value` (nullable) : valeur saisie/validée par l'utilisateur
 - `corrected_by` (FK → users.id, nullable) : utilisateur ayant corrigé
 - `corrected_at` (datetime)
 - `comment` (nullable) : justification courte si nécessaire
 
 Notes :
-- Ne pas modifier silencieusement les valeurs : on garde l’historique.
-- Permet d’évaluer les erreurs IA (utile pour analytics/rapport).
+- Ne pas modifier silencieusement les valeurs : on garde l'historique.
+- Permet d'évaluer les erreurs IA (utile pour analytics/rapport).
 
 ---
 
@@ -102,17 +106,49 @@ Notes :
 - `ai_requests (1) → (0..1) extractions` (optionnel selon implémentation)
 - `documents (1) → (N) field_corrections`
 
+**Index recommandés (MVP)** :
+- `documents.status` (requêtes fréquentes par statut)
+- `documents.user_id` (si auth activée)
+- `field_corrections.document_id` (jointure audit)
+
 ---
 
 ## Règles de persistance (responsabilités)
 - **Stockage fichier** : Laravel enregistre le fichier dans `storage/app/...` et sauvegarde `file_path` dans `documents`.
 - **Résultat IA** : Laravel sauvegarde la réponse FastAPI en JSON (dans `extractions.result_json`).
+- **Valeurs finales** : Laravel met à jour `extractions.final_values` après validation/correction HITL.
 - **Corrections** : Laravel sauvegarde les modifications HITL champ par champ dans `field_corrections`.
 - **FastAPI** : aucun accès DB, aucune persistance.
 
 ---
 
+## Stockage des valeurs finales (après HITL)
+
+Les valeurs structurées **validées** sont stockées dans `extractions.final_values` (JSON).
+
+**Flux :**
+1. IA traite → Laravel sauvegarde `result_json` (sortie brute, jamais modifiée).
+2. User corrige/valide → Laravel met à jour `final_values` + enregistre l'audit dans `field_corrections`.
+3. Une fois `status = VALIDATED`, `final_values` devient la source de vérité.
+
+**Exemple de contenu `final_values` :**
+```json
+{
+  "invoice_date": "2025-12-15",
+  "provider_name": "Pharmacie Centrale",
+  "total_ttc": "45.50"
+}
+```
+
+**Pourquoi garder les deux colonnes ?**
+- `result_json` → audit IA ("qu'est-ce que l'IA a vraiment extrait ?")
+- `final_values` → données exploitables ("quelle est la vérité validée ?")
+- Comparaison → analyse du taux d'erreur IA et confiance réelle
+
+---
+
 ## Évolution future (hors MVP, optionnel)
-- Ajout d’une table `document_fields` pour stocker directement les valeurs finales structurées (si besoin de requêtes SQL avancées).
-- Ajout d’une table `document_pages` si traitement page par page.
-- Ajout d’analytics (taux d’erreur par champ, temps moyen, etc.).
+- Ajout d'une table `document_fields` pour stocker directement les valeurs finales structurées (si besoin de requêtes SQL avancées par champ).
+- Ajout d'une table `document_pages` si traitement page par page.
+- Ajout d'analytics (taux d'erreur par champ, temps moyen, distribution confiance).
+- Support multi-langue (champs `locale` dans extractions).

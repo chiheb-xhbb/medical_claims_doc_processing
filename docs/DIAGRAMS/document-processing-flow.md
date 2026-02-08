@@ -20,12 +20,14 @@ Décrire le flux minimal (MVP) de traitement d’un document médical (pharmacie
    - Prétraitement → OCR → extraction de champs
    - Retourne un JSON structuré contenant `fields`, `confidence`, `warnings`, `meta`
    - FastAPI ne persiste rien (stateless : pas de stockage fichier, pas de base de données)
-8. Laravel enregistre la sortie IA en JSON lié au document (JSON brut + métadonnées) et met à jour le statut :
-   - si succès : `PROCESSED`
-   - si échec : `FAILED` (et enregistre le message d’erreur associé)
+8. Laravel enregistre la sortie IA en JSON lié au document :
+   - `result_json` = sortie brute de l’IA (traçabilité)
+   - `final_values` = valeurs validées après HITL (si correction)
+   - si succès : `status = PROCESSED`
+   - si échec : `status = FAILED` (et enregistre le message d’erreur associé)
 9. L’interface React affiche les champs extraits à l’utilisateur pour vérification (Human-in-the-Loop).
 10. L’utilisateur corrige et valide les champs si nécessaire.
-11. Laravel sauvegarde les valeurs finales et l’historique des corrections, puis met le statut à `VALIDATED`.
+11. Laravel sauvegarde les valeurs finales + l’historique des corrections, puis met le statut à `VALIDATED`.
 
 ---
 
@@ -39,7 +41,7 @@ Décrire le flux minimal (MVP) de traitement d’un document médical (pharmacie
 ---
 
 ## Règles clés
-- Laravel : stockage des fichiers, workflow/statuts, persistance base de données, orchestration des appels vers FastAPI
-- FastAPI : pipeline OCR/extraction, stateless (aucune persistance)
-- React : interface utilisateur (upload, affichage, correction, validation)
-- Traçabilité : la réponse IA est stockée (JSON) dans `extractions` et les corrections sont historisées
+- **Laravel** : stockage des fichiers, workflow/statuts, persistance base de données, orchestration des appels vers FastAPI.
+- **FastAPI** : pipeline OCR/extraction, stateless (aucune persistance).
+- **React** : interface utilisateur (upload, affichage, correction, validation).
+- **Traçabilité** : la réponse IA est stockée (`result_json`) et les corrections sont historisées (`field_corrections`).
