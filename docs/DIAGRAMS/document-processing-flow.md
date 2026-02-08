@@ -20,7 +20,7 @@ Décrire le flux minimal (MVP) de traitement d’un document médical (pharmacie
    - Prétraitement → OCR → extraction de champs
    - Retourne un JSON structuré contenant `fields`, `confidence`, `warnings`, `meta`
    - FastAPI ne persiste rien (stateless : pas de stockage fichier, pas de base de données)
-8. Laravel enregistre la sortie IA dans la table `extractions` (JSON brut + métadonnées) et met à jour le statut :
+8. Laravel enregistre la sortie IA en JSON lié au document (JSON brut + métadonnées) et met à jour le statut :
    - si succès : `PROCESSED`
    - si échec : `FAILED` (et enregistre le message d’erreur associé)
 9. L’interface React affiche les champs extraits à l’utilisateur pour vérification (Human-in-the-Loop).
