@@ -1,255 +1,157 @@
-<mxfile host="app.diagrams.net" agent="Mozilla/5.0" version="29.3.8">
-  <diagram id="doc-flow-final" name="Page-1">
-    <mxGraphModel dx="1800" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1"
-      page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36" version="29.3.8">
+  <diagram id="doc-flow-final-perfect" name="Page-1">
+    <mxGraphModel dx="1188" dy="584" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
       <root>
-        <mxCell id="0"/>
-        <mxCell id="1" parent="0"/>
-
-        <!-- ===== TITRE ===== -->
-        <mxCell id="title" value="Flux de traitement des documents médicaux (MVP) — React → Laravel → FastAPI → MySQL/Stockage + HITL"
-          style="text;html=1;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;strokeColor=none;fillColor=none;"
-          vertex="1" parent="1">
-          <mxGeometry x="20" y="10" width="1120" height="30" as="geometry"/>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;strokeColor=none;fillColor=none;" value="Flux de traitement des documents médicaux (MVP) — React → Laravel → FastAPI → MySQL/Stockage + HITL" vertex="1">
+          <mxGeometry height="30" width="1120" x="20" y="10" as="geometry" />
         </mxCell>
-
-        <!-- ===== LANES ===== -->
-        <mxCell id="lane1" value="Utilisateur / React"
-          style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontStyle=1;align=center;verticalAlign=top;spacingTop=10;"
-          vertex="1" parent="1">
-          <mxGeometry x="20" y="50" width="260" height="760" as="geometry"/>
+        <mxCell id="lane1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontStyle=1;align=center;verticalAlign=top;spacingTop=10;" value="Utilisateur / React" vertex="1">
+          <mxGeometry height="760" width="260" x="20" y="50" as="geometry" />
         </mxCell>
-
-        <mxCell id="lane2" value="Laravel API (propriétaire du workflow)"
-          style="rounded=0;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontStyle=1;align=center;verticalAlign=top;spacingTop=10;"
-          vertex="1" parent="1">
-          <mxGeometry x="300" y="50" width="260" height="760" as="geometry"/>
+        <mxCell id="lane2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontStyle=1;align=center;verticalAlign=top;spacingTop=10;" value="Laravel API (propriétaire du workflow)" vertex="1">
+          <mxGeometry height="760" width="260" x="300" y="50" as="geometry" />
         </mxCell>
-
-        <mxCell id="lane3" value="FastAPI (IA) — Stateless"
-          style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontStyle=1;align=center;verticalAlign=top;spacingTop=10;"
-          vertex="1" parent="1">
-          <mxGeometry x="580" y="50" width="260" height="760" as="geometry"/>
+        <mxCell id="lane3" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontStyle=1;align=center;verticalAlign=top;spacingTop=10;" value="FastAPI (IA) — Stateless" vertex="1">
+          <mxGeometry height="760" width="260" x="580" y="50" as="geometry" />
         </mxCell>
-
-        <mxCell id="lane4" value="MySQL + Stockage fichiers"
-          style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontStyle=1;align=center;verticalAlign=top;spacingTop=10;"
-          vertex="1" parent="1">
-          <mxGeometry x="860" y="50" width="280" height="760" as="geometry"/>
+        <mxCell id="lane4" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontStyle=1;align=center;verticalAlign=top;spacingTop=10;" value="MySQL + Stockage fichiers" vertex="1">
+          <mxGeometry height="760" width="280" x="860" y="50" as="geometry" />
         </mxCell>
-
-        <!-- ===== REACT ===== -->
-        <mxCell id="r1" value="1) Upload document&#xa;(PDF / Image)"
-          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6C8EBF;fontSize=12;"
-          vertex="1" parent="1">
-          <mxGeometry x="30" y="120" width="240" height="60" as="geometry"/>
+        <mxCell id="r1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6C8EBF;fontSize=12;" value="1) Upload document&#xa;(PDF / Image)" vertex="1">
+          <mxGeometry height="60" width="240" x="30" y="200" as="geometry" />
         </mxCell>
-
-        <mxCell id="r2" value="9) Afficher champs extraits"
-          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6C8EBF;fontSize=12;"
-          vertex="1" parent="1">
-          <mxGeometry x="30" y="420" width="240" height="50" as="geometry"/>
+        <mxCell id="r2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6C8EBF;fontSize=12;" value="9) Afficher champs extraits" vertex="1">
+          <mxGeometry height="50" width="240" x="30" y="420" as="geometry" />
         </mxCell>
-
-        <mxCell id="r3" value="10) Correction / Validation humaine (HITL)"
-          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6C8EBF;fontSize=12;"
-          vertex="1" parent="1">
-          <mxGeometry x="30" y="500" width="240" height="60" as="geometry"/>
+        <mxCell id="r3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6C8EBF;fontSize=12;" value="10) Correction / Validation humaine (HITL)" vertex="1">
+          <mxGeometry height="60" width="240" x="30" y="500" as="geometry" />
         </mxCell>
-
-        <mxCell id="r_err" value="Erreur affichée à l’utilisateur"
-          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=12;"
-          vertex="1" parent="1">
-          <mxGeometry x="30" y="640" width="240" height="55" as="geometry"/>
+        <mxCell id="r_err" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=12;" value="Erreur affichée à l’utilisateur" vertex="1">
+          <mxGeometry height="55" width="240" x="30" y="640" as="geometry" />
         </mxCell>
-
-        <!-- ===== LARAVEL ===== -->
-        <mxCell id="l1" value="2) Réception upload&#xa;Validation (extension, MIME, taille)"
-          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;fontSize=12;"
-          vertex="1" parent="1">
-          <mxGeometry x="310" y="110" width="240" height="70" as="geometry"/>
+        <mxCell id="l1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;fontSize=12;" value="2) Réception upload&#xa;Validation (extension, MIME, taille)" vertex="1">
+          <mxGeometry height="70" width="240" x="310" y="110" as="geometry" />
         </mxCell>
-
-        <mxCell id="l2" value="3) Stocker fichier + créer document&#xa;status = UPLOADED"
-          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;fontSize=12;"
-          vertex="1" parent="1">
-          <mxGeometry x="310" y="210" width="240" height="70" as="geometry"/>
+        <mxCell id="l2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;fontSize=12;" value="3) Stocker fichier + créer document&#xa;status = UPLOADED" vertex="1">
+          <mxGeometry height="70" width="240" x="310" y="210" as="geometry" />
         </mxCell>
-
-        <mxCell id="l3" value="4) status = PROCESSING"
-          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;fontSize=12;"
-          vertex="1" parent="1">
-          <mxGeometry x="310" y="300" width="240" height="55" as="geometry"/>
+        <mxCell id="l3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;fontSize=12;" value="4) status = PROCESSING" vertex="1">
+          <mxGeometry height="55" width="240" x="310" y="300" as="geometry" />
         </mxCell>
-
-        <mxCell id="l4" value="5) Appel IA&#xa;POST /process"
-          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;fontSize=12;"
-          vertex="1" parent="1">
-          <mxGeometry x="310" y="380" width="240" height="60" as="geometry"/>
+        <mxCell id="l4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;fontSize=12;" value="5) Appel IA&#xa;POST /process" vertex="1">
+          <mxGeometry height="60" width="240" x="310" y="380" as="geometry" />
         </mxCell>
-
-        <mxCell id="l5" value="7) Enregistrer résultat IA (JSON)"
-          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;fontSize=12;"
-          vertex="1" parent="1">
-          <mxGeometry x="310" y="480" width="240" height="55" as="geometry"/>
+        <mxCell id="l5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;fontSize=12;" value="7) Enregistrer résultat IA (JSON)" vertex="1">
+          <mxGeometry height="55" width="240" x="310" y="480" as="geometry" />
         </mxCell>
-
-        <mxCell id="l6" value="8) status = PROCESSED"
-          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;fontSize=12;"
-          vertex="1" parent="1">
-          <mxGeometry x="310" y="550" width="240" height="55" as="geometry"/>
+        <mxCell id="l6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;fontSize=12;" value="8) status = PROCESSED" vertex="1">
+          <mxGeometry height="55" width="240" x="310" y="550" as="geometry" />
         </mxCell>
-
-        <mxCell id="l7" value="11) Sauver corrections + valeurs finales&#xa;status = VALIDATED"
-          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;fontSize=12;"
-          vertex="1" parent="1">
-          <mxGeometry x="310" y="620" width="240" height="70" as="geometry"/>
+        <mxCell id="l7" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;fontSize=12;" value="11) Sauver corrections + valeurs finales&#xa;status = VALIDATED" vertex="1">
+          <mxGeometry height="70" width="240" x="310" y="620" as="geometry" />
         </mxCell>
-
-        <mxCell id="l_fail" value="En cas d’échec&#xa;status = FAILED + error_message"
-          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=12;"
-          vertex="1" parent="1">
-          <mxGeometry x="310" y="710" width="240" height="65" as="geometry"/>
+        <mxCell id="l_fail" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=12;" value="En cas d’échec&#xa;status = FAILED + error_message" vertex="1">
+          <mxGeometry height="65" width="240" x="310" y="710" as="geometry" />
         </mxCell>
-
-        <!-- ===== FASTAPI ===== -->
-        <mxCell id="f1" value="6) Prétraitement → OCR → Extraction"
-          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#D79B00;fontSize=12;"
-          vertex="1" parent="1">
-          <mxGeometry x="590" y="260" width="240" height="70" as="geometry"/>
+        <mxCell id="f1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#D79B00;fontSize=12;" value="6) Prétraitement → OCR → Extraction&#xa;stateless (aucune persistance)" vertex="1">
+          <mxGeometry height="70" width="240" x="590" y="300" as="geometry" />
         </mxCell>
-
-        <mxCell id="f2" value="Retour JSON&#xa;(fields + confiance + meta)"
-          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#D79B00;fontSize=12;"
-          vertex="1" parent="1">
-          <mxGeometry x="590" y="350" width="240" height="60" as="geometry"/>
+        <mxCell id="f2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#D79B00;fontSize=12;" value="Retour JSON&#xa;(fields + confiance + warnings + meta)" vertex="1">
+          <mxGeometry height="60" width="240" x="590" y="410" as="geometry" />
         </mxCell>
-
-        <mxCell id="f_err" value="Erreur / timeout"
-          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=12;"
-          vertex="1" parent="1">
-          <mxGeometry x="590" y="440" width="240" height="55" as="geometry"/>
+        <mxCell id="f_err" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=12;" value="Erreur / timeout" vertex="1">
+          <mxGeometry height="55" width="240" x="590" y="530" as="geometry" />
         </mxCell>
-
-        <!-- ===== STORAGE ===== -->
-        <mxCell id="s1" value="Stockage fichiers&#xa;Fichier original"
-          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=12;"
-          vertex="1" parent="1">
-          <mxGeometry x="880" y="220" width="240" height="60" as="geometry"/>
+        <mxCell id="s1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=12;" value="Stockage fichiers&#xa;Fichier original" vertex="1">
+          <mxGeometry height="60" width="240" x="880" y="220" as="geometry" />
         </mxCell>
-
-        <mxCell id="s2" value="MySQL&#xa;• métadonnées documents&#xa;• résultats IA (JSON)&#xa;• corrections HITL (audit)"
-          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=12;align=left;spacingLeft=10;"
-          vertex="1" parent="1">
-          <mxGeometry x="880" y="320" width="240" height="120" as="geometry"/>
+        <mxCell id="s2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=12;align=left;spacingLeft=10;" value="MySQL&#xa;• métadonnées documents&#xa;• résultats IA (JSON)&#xa;• corrections HITL (audit)" vertex="1">
+          <mxGeometry height="120" width="240" x="880" y="320" as="geometry" />
         </mxCell>
-
-        <!-- ===== EDGES ===== -->
-
-        <!-- React upload -> Laravel validate -->
-        <mxCell id="e1" value="multipart/form-data" edge="1" parent="1" source="r1" target="l1"
-          style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;html=1;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.5;">
-          <mxGeometry relative="1" as="geometry"/>
+        <mxCell id="e1" edge="1" parent="1" source="r1" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;html=1;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" target="l1" value="multipart/form-data">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <!-- Laravel OK chain (add OK label) -->
-        <mxCell id="e2" value="OK" edge="1" parent="1" source="l1" target="l2"
-          style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;html=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.5;entryY=0;">
-          <mxGeometry relative="1" as="geometry"/>
+        <mxCell id="e2" edge="1" parent="1" source="l1" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;html=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="l2" value="OK">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <mxCell id="e3" edge="1" parent="1" source="l2" target="l3"
-          style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;">
-          <mxGeometry relative="1" as="geometry"/>
+        <mxCell id="e3" edge="1" parent="1" source="l2" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="l3">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <mxCell id="e4" edge="1" parent="1" source="l3" target="l4"
-          style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;">
-          <mxGeometry relative="1" as="geometry"/>
+        <mxCell id="e4" edge="1" parent="1" source="l3" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="l4">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <!-- Invalid file: Laravel validation -> React error -->
-        <mxCell id="e_invalid" value="fichier invalide (400)" edge="1" parent="1" source="l1" target="r_err"
-          style="edgeStyle=orthogonalEdgeStyle;strokeColor=#B85450;endArrow=block;endFill=1;html=1;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.5;entryX=1;entryY=0.5;">
-          <mxGeometry relative="1" as="geometry"/>
+        <mxCell id="e_invalid" edge="1" parent="1" source="l1" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#B85450;endArrow=block;endFill=1;html=1;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" target="r_err" value="fichier invalide (400)">
+          <mxGeometry relative="1" x="-0.1289" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
         </mxCell>
-
-        <!-- Store file -> storage -->
-        <mxCell id="e_store_file" value="stockage fichier" edge="1" parent="1" source="l2" target="s1"
-          style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;html=1;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.5;">
-          <mxGeometry relative="1" as="geometry"/>
+        <mxCell id="e_store_file" edge="1" parent="1" source="l2" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;html=1;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" target="s1" value="stockage fichier">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <!-- Persist -->
-        <mxCell id="e_persist" value="persistance" edge="1" parent="1" source="l2" target="s2"
-          style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;html=1;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.9;entryX=0;entryY=0.2;">
-          <mxGeometry relative="1" as="geometry"/>
+        <mxCell id="e_persist" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;html=1;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.9;entryX=0;entryY=0.2;" value="">
+          <mxGeometry relative="1" x="0.0972" y="-16" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="850" y="274" />
+              <mxPoint x="850" y="345" />
+            </Array>
+            <mxPoint x="550" y="274" as="sourcePoint" />
+            <mxPoint x="880" y="345" as="targetPoint" />
+          </mxGeometry>
         </mxCell>
-
-        <!-- Call IA -->
-        <mxCell id="e_call" value="POST /process" edge="1" parent="1" source="l4" target="f1"
-          style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;html=1;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.5;">
-          <mxGeometry relative="1" as="geometry"/>
+        <mxCell id="e_call" edge="1" parent="1" source="l4" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;html=1;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" target="f1" value="POST /process">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <!-- FastAPI pipeline -> JSON -->
-        <mxCell id="e6" edge="1" parent="1" source="f1" target="f2"
-          style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;">
-          <mxGeometry relative="1" as="geometry"/>
+        <mxCell id="e6" edge="1" parent="1" source="f1" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="f2">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <!-- JSON -> Laravel save -->
-        <mxCell id="e7" value="résultat JSON" edge="1" parent="1" source="f2" target="l5"
-          style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;html=1;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.5;entryX=1;entryY=0.5;">
-          <mxGeometry relative="1" as="geometry"/>
+        <mxCell id="e7" edge="1" parent="1" source="f2" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;html=1;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" target="l5" value="résultat JSON">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <!-- Save -> processed -->
-        <mxCell id="e8" edge="1" parent="1" source="l5" target="l6"
-          style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;">
-          <mxGeometry relative="1" as="geometry"/>
+        <mxCell id="e8" edge="1" parent="1" source="l5" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="l6">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <!-- Processed -> React view -->
-        <mxCell id="e9" value="champs extraits" edge="1" parent="1" source="l6" target="r2"
-          style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;html=1;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.5;entryX=1;entryY=0.5;">
-          <mxGeometry relative="1" as="geometry"/>
+        <mxCell id="e9" edge="1" parent="1" source="l6" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;html=1;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" target="r2" value="champs extraits">
+          <mxGeometry relative="1" x="0.2464" as="geometry">
+            <mxPoint y="1" as="offset" />
+          </mxGeometry>
         </mxCell>
-
-        <!-- View -> HITL -->
-        <mxCell id="e10a" edge="1" parent="1" source="r2" target="r3"
-          style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;">
-          <mxGeometry relative="1" as="geometry"/>
+        <mxCell id="e10a" edge="1" parent="1" source="r2" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="r3">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <!-- HITL -> validated -->
-        <mxCell id="e10" value="valider / corriger" edge="1" parent="1" source="r3" target="l7"
-          style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;html=1;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.5;">
-          <mxGeometry relative="1" as="geometry"/>
+        <mxCell id="e10" edge="1" parent="1" source="r3" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;html=1;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" target="l7" value="valider / corriger">
+          <mxGeometry relative="1" x="0.2121" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
         </mxCell>
-
-        <!-- Audit corrections -->
-        <mxCell id="e_audit" value="audit" edge="1" parent="1" source="l7" target="s2"
-          style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;html=1;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.6;entryX=0;entryY=0.85;">
-          <mxGeometry relative="1" as="geometry"/>
+        <mxCell id="e_audit" edge="1" parent="1" source="l7" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;html=1;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.6;entryX=0;entryY=0.85;" target="s2" value="audit">
+          <mxGeometry relative="1" x="-0.4386" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="850" y="662" />
+              <mxPoint x="850" y="422" />
+            </Array>
+          </mxGeometry>
         </mxCell>
-
-        <!-- FastAPI error path -->
-        <mxCell id="e_f_err" value="erreur / timeout" edge="1" parent="1" source="f1" target="f_err"
-          style="edgeStyle=orthogonalEdgeStyle;strokeColor=#B85450;endArrow=block;endFill=1;html=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.5;entryY=0;">
-          <mxGeometry relative="1" as="geometry"/>
+        <mxCell id="e_f_err" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#B85450;endArrow=block;endFill=1;html=1;labelBackgroundColor=#FFFFFF;" value="&lt;div&gt;&lt;br&gt;&lt;/div&gt;">
+          <mxGeometry relative="1" x="0.75" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="750" y="370" />
+              <mxPoint x="750" y="530" />
+            </Array>
+            <mxPoint x="750" y="370" as="sourcePoint" />
+            <mxPoint x="750" y="530" as="targetPoint" />
+          </mxGeometry>
         </mxCell>
-
-        <mxCell id="e_fail" value="FAILED" edge="1" parent="1" source="f_err" target="l_fail"
-          style="edgeStyle=orthogonalEdgeStyle;strokeColor=#B85450;endArrow=block;endFill=1;html=1;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.5;entryX=1;entryY=0.5;">
-          <mxGeometry relative="1" as="geometry"/>
+        <mxCell id="e_fail" edge="1" parent="1" source="f_err" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#B85450;endArrow=block;endFill=1;html=1;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" target="l_fail" value="FAILED">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <mxCell id="e_show_err" value="afficher erreur" edge="1" parent="1" source="l_fail" target="r_err"
-          style="edgeStyle=orthogonalEdgeStyle;strokeColor=#B85450;endArrow=block;endFill=1;html=1;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.5;entryX=1;entryY=0.5;">
-          <mxGeometry relative="1" as="geometry"/>
+        <mxCell id="e_show_err" edge="1" parent="1" source="l_fail" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#B85450;endArrow=block;endFill=1;html=1;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" target="r_err" value="afficher erreur">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
       </root>
     </mxGraphModel>
   </diagram>
