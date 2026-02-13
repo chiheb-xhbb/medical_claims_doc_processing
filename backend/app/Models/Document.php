@@ -30,4 +30,14 @@ class Document extends Model
     {
         return $this->belongsTo(User::class);
     }
+    public function aiRequests()
+    {
+        return $this->hasMany(AiRequest::class);
+    }
+
+    public function extractions()
+    {
+        return $this->hasMany(Extraction::class);
+    }
+
 }
