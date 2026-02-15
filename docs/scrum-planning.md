@@ -22,17 +22,17 @@ Le **Système de Traitement des Documents Médicaux** est une plateforme web int
 | **Équipe** | 1 développeur + 1 encadrant (proxy Product Owner) |
 | **Stack technique** | Laravel + FastAPI + React + MySQL |
 
-Scrum a été choisi pour permettre des itérations rapides sur les composants IA et un feedback continu avec l’encadrant.
+Scrum a été choisi pour permettre des itérations rapides sur les composants IA et un feedback continu avec l'encadrant.
 
 ### État d'Avancement Actuel
 
 | Indicateur | Valeur |
 |------------|--------|
 | **Sprints terminés** | 3 sur 6 (Sprints 0, 1, 2) |
-| **Story Points livrés** | 51 SP sur 124 SP (41%) |
+| **Story Points livrés** | 51 SP sur 121 SP (42%) |
 | **Vélocité moyenne** | 17 SP/sprint |
 | **Sprint en cours** | Sprint 3 (IA Réelle + HITL) |
-| **Statut global** | 🟢 Conforme au planning |
+| **Statut global** | Conforme au planning |
 
 **Vélocité cumulée (SP)**
 
@@ -47,7 +47,7 @@ Scrum a été choisi pour permettre des itérations rapides sur les composants I
 
 | Release | Date Cible | Contenu |
 |---------|------------|---------|
-| **MVP (Alpha)** | ✅ Terminé | Upload, traitement async, audit |
+| **MVP (Alpha)** | Terminé | Upload, traitement async, audit |
 | **Beta** | Semaine 10 | OCR réel, HITL, authentification |
 | **v1.0 (Finale)** | Semaine 14 | Analytics, hardening, soutenance |
 
@@ -95,6 +95,7 @@ Le MVP technique prouve la faisabilité tandis que le MVP utilisateur assure une
 | **Durée totale** | ~14 semaines (3,5 mois) |
 | **Durée du Sprint** | 2 semaines |
 | **Stack technique** | Laravel (Backend) + FastAPI (IA) + React (Frontend) + MySQL |
+| **Environnement** | Développement local uniquement (pas de déploiement production) |
 
 ### 1.2 Justification du Choix de Scrum
 
@@ -142,54 +143,54 @@ Ce projet étant réalisé par un développeur unique dans un cadre académique,
 ### 2.1 Workflow Global du Système
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────────────┐
-│                        FLUX DE TRAITEMENT DES DOCUMENTS                              │
-└─────────────────────────────────────────────────────────────────────────────────────┘
++-----------------------------------------------------------------------------------+
+|                        FLUX DE TRAITEMENT DES DOCUMENTS                           |
++-----------------------------------------------------------------------------------+
 
-     ┌──────────┐      ┌──────────┐      ┌──────────┐      ┌──────────┐      ┌──────────┐
-     │          │      │          │      │          │      │          │      │          │
-     │  UPLOAD  │─────▶│  QUEUE   │─────▶│    IA    │─────▶│   HITL   │─────▶│ VALIDATED│
-     │          │      │          │      │   (OCR)  │      │          │      │          │
-     └──────────┘      └──────────┘      └──────────┘      └──────────┘      └──────────┘
-          │                 │                 │                 │                 │
-          ▼                 ▼                 ▼                 ▼                 ▼
-     ┌──────────┐      ┌──────────┐      ┌──────────┐      ┌──────────┐      ┌──────────┐
-     │ Document │      │   Job    │      │Extraction│      │Correction│      │  Dossier │
-     │  stocké  │      │ dispatché│      │  stockée │      │ auditée  │      │  finalisé│
-     └──────────┘      └──────────┘      └──────────┘      └──────────┘      └──────────┘
-          │                 │                 │                 │                 │
-          ▼                 ▼                 ▼                 ▼                 ▼
+     +----------+      +----------+      +----------+      +----------+      +----------+
+     |          |      |          |      |          |      |          |      |          |
+     |  UPLOAD  |----->|  QUEUE   |----->|    IA    |----->|   HITL   |----->| VALIDATED|
+     |          |      |          |      |   (OCR)  |      |          |      |          |
+     +----------+      +----------+      +----------+      +----------+      +----------+
+          |                 |                 |                 |                 |
+          v                 v                 v                 v                 v
+     +----------+      +----------+      +----------+      +----------+      +----------+
+     | Document |      |   Job    |      |Extraction|      |Correction|      |  Dossier |
+     |  stocké  |      | dispatché|      |  stockée |      | auditée  |      |  finalisé|
+     +----------+      +----------+      +----------+      +----------+      +----------+
+          |                 |                 |                 |                 |
+          v                 v                 v                 v                 v
        UPLOADED         PROCESSING        PROCESSED         VALIDATED          READY
 ```
 
 ### 2.2 Architecture Technique
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────────────┐
-│                              ARCHITECTURE DU SYSTÈME                                │
-└─────────────────────────────────────────────────────────────────────────────────────┘
++-----------------------------------------------------------------------------------+
+|                              ARCHITECTURE DU SYSTÈME                              |
++-----------------------------------------------------------------------------------+
 
-    ┌─────────────┐         ┌─────────────────────────────────────┐
-    │             │         │           LARAVEL API               │
-    │   REACT     │◀──────▶│  • Orchestration workflow           │
-    │  Frontend   │   REST  │  • Persistance (MySQL)              │
-    │             │   API   │  • Authentification (Sanctum)       │
-    │  :5173      │         │  • Queue management                 │
-    └─────────────┘         │                                     │
-                            │  :8000                              │
-                            └──────────────┬──────────────────────┘
-                                           │
-                                           │ HTTP (interne)
-                                           ▼
-                            ┌─────────────────────────────────────┐
-                            │          FASTAPI (IA)               │
-                            │  • OCR (Tesseract/PaddleOCR)        │
-                            │  • Extraction de champs             │
-                            │  • Calcul de confiance              │
-                            │  • Stateless (pas de DB)            │
-                            │                                     │
-                            │  :8001                              │
-                            └─────────────────────────────────────┘
+    +-------------+         +-------------------------------------+
+    |             |         |           LARAVEL API               |
+    |   REACT     |<------->|  - Orchestration workflow           |
+    |  Frontend   |   REST  |  - Persistance (MySQL)              |
+    |             |   API   |  - Authentification (Sanctum)       |
+    |  :5173      |         |  - Queue management                 |
+    +-------------+         |                                     |
+                            |  :8000                              |
+                            +--------------+----------------------+
+                                           |
+                                           | HTTP (interne)
+                                           v
+                            +-------------------------------------+
+                            |          FASTAPI (IA)               |
+                            |  - OCR (Tesseract)                  |
+                            |  - Extraction de champs             |
+                            |  - Calcul de confiance              |
+                            |  - Stateless (pas de DB)            |
+                            |                                     |
+                            |  :8001                              |
+                            +-------------------------------------+
 ```
 
 ---
@@ -207,7 +208,6 @@ Ce projet étant réalisé par un développeur unique dans un cadre académique,
 | Temps de traitement moyen | < 30 secondes/document | `ai_requests.processing_time_ms` | Par sprint |
 | Taux d'auditabilité | 100% | Tables `ai_requests` + `extractions` | Continue |
 | Taux de correction humaine | < 30% | `field_corrections` / total documents | Par sprint |
-| Disponibilité du système | > 95% | Monitoring (Phase 2) | Continue |
 | Couverture de tests | > 60% | PHPUnit + pytest | Par sprint |
 
 ### 3.3 Critères de Succès du Projet
@@ -228,7 +228,6 @@ Ce projet étant réalisé par un développeur unique dans un cadre académique,
 |-----------------|------|----------------|-------------|
 | **Agent de sinistres** | Utilisateur principal | Téléverse les documents, valide/corrige les extractions | Quotidienne |
 | **Superviseur sinistres** | Utilisateur secondaire | Examine les dossiers traités, supervise la performance | Hebdomadaire |
-| **Département IT** | Partie prenante technique | Déploiement, sécurité, infrastructure | Ponctuelle |
 | **Responsable conformité** | Partie prenante réglementaire | Assure la piste d'audit, rétention des données | Mensuelle |
 | **Encadrant PFE** | Proxy PO / Académique | Valide les livrables, guide les priorités | Bi-hebdomadaire |
 | **Étudiant développeur** | Équipe de développement | Implémente toutes les fonctionnalités | Quotidienne |
@@ -247,11 +246,11 @@ Ce projet étant réalisé par un développeur unique dans un cadre académique,
 | E4 | Validation Humaine (HITL) | Assurance qualité | 3-4 | 18 SP |
 | E5 | Authentification & Autorisation | Sécurité | 4 | 12 SP |
 | E6 | Reporting & Analytiques | Visibilité | 5 | 10 SP |
-| E7 | Durcissement & Optimisation | Production-ready | 5-6 | 9 SP |
+| E7 | Durcissement & Optimisation | Qualité production | 5-6 | 6 SP |
 | E8 | Excellence Technique | Qualité code | Continu | 9 SP |
-| | **TOTAL BACKLOG** | | | **109 SP** |
+| | **TOTAL BACKLOG** | | | **106 SP** |
 | | *+ Travaux transverses (docs, présentation, bugs)* | | | *+15 SP* |
-| | **TOTAL PROJET** | | | **124 SP** |
+| | **TOTAL PROJET** | | | **121 SP** |
 
 ### 5.2 Backlog Complet par Epic
 
@@ -314,32 +313,33 @@ Ce projet étant réalisé par un développeur unique dans un cadre académique,
 | US-028 | En tant que responsable conformité, je veux voir le pourcentage de documents nécessitant une correction humaine afin d'évaluer la précision de l'IA. | P2 | 2 | 5 |
 | US-029 | En tant que superviseur, je veux voir les documents traités par agent afin d'équilibrer les charges de travail. | P3 | 2 | 6 |
 
-#### Epic E7 : Durcissement & Optimisation (9 SP)
+#### Epic E7 : Durcissement & Optimisation (6 SP)
 
 | ID | User Story | Priorité | Points | Sprint |
 |----|------------|----------|--------|--------|
 | US-030 | En tant que système, je veux des réponses d'erreur cohérentes (format JSON) afin que le frontend puisse afficher des messages significatifs. | P2 | 2 | 5 |
 | US-031 | En tant que système, je veux limiter le débit des requêtes API afin que le système soit protégé contre les abus. | P2 | 2 | 6 |
 | US-032 | En tant que système, je veux des index sur les colonnes fréquemment requêtées afin que les temps de réponse soient rapides. | P2 | 2 | 5 |
-| US-033 | En tant que développeur, je veux des scripts Docker/déploiement afin que le système puisse être déployé de manière cohérente. | P3 | 3 | 6 |
+
+**Note :** US-033 (Configuration déploiement) retiré du backlog — hors scope PFE (environnement local uniquement).
 
 #### Epic E8 : Excellence Technique (9 SP)
 
 | ID | User Story | Priorité | Points | Sprint |
 |----|------------|----------|--------|--------|
 | TS-034 | En tant que développeur, je veux une couverture de tests > 60% pour le backend afin d'assurer la qualité et faciliter les refactorings. | P2 | 5 | 5 |
-| TS-035 | En tant que développeur, je veux des logs structurés (JSON) pour le debugging afin de diagnostiquer les problèmes en production. | P2 | 2 | 6 |
+| TS-035 | En tant que développeur, je veux des logs structurés (JSON) pour le debugging afin de diagnostiquer les problèmes. | P2 | 2 | 6 |
 | TS-036 | En tant que développeur, je veux extraire l'interface AIService pour faciliter le switch mock/réel afin de respecter le principe Open/Closed. | P2 | 2 | 3 |
 
 ### 5.3 Synthèse de Priorisation
 
 | Priorité | Description | Nb Stories | Points | % Total |
 |----------|-------------|------------|--------|---------|
-| **P0** | Indispensable pour le MVP | 11 | 39 SP | 36% |
-| **P1** | Nécessaire pour un système utilisable | 13 | 42 SP | 39% |
-| **P2** | Améliore significativement le produit | 11 | 23 SP | 21% |
-| **P3** | Nice-to-have | 3 | 5 SP | 4% |
-| **Total** | | **38** | **109 SP** | **100%** |
+| **P0** | Indispensable pour le MVP | 11 | 39 SP | 37% |
+| **P1** | Nécessaire pour un système utilisable | 13 | 42 SP | 40% |
+| **P2** | Améliore significativement le produit | 10 | 20 SP | 19% |
+| **P3** | Nice-to-have | 2 | 4 SP | 4% |
+| **Total** | | **36** | **106 SP** | **100%** |
 
 ### 5.4 Critères d'Acceptation (Exemples Clés)
 
@@ -400,109 +400,109 @@ Scénario: Affichage des champs extraits
 ### 6.1 Vue d'Ensemble
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                    ROADMAP DES SPRINTS                                      │
-├─────────┬─────────┬─────────┬─────────┬─────────┬─────────┬─────────┬─────────┬─────────────┤
-│         │ Sprint 0│ Sprint 1│ Sprint 2│ Sprint 3│ Sprint 4│ Sprint 5│ Sprint 6│             │
-│         │ Sem 1-2 │ Sem 3-4 │ Sem 5-6 │ Sem 7-8 │ Sem 9-10│ Sem11-12│ Sem13-14│             │
-├─────────┼─────────┼─────────┼─────────┼─────────┼─────────┼─────────┼─────────┼─────────────┤
-│ Objectif│Fondation│ Upload  │  Async  │IA+HITL  │  Auth   │Analytics│ Polish  │             │
-├─────────┼─────────┼─────────┼─────────┼─────────┼─────────┼─────────┼─────────┼─────────────┤
-│ Points  │  16 SP  │  16 SP  │  19 SP  │  22 SP  │  17 SP  │  20 SP  │  14 SP  │ Total:124SP │
-├─────────┼─────────┼─────────┼─────────┼─────────┼─────────┼─────────┼─────────┼─────────────┤
-│ Statut  │   ✅    │   ✅   │   ✅    │   🔄   │   ⏳    │   ⏳   │   ⏳    │             │
-├─────────┼─────────┼─────────┼─────────┼─────────┼─────────┼─────────┼─────────┼─────────────┤
-│ Release │         │         │   MVP   │         │  BETA   │         │  v1.0   │             │
-└─────────┴─────────┴─────────┴─────────┴─────────┴─────────┴─────────┴─────────┴─────────────┘
++---------------------------------------------------------------------------------------------+
+|                                    ROADMAP DES SPRINTS                                      |
++---------+---------+---------+---------+---------+---------+---------+---------+-------------+
+|         | Sprint 0| Sprint 1| Sprint 2| Sprint 3| Sprint 4| Sprint 5| Sprint 6|             |
+|         | Sem 1-2 | Sem 3-4 | Sem 5-6 | Sem 7-8 | Sem 9-10| Sem11-12| Sem13-14|             |
++---------+---------+---------+---------+---------+---------+---------+---------+-------------+
+| Objectif|Fondation| Upload  |  Async  |IA+HITL  |  Auth   |Analytics| Polish  |             |
++---------+---------+---------+---------+---------+---------+---------+---------+-------------+
+| Points  |  16 SP  |  16 SP  |  19 SP  |  22 SP  |  17 SP  |  20 SP  |  11 SP  | Total:121SP |
++---------+---------+---------+---------+---------+---------+---------+---------+-------------+
+| Statut  |  Done   |  Done   |  Done   |  WIP    | Planned | Planned | Planned |             |
++---------+---------+---------+---------+---------+---------+---------+---------+-------------+
+| Release |         |         |   MVP   |         |  BETA   |         |  v1.0   |             |
++---------+---------+---------+---------+---------+---------+---------+---------+-------------+
 ```
 
 ### 6.2 Détail par Sprint
 
-#### Sprint 0 (Semaine 1-2) — Fondation ✅ TERMINÉ
+#### Sprint 0 (Semaine 1-2) — Fondation [TERMINÉ]
 
 **Objectif :** Établir l'infrastructure du projet et la documentation d'architecture.
 
 | ID | Élément | Points | Statut |
 |----|---------|--------|--------|
-| US-001 | Configuration monorepo | 3 | ✅ |
-| US-002 | Conception base de données | 5 | ✅ |
-| US-003 | Définition contrat API | 3 | ✅ |
-| - | Documentation d'architecture | 3 | ✅ |
-| - | Création diagramme de flux | 2 | ✅ |
+| US-001 | Configuration monorepo | 3 | Done |
+| US-002 | Conception base de données | 5 | Done |
+| US-003 | Définition contrat API | 3 | Done |
+| - | Documentation d'architecture | 3 | Done |
+| - | Création diagramme de flux | 2 | Done |
 | **Total** | | **16** | |
 
 **Incrément livré :**
-- ✅ Environnement de développement fonctionnel (Laravel + FastAPI + React)
-- ✅ Documentation d'architecture figée
-- ✅ Schéma de base de données conçu
-- ✅ Diagramme de flux documenté
-- ✅ Contrat API v1 défini et gelé
+- Environnement de développement fonctionnel (Laravel + FastAPI + React)
+- Documentation d'architecture figée
+- Schéma de base de données conçu
+- Diagramme de flux documenté
+- Contrat API v1 défini et gelé
 
 **Vélocité réelle :** 16 SP
 
 ---
 
-#### Sprint 1 (Semaine 3-4) — Réception des Documents ✅ TERMINÉ
+#### Sprint 1 (Semaine 3-4) — Réception des Documents [TERMINÉ]
 
 **Objectif :** Livrer un pipeline d'upload de documents fonctionnel avec validation et stockage sécurisé.
 
 | ID | Élément | Points | Statut |
 |----|---------|--------|--------|
-| US-005 | API d'upload de documents | 5 | ✅ |
-| US-006 | Validation des fichiers | 3 | ✅ |
-| US-007 | Stockage sécurisé | 3 | ✅ |
-| US-008 | Liste des documents | 3 | ✅ |
-| US-009 | Détails du document | 2 | ✅ |
+| US-005 | API d'upload de documents | 5 | Done |
+| US-006 | Validation des fichiers | 3 | Done |
+| US-007 | Stockage sécurisé | 3 | Done |
+| US-008 | Liste des documents | 3 | Done |
+| US-009 | Détails du document | 2 | Done |
 | **Total** | | **16** | |
 
 **Incrément livré :**
-- ✅ API REST complète (POST, GET, GET list)
-- ✅ Validation fichiers (type, taille)
-- ✅ Stockage UUID + structure par date
-- ✅ Pagination fonctionnelle
+- API REST complète (POST, GET, GET list)
+- Validation fichiers (type, taille)
+- Stockage UUID + structure par date
+- Pagination fonctionnelle
 
 **Vélocité réelle :** 16 SP
 
 ---
 
-#### Sprint 2 (Semaine 5-6) — Pipeline de Traitement Asynchrone ✅ TERMINÉ
+#### Sprint 2 (Semaine 5-6) — Pipeline de Traitement Asynchrone [TERMINÉ]
 
 **Objectif :** Implémenter le traitement IA asynchrone avec système de queue et piste d'audit.
 
 | ID | Élément | Points | Statut |
 |----|---------|--------|--------|
-| TS-004 | Infrastructure de queue | 3 | ✅ |
-| US-010 | Dispatch de job asynchrone | 3 | ✅ |
-| US-011 | Intégration service IA (mock) | 5 | ✅ |
-| US-012 | Stockage des extractions | 3 | ✅ |
-| US-013 | Cycle de vie des statuts | 3 | ✅ |
-| US-014 | Mécanisme de retry | 2 | ✅ |
+| TS-004 | Infrastructure de queue | 3 | Done |
+| US-010 | Dispatch de job asynchrone | 3 | Done |
+| US-011 | Intégration service IA (mock) | 5 | Done |
+| US-012 | Stockage des extractions | 3 | Done |
+| US-013 | Cycle de vie des statuts | 3 | Done |
+| US-014 | Mécanisme de retry | 2 | Done |
 | **Total** | | **19** | |
 
 **Incrément livré :**
-- ✅ Queue database fonctionnelle
-- ✅ Job asynchrone avec ShouldBeUnique
-- ✅ Service IA mock (contrat v1)
-- ✅ Tables ai_requests + extractions
-- ✅ Workflow UPLOADED → PROCESSING → PROCESSED/FAILED
-- ✅ Retry avec backoff + failed()
+- Queue database fonctionnelle
+- Job asynchrone avec ShouldBeUnique
+- Service IA mock (contrat v1)
+- Tables ai_requests + extractions
+- Workflow UPLOADED → PROCESSING → PROCESSED/FAILED
+- Retry avec backoff + failed()
 
 **Vélocité réelle :** 19 SP
 
 ---
 
-#### Sprint 3 (Semaine 7-8) — Intégration IA Réelle + Base HITL 🔄 EN COURS
+#### Sprint 3 (Semaine 7-8) — Intégration IA Réelle + Base HITL [EN COURS]
 
 **Objectif :** Remplacer le mock par le vrai OCR FastAPI et construire l'interface de validation.
 
 | ID | Élément | Points | Statut |
 |----|---------|--------|--------|
-| US-011 | Intégration HTTP réelle FastAPI | 5 | 🔄 |
-| US-015 | Audit des échecs | 2 | ⏳ |
-| US-016 | Gardes d'idempotence | 3 | ⏳ |
-| TS-036 | Refactoring AIService | 2 | ⏳ |
-| US-017 | Affichage des extractions (React) | 5 | ⏳ |
-| US-018 | UI de correction des champs | 5 | ⏳ |
+| US-011 | Intégration HTTP réelle FastAPI | 5 | Done |
+| US-015 | Audit des échecs | 2 | Done |
+| US-016 | Gardes d'idempotence | 3 | Done |
+| TS-036 | Refactoring AIService | 2 | Done |
+| US-017 | Affichage des extractions (React) | 5 | Planned |
+| US-018 | UI de correction des champs | 5 | Planned |
 | **Total** | | **22** | |
 
 **Incrément attendu :**
@@ -512,7 +512,7 @@ Scénario: Affichage des champs extraits
 
 ---
 
-#### Sprint 4 (Semaine 9-10) — Finalisation HITL + Auth ⏳ PLANIFIÉ
+#### Sprint 4 (Semaine 9-10) — Finalisation HITL + Auth [PLANIFIÉ]
 
 **Objectif :** Compléter le flux de validation et ajouter l'authentification.
 
@@ -533,7 +533,7 @@ Scénario: Affichage des champs extraits
 
 ---
 
-#### Sprint 5 (Semaine 11-12) — Analytiques + Durcissement ⏳ PLANIFIÉ
+#### Sprint 5 (Semaine 11-12) — Analytiques + Durcissement [PLANIFIÉ]
 
 **Objectif :** Ajouter les fonctionnalités de reporting et améliorer la robustesse.
 
@@ -555,7 +555,7 @@ Scénario: Affichage des champs extraits
 
 ---
 
-#### Sprint 6 (Semaine 13-14) — Polish + Livraison ⏳ PLANIFIÉ
+#### Sprint 6 (Semaine 13-14) — Polish + Livraison [PLANIFIÉ]
 
 **Objectif :** Finitions, documentation complète et préparation de la soutenance.
 
@@ -563,15 +563,14 @@ Scénario: Affichage des champs extraits
 |----|---------|--------|
 | US-029 | Rapport performance agents | 2 |
 | US-031 | Limitation de débit | 2 |
-| US-033 | Configuration déploiement | 3 |
 | TS-035 | Logging structuré | 2 |
 | - | Documentation finale | 2 |
 | - | Préparation présentation | 2 |
 | - | Corrections de bugs | 1 |
-| **Total** | | **14** |
+| **Total** | | **11** |
 
 **Incrément attendu :**
-- Système prêt pour la production
+- Système complet et testé
 - Documentation complète
 - Prêt pour la soutenance
 
@@ -613,15 +612,15 @@ Scénario: Affichage des champs extraits
 
 ```
 Points restants
-     │
-  19 ┤████████████████████
-  17 ┤████████████████░░░░  Jour 2
-  15 ┤██████████████░░░░░░  Jour 3
-  12 ┤███████████░░░░░░░░░  Jour 5
-   8 ┤███████░░░░░░░░░░░░░  Jour 7
-   4 ┤███░░░░░░░░░░░░░░░░░  Jour 9
-   0 ┤░░░░░░░░░░░░░░░░░░░░  Jour 10 ✅
-     └────────────────────────────────
+     |
+  19 +####################
+  17 +################....  Jour 2
+  15 +##############......  Jour 3
+  12 +###########.........  Jour 5
+   8 +#######.............  Jour 7
+   4 +###.................  Jour 9
+   0 +....................  Jour 10 Done
+     +------------------------------------
        1  2  3  4  5  6  7  8  9  10  Jours
 ```
 
@@ -633,28 +632,28 @@ Points restants
 
 | Critère | Description |
 |---------|-------------|
-| ✅ Code | Implémenté selon les conventions Laravel/Python |
-| ✅ Acceptation | Critères d'acceptation vérifiés (Gherkin) |
-| ✅ Tests | Tests unitaires/fonctionnels écrits et passent |
-| ✅ Revue | Code auto-revu (checklist qualité) |
-| ✅ Documentation | Endpoints API documentés (Postman) |
-| ✅ Migrations | Committées et exécutées |
-| ✅ Frontend | Aucune erreur console |
-| ✅ Manuel | Tests manuels effectués |
-| ✅ Performance | Aucune requête N+1 détectée |
-| ✅ Devlog | Mis à jour avec détails d'implémentation |
+| Code | Implémenté selon les conventions Laravel/Python |
+| Acceptation | Critères d'acceptation vérifiés (Gherkin) |
+| Tests | Tests unitaires/fonctionnels écrits et passent |
+| Revue | Code auto-revu (checklist qualité) |
+| Documentation | Endpoints API documentés (Postman) |
+| Migrations | Committées et exécutées |
+| Frontend | Aucune erreur console |
+| Manuel | Tests manuels effectués |
+| Performance | Aucune requête N+1 détectée |
+| Devlog | Mis à jour avec détails d'implémentation |
 
 ### 8.2 Niveau Sprint
 
 | Critère | Description |
 |---------|-------------|
-| ✅ Stories | Toutes respectent la DoD story |
-| ✅ Déploiement | Incrément déployé en environnement local |
-| ✅ Devlog | Sprint devlog complété et pushé |
-| ✅ Bugs | Aucun bug critique restant |
-| ✅ Tests | Couverture maintenue ou améliorée |
-| ✅ Review | Démo superviseur effectuée |
-| ✅ Retro | Rétrospective documentée |
+| Stories | Toutes respectent la DoD story |
+| Déploiement | Incrément fonctionnel en environnement local |
+| Devlog | Sprint devlog complété et pushé |
+| Bugs | Aucun bug critique restant |
+| Tests | Couverture maintenue ou améliorée |
+| Review | Démo superviseur effectuée |
+| Retro | Rétrospective documentée |
 
 ### 8.3 Niveau Release
 
@@ -676,23 +675,23 @@ Points restants
 
 | ID | Risque | Prob. | Impact | Score | Mitigation | Statut |
 |----|--------|-------|--------|-------|------------|--------|
-| R1 | Précision IA/OCR trop faible | Moyenne | Élevé | 🔴 | HITL pour rattraper ; suivre confiance ; itérer OCR | 🟡 Surveillance |
-| R2 | Échecs de queue | Faible | Élevé | 🟡 | Retry logic ; audit dans ai_requests ; monitorer failed_jobs | ✅ Mitigé |
-| R3 | FastAPI indisponible | Moyenne | Élevé | 🔴 | Circuit breaker ; fallback mock ; retry backoff | ✅ Mitigé |
-| R4 | Cohérence des données | Faible | Élevé | 🟡 | Transactions DB ; idempotence ; contraintes unique | ✅ Mitigé |
-| R5 | Dégradation performance | Moyenne | Moyen | 🟡 | Index ; optimiser requêtes ; monitorer processing_time | 🟡 Surveillance |
-| R6 | Dérive du périmètre | Élevée | Moyen | 🟡 | MVP strict ; reporter P2/P3 ; suivre sprint plan | ✅ Contrôlé |
-| R7 | Dépassement délai | Moyenne | Critique | 🔴 | Sprint tampon ; prioriser core ; suivi quotidien | 🟡 Surveillance |
-| R8 | Vulnérabilités sécurité | Faible | Élevé | 🟡 | Validation entrées ; auth endpoints ; pas de data sensible | ⏳ Sprint 4 |
+| R1 | Précision IA/OCR trop faible | Moyenne | Élevé | Élevé | HITL pour rattraper ; suivre confiance ; itérer OCR | Surveillance |
+| R2 | Échecs de queue | Faible | Élevé | Moyen | Retry logic ; audit dans ai_requests ; monitorer failed_jobs | Mitigé |
+| R3 | FastAPI indisponible | Moyenne | Élevé | Élevé | Circuit breaker ; fallback mock ; retry backoff | Mitigé |
+| R4 | Cohérence des données | Faible | Élevé | Moyen | Transactions DB ; idempotence ; contraintes unique | Mitigé |
+| R5 | Dégradation performance | Moyenne | Moyen | Moyen | Index ; optimiser requêtes ; monitorer processing_time | Surveillance |
+| R6 | Dérive du périmètre | Élevée | Moyen | Moyen | MVP strict ; reporter P2/P3 ; suivre sprint plan | Contrôlé |
+| R7 | Dépassement délai | Moyenne | Critique | Élevé | Sprint tampon ; prioriser core ; suivi quotidien | Surveillance |
+| R8 | Vulnérabilités sécurité | Faible | Élevé | Moyen | Validation entrées ; auth endpoints ; pas de data sensible | Sprint 4 |
 
-### 9.2 Matrice Probabilité × Impact
+### 9.2 Matrice Probabilité x Impact
 
 ```
-              │   Faible      Moyen       Élevé      Critique
-──────────────┼─────────────────────────────────────────────────
-   Élevée     │    🟢          🟡          🔴          🔴
-   Moyenne    │    🟢          🟡          🔴          🔴
-   Faible     │    🟢          🟢          🟡          🟡
+              |   Faible      Moyen       Élevé      Critique
+--------------+-----------------------------------------------------
+   Élevée     |   Faible      Moyen       Élevé      Élevé
+   Moyenne    |   Faible      Moyen       Élevé      Élevé
+   Faible     |   Faible      Faible      Moyen      Moyen
 ```
 
 ### 9.3 Plan de Réponse aux Risques
@@ -700,7 +699,7 @@ Points restants
 | Risque | Déclencheur | Action | Responsable |
 |--------|-------------|--------|-------------|
 | R1 | Taux correction > 30% | Ajuster paramètres OCR ; ajouter prétraitement | Dev |
-| R3 | Timeout FastAPI > 3× | Activer mode mock ; investiguer | Dev |
+| R3 | Timeout FastAPI > 3x | Activer mode mock ; investiguer | Dev |
 | R6 | Vélocité < 15 SP | Reporter P2/P3 ; focus P0/P1 | Dev/PO |
 | R7 | Retard > 1 sprint | Mode "essentiel uniquement" | Dev/PO |
 
@@ -712,13 +711,13 @@ Points restants
 
 | Sprint | Prévue | Réelle | Écart | Commentaire |
 |--------|--------|--------|-------|-------------|
-| Sprint 0 | 16 SP | 16 SP | 0% | ✅ Conforme |
-| Sprint 1 | 16 SP | 16 SP | 0% | ✅ Conforme |
-| Sprint 2 | 19 SP | 19 SP | 0% | ✅ Conforme |
-| Sprint 3 | 20 SP | - | - | 🔄 En cours |
-| Sprint 4 | 17 SP | - | - | ⏳ Planifié |
-| Sprint 5 | 20 SP | - | - | ⏳ Planifié |
-| Sprint 6 | 17 SP | - | - | ⏳ Planifié |
+| Sprint 0 | 16 SP | 16 SP | 0% | Conforme |
+| Sprint 1 | 16 SP | 16 SP | 0% | Conforme |
+| Sprint 2 | 19 SP | 19 SP | 0% | Conforme |
+| Sprint 3 | 22 SP | - | - | En cours |
+| Sprint 4 | 17 SP | - | - | Planifié |
+| Sprint 5 | 20 SP | - | - | Planifié |
+| Sprint 6 | 11 SP | - | - | Planifié |
 
 ### 10.2 Analyse de Vélocité
 
@@ -732,54 +731,54 @@ Vélocité moyenne (Sprints 0-2) = (16 + 16 + 19) / 3 = 17 SP/sprint
 
 ```
 Capacité du Sprint :
-├─ Jours ouvrés par sprint          : 10 jours
-├─ Heures de développement par jour : 6 heures
-├─ Vélocité estimée                 : 2-3 SP/jour
-├─ Capacité brute                   : 20-25 SP
-├─ Buffer (réunions, blocages)      : -5 SP
-└─ Capacité finale                  : 20 SP/sprint
++-- Jours ouvrés par sprint          : 10 jours
++-- Heures de développement par jour : 6 heures
++-- Vélocité estimée                 : 2-3 SP/jour
++-- Capacité brute                   : 20-25 SP
++-- Buffer (réunions, blocages)      : -5 SP
++-- Capacité finale                  : 20 SP/sprint
 ```
 
 ### 10.4 Plan de Release
 
 | Release | Sprints | Points | Date Cible | Contenu |
 |---------|---------|--------|------------|---------|
-| **MVP (Alpha)** | 0-2 | 51 SP | ✅ Terminé | Upload, traitement async, audit |
+| **MVP (Alpha)** | 0-2 | 51 SP | Terminé | Upload, traitement async, audit |
 | **Beta** | 3-4 | 39 SP | Semaine 10 | OCR réel, HITL complet, auth |
-| **v1.0 (Finale)** | 5-6 | 34 SP | Semaine 14 | Analytics, hardening, soutenance |
-| **Total** | 0-6 | **124 SP** | | |
+| **v1.0 (Finale)** | 5-6 | 31 SP | Semaine 14 | Analytics, hardening, soutenance |
+| **Total** | 0-6 | **121 SP** | | |
 
 ### 10.5 Burnup Chart Projet
 
 ```
 Points cumulés
-     │
- 124 ┤                                        ┌──── v1.0
-  90 ┤                              ┌─────────┘ Beta
-  73 ┤                    ┌─────────┘
-  51 ┤          ┌─────────┘
-  51 ┤──────────┘ MVP ✅
-  32 ┤────┐
-  16 ┤────┘
-   0 ┤
-     └────────────────────────────────────────────
+     |
+ 121 +                                        +---- v1.0
+  90 +                              +---------+ Beta
+  73 +                    +---------+
+  51 +          +---------+
+  51 +----------+ MVP Done
+  32 +----+
+  16 +----+
+   0 +
+     +--------------------------------------------
        S0   S1   S2   S3   S4   S5   S6   Sprints
-       ──── Réalisé     ---- Prévu
+       ---- Réalisé     .... Prévu
 ```
 
 ---
 
 ## 11. Stratégie de Livraison Incrémentale
 
-### Phase 1 — MVP (Sprints 0-2) ✅ TERMINÉ
+### Phase 1 — MVP (Sprints 0-2) [TERMINÉ]
 
 **Objectif :** Pipeline core fonctionnel de bout en bout
 
 ```
-┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
-│  Upload  │──▶│   Queue  │───▶│ AI Mock │───▶│Extraction│───▶│  Status │
-│   API    │    │   Job    │    │          │    │  Stored  │    │ Tracked  │
-└──────────┘    └──────────┘    └──────────┘    └──────────┘    └──────────┘
++----------+    +----------+    +----------+    +----------+    +----------+
+|  Upload  |--->|   Queue  |--->| AI Mock  |--->|Extraction|--->|  Status  |
+|   API    |    |   Job    |    |          |    |  Stored  |    | Tracked  |
++----------+    +----------+    +----------+    +----------+    +----------+
 ```
 
 **Valeur livrée :**
@@ -790,21 +789,21 @@ Points cumulés
 
 ---
 
-### Phase 2 — Beta (Sprints 3-4) 🔄 EN COURS
+### Phase 2 — Beta (Sprints 3-4) [EN COURS]
 
 **Objectif :** Système utilisable avec OCR réel et validation humaine
 
 ```
-┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐      ┌──────────┐
-│  Upload  │──▶│ OCR Réel  │──▶│Extraction│──▶│   HITL   │─────▶│VALIDATED │
-│   API    │    │ FastAPI  │    │ Affichée │    │Correction│      │  Status  │
-└──────────┘    └──────────┘    └─────────┘     └──────────┘      └──────────┘
-                                                      │
-                                                      ▼
-                                               ┌──────────┐
-                                               │  Audit   │
-                                               │ History  │
-                                               └──────────┘
++----------+    +----------+    +----------+    +----------+    +----------+
+|  Upload  |--->| OCR Réel |--->|Extraction|--->|   HITL   |--->|VALIDATED |
+|   API    |    | FastAPI  |    | Affichée |    |Correction|    |  Status  |
++----------+    +----------+    +----------+    +----------+    +----------+
+                                                      |
+                                                      v
+                                               +----------+
+                                               |  Audit   |
+                                               | History  |
+                                               +----------+
 ```
 
 **Valeur livrée :**
@@ -815,18 +814,18 @@ Points cumulés
 
 ---
 
-### Phase 3 — v1.0 (Sprints 5-6) ⏳ PLANIFIÉ
+### Phase 3 — v1.0 (Sprints 5-6) [PLANIFIÉ]
 
-**Objectif :** Production-ready avec dashboard et documentation
+**Objectif :** Système complet avec dashboard et documentation
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                           SYSTÈME COMPLET                               │
-├─────────────────────────────────────────────────────────────────────────┤
-│  Upload → OCR → Extraction → HITL → Validation → Analytics → Reporting  │
-├─────────────────────────────────────────────────────────────────────────┤
-│  + Rôles     + Dashboard     + Performance     + Documentation          │
-└─────────────────────────────────────────────────────────────────────────┘
++-------------------------------------------------------------------------+
+|                           SYSTÈME COMPLET                               |
++-------------------------------------------------------------------------+
+|  Upload -> OCR -> Extraction -> HITL -> Validation -> Analytics         |
++-------------------------------------------------------------------------+
+|  + Rôles     + Dashboard     + Performance     + Documentation          |
++-------------------------------------------------------------------------+
 ```
 
 **Valeur livrée :**
@@ -858,7 +857,7 @@ Points cumulés
 
 | ID | Description | Origine | Impact | Résolution Prévue |
 |----|-------------|---------|--------|-------------------|
-| TD-001 | Remplacer mock AIService par HTTP réel | Sprint 2 | Élevé | Sprint 3 |
+| TD-001 | Remplacer mock AIService par HTTP réel | Sprint 2 | Élevé | Sprint 3 (Done) |
 | TD-002 | Ajouter API Resources pour formatage | Sprint 1 | Faible | Phase 2 |
 | TD-003 | Implémenter couche de cache | - | Moyen | Post-MVP |
 | TD-004 | Supprimer temp_path de la réponse FastAPI | Sprint 1 | Moyen | Sprint 3 |
@@ -880,10 +879,10 @@ Points cumulés
 
 | Sprint | Jours PFE | Devlog | Statut |
 |--------|-----------|--------|--------|
-| Sprint 0 | Day 1-2 | `2026-02-07.md`, `2026-02-08.md` | ✅ Terminé |
-| Sprint 1 | Day 3 | `2026-02-12.md` | ✅ Terminé |
-| Sprint 2 | Day 4 | `2026-02-13.md` | ✅ Terminé |
-| Sprint 3 | Day 5-6 | En cours | 🔄 En cours |
+| Sprint 0 | Day 1-2 | `2026-02-07.md`, `2026-02-08.md` | Terminé |
+| Sprint 1 | Day 3 | `2026-02-12.md` | Terminé |
+| Sprint 2 | Day 4 | `2026-02-13.md` | Terminé |
+| Sprint 3 | Day 5-6 | `2026-02-14.md` | En cours |
 
 ### 14.2 Artefacts du Projet
 
@@ -892,7 +891,7 @@ Points cumulés
 | Code source | `backend/`, `frontend/`, `ai/` | Code applicatif |
 | Documentation | `docs/` | Documentation technique |
 | Architecture | `docs/architecture.md` | Décisions architecturales |
-| Contrat API | `docs/api-contract.md` | Contrat Laravel ↔ FastAPI |
+| Contrat API | `docs/api-contract.md` | Contrat Laravel - FastAPI |
 | Schéma DB | `docs/database-design.md` | Modèle de données |
 | Devlogs | `docs/DEVLOG/` | Journal de développement |
 | Diagrammes | `docs/DIAGRAMS/` | Schémas et flux |
@@ -921,6 +920,17 @@ Points cumulés
 | **SP** | Story Points — Unité d'estimation de complexité |
 | **DoD** | Definition of Done — Critères de terminaison |
 | **PO** | Product Owner — Responsable du backlog produit |
+
+### 14.5 Scope Exclusions
+
+Les éléments suivants sont explicitement hors scope pour ce PFE :
+
+| Élément | Raison |
+|---------|--------|
+| Déploiement production | Environnement local suffisant pour démonstration académique |
+| Configuration Docker/CI-CD | Non requis pour validation PFE |
+| Infrastructure cloud | Complexité hors périmètre académique |
+| Monitoring production | Non applicable sans déploiement |
 
 ---
 
