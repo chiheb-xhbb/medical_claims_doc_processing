@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\DocumentController;
+use App\Http\Controllers\Api\DocumentValidationController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -22,4 +23,6 @@ Route::prefix('documents')->group(function () {
     Route::post('/', [DocumentController::class, 'store']);
     Route::get('/', [DocumentController::class, 'index']);
     Route::get('/{document}', [DocumentController::class, 'show']);
+    Route::post('/{document}/validate', [DocumentValidationController::class, 'validateDocument']);
 });
+

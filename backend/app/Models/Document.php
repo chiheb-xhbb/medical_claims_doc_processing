@@ -40,4 +40,9 @@ class Document extends Model
         return $this->hasMany(Extraction::class);
     }
 
+    public function fieldCorrections()
+    {
+        return $this->hasMany(FieldCorrection::class);
+    }
+
 }
