@@ -11,6 +11,7 @@ import uuid
 from typing import Optional
 from datetime import datetime
 
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 app = FastAPI(title="Medical Document Processing API")
 
 # CORS for local development
