@@ -158,18 +158,26 @@ function DocumentValidation() {
   // Get status badge class based on document status
   const getStatusBadgeClass = (status) => {
     switch (status?.toUpperCase()) {
-      case 'VALIDATED':
-        return 'bg-success';
+      case 'UPLOADED':
+        return 'bg-secondary';
+  
+      case 'PROCESSING':
+        return 'bg-info text-dark';
+  
       case 'PROCESSED':
         return 'bg-warning text-dark';
-      case 'PENDING':
-        return 'bg-secondary';
+  
+      case 'VALIDATED':
+        return 'bg-success';
+  
       case 'FAILED':
         return 'bg-danger';
+  
       default:
         return 'bg-secondary';
     }
   };
+  
 
   // Check if a field has low confidence
   const isLowConfidence = (fieldKey) => {
@@ -241,7 +249,7 @@ function DocumentValidation() {
                     <div className="d-flex align-items-center gap-3 mt-2">
                       <span className="d-flex align-items-center" style={{ opacity: 0.9 }}>
                         <i className="bi bi-file-earmark me-1"></i>
-                        {document.filename}
+                        {document.original_filename}
                       </span>
                       {document.file_size && (
                         <span className="d-flex align-items-center" style={{ opacity: 0.75, fontSize: '0.875rem' }}>
@@ -456,10 +464,23 @@ function DocumentValidation() {
                                   type={fieldType}
                                   className="form-control form-control-lg"
                                   value={fieldValue ?? ''}
-                                  onChange={(e) => handleFieldChange(
-                                    fieldKey,
-                                    fieldType === 'number' ? parseFloat(e.target.value) || '' : e.target.value
-                                  )}
+                                  onChange={(e) => {
+                                    let v = e.target.value;
+                                  
+                                    if (fieldType === 'number') {
+                                      v = v.replace(',', '.');
+                                      const num = v === '' ? null : Number(v);
+                                      handleFieldChange(fieldKey, Number.isFinite(num) ? num : null);
+                                      return;
+                                    }
+                                  
+                                    if (fieldType === 'date') {
+                                      handleFieldChange(fieldKey, v === '' ? null : v);
+                                      return;
+                                    }
+                                  
+                                    handleFieldChange(fieldKey, v);
+                                  }}                                                              
                                   step={fieldType === 'number' ? '0.01' : undefined}
                                   disabled={isValidated}
                                   style={{
