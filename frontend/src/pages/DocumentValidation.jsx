@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ConfidenceBadge from '../components/ConfidenceBadge';
 
@@ -66,6 +66,7 @@ const styles = {
 
 function DocumentValidation() {
   const { id } = useParams();
+  const navigate = useNavigate();
 
   // State management
   const [document, setDocument] = useState(null);
@@ -134,14 +135,27 @@ function DocumentValidation() {
       setError(null);
       setSuccessMessage(null);
 
+      // Convert empty strings to null
+      const cleanedFields = Object.fromEntries(
+        Object.entries(editedFields).map(([key, value]) => [
+          key,
+          value === '' ? null : value
+        ])
+      );
+
       await axios.post(`${API_BASE_URL}/documents/${id}/validate`, {
-        fields: editedFields
+        fields: cleanedFields
       });
 
       setSuccessMessage('Document validated successfully! The extraction has been confirmed.');
 
       // Refetch document to get updated status
       await fetchDocument();
+
+      // Redirect to documents list after 2 seconds
+      setTimeout(() => {
+        navigate('/documents');
+      }, 2000);
     } catch (err) {
       if (err.response?.status === 400) {
         setError(err.response?.data?.message || 'Validation failed. Please check the field values.');
