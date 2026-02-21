@@ -24,7 +24,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
 });
 
-Route::prefix('documents')->group(function () {
+Route::middleware('auth:sanctum')->prefix('documents')->group(function () {
     Route::post('/', [DocumentController::class, 'store']);
     Route::get('/', [DocumentController::class, 'index']);
     Route::get('/{document}', [DocumentController::class, 'show']);

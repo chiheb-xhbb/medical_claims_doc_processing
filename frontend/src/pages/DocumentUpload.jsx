@@ -1,8 +1,7 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../services/api';
 
-const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
 // Allowed file types
 const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'application/pdf'];
@@ -83,7 +82,7 @@ function DocumentUpload() {
       const formData = new FormData();
       formData.append('file', file);
 
-      await axios.post(`${API_BASE_URL}/documents`, formData, {
+      await api.post('/documents', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }

@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../services/api';
 
-const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
 // Status badge configuration
 const STATUS_CONFIG = {
@@ -31,7 +30,7 @@ function DocumentsList() {
   const fetchDocuments = async (page = currentPage) => {
     try {
       setError(null);
-      const response = await axios.get(`${API_BASE_URL}/documents?page=${page}`);
+      const response = await api.get(`/documents?page=${page}`);
       const data = response.data;
 
       setDocuments(data.data || []);

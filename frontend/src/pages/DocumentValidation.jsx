@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../services/api';
 import ConfidenceBadge from '../components/ConfidenceBadge';
 
-const API_BASE_URL = 'http://127.0.0.1:8000/api';
+
 
 // Field label mapping for display
 const FIELD_LABELS = {
@@ -84,7 +84,7 @@ function DocumentValidation() {
       setIsLoading(true);
       setError(null);
 
-      const response = await axios.get(`${API_BASE_URL}/documents/${id}`);
+      const response = await api.get(`/documents/${id}`);
       const doc = response.data;
 
       setDocument(doc);
@@ -143,7 +143,7 @@ function DocumentValidation() {
         ])
       );
 
-      await axios.post(`${API_BASE_URL}/documents/${id}/validate`, {
+      await api.post(`/documents/${id}/validate`, {
         fields: cleanedFields
       });
 
