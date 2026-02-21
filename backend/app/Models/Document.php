@@ -19,11 +19,14 @@ class Document extends Model
         'status',
         'error_message',
         'user_id',
+        'validated_by',
+        'validated_at',
     ];
 
     protected $casts = [
         'status' => DocumentStatus::class,
         'file_size' => 'integer',
+        'validated_at' => 'datetime',
     ];
 
     public function user()

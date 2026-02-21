@@ -77,6 +77,7 @@ function DocumentValidation() {
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState(null);
+  const [businessWarnings, setBusinessWarnings] = useState([]);
 
   // Fetch document data from API
   const fetchDocument = useCallback(async () => {
@@ -134,6 +135,7 @@ function DocumentValidation() {
       setIsSubmitting(true);
       setError(null);
       setSuccessMessage(null);
+      setBusinessWarnings([]);
 
       // Convert empty strings to null
       const cleanedFields = Object.fromEntries(
@@ -143,10 +145,11 @@ function DocumentValidation() {
         ])
       );
 
-      await api.post(`/documents/${id}/validate`, {
+      const response = await api.post(`/documents/${id}/validate`, {
         fields: cleanedFields
       });
 
+      setBusinessWarnings(response.data?.warnings || []);
       setSuccessMessage('Document validated successfully! The extraction has been confirmed.');
 
       // Refetch document to get updated status
@@ -161,6 +164,14 @@ function DocumentValidation() {
         setError(err.response?.data?.message || 'Validation failed. Please check the field values.');
       } else if (err.response?.status === 404) {
         setError('Document not found.');
+      } else if (err.response?.status === 422) {
+        const data = err.response?.data;
+        const errors = data?.errors || {};
+        if (errors.total_ttc && Array.isArray(errors.total_ttc) && errors.total_ttc.length > 0) {
+          setError(errors.total_ttc[0]);
+        } else {
+          setError(data?.message || 'Validation failed. Please check the field values.');
+        }
       } else {
         setError(err.response?.data?.message || 'Failed to validate document. Please try again.');
       }
@@ -302,6 +313,25 @@ function DocumentValidation() {
                   <div>
                     <h6 className="alert-heading mb-1 fw-semibold">Validation Successful</h6>
                     <p className="mb-0">{successMessage}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Business Validation Warnings */}
+              {businessWarnings.length > 0 && (
+                <div 
+                  className="alert alert-warning d-flex align-items-start p-4 mb-4 shadow-sm" 
+                  role="alert"
+                  style={{ borderRadius: '10px', borderLeft: '4px solid #ffc107' }}
+                >
+                  <i className="bi bi-exclamation-triangle-fill me-3 fs-4 text-warning"></i>
+                  <div className="flex-grow-1">
+                    <h6 className="alert-heading mb-2 fw-semibold">Business Validation Warnings</h6>
+                    <ul className="mb-0 ps-3">
+                      {businessWarnings.map((warning, index) => (
+                        <li key={index} className="mb-1">{warning}</li>
+                      ))}
+                    </ul>
                   </div>
                 </div>
               )}
@@ -603,9 +633,15 @@ function DocumentValidation() {
                       <strong>Created:</strong> {document.created_at ? new Date(document.created_at).toLocaleString() : 'N/A'}
                     </span>
                   </div>
-                  <div className="col-sm-6 d-flex align-items-center justify-content-sm-end mt-2 mt-sm-0">
-                    <i className="bi bi-arrow-repeat me-2" style={{ fontSize: '1rem' }}></i>
-                    <span>
+                  <div className="col-sm-6 d-flex align-items-center justify-content-sm-end mt-2 mt-sm-0 flex-wrap gap-2">
+                    {document.validated_at && (
+                      <span className="d-flex align-items-center">
+                        <i className="bi bi-shield-check me-2" style={{ fontSize: '1rem' }}></i>
+                        <strong>Validated:</strong> {new Date(document.validated_at).toLocaleString()}
+                      </span>
+                    )}
+                    <span className="d-flex align-items-center">
+                      <i className="bi bi-arrow-repeat me-2" style={{ fontSize: '1rem' }}></i>
                       <strong>Updated:</strong> {document.updated_at ? new Date(document.updated_at).toLocaleString() : 'N/A'}
                     </span>
                   </div>

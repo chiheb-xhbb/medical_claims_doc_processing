@@ -8,6 +8,7 @@ use App\Models\Document;
 use App\Models\FieldCorrection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class DocumentValidationController extends Controller
 {
@@ -66,6 +67,31 @@ class DocumentValidationController extends Controller
             );
 
             $newFields = array_merge($originalFields, $inputFields);
+            // Step 2.3.1 — Business Rules Validation
+            $warnings = [];
+
+            $invoiceDate = $newFields['invoice_date'] ?? null;
+            $totalTTC = $newFields['total_ttc'] ?? null;
+
+            // Rule 1 — Future invoice date (warning)
+            if ($invoiceDate && Carbon::parse($invoiceDate)->isFuture()) {
+                $warnings[] = 'Invoice date is in the future.';
+            }
+
+            // Rule 2 — Negative or zero amount (blocking error)
+            if (!is_null($totalTTC) && $totalTTC <= 0) {
+                return response()->json([
+                    'message' => 'Invalid amount: must be greater than 0.',
+                    'errors' => [
+                        'total_ttc' => ['Amount must be positive.']
+                    ]
+                ], 422);
+            }
+
+            // Rule 3 — High amount flag (warning)
+            if (!is_null($totalTTC) && $totalTTC > 10000) {
+                $warnings[] = 'High amount detected: requires supervisor review.';
+            }
 
             // Step 2.4 — Record only the fields that changed for audit
             foreach ($allowedFields as $fieldName) {
@@ -104,14 +130,19 @@ class DocumentValidationController extends Controller
             $document->update([
                 'status' => DocumentStatus::VALIDATED,
                 'error_message' => null,
+                'validated_by' => auth()->id(),
+                'validated_at' => now(),
             ]);
 
             // Step 3 — Return the updated document and latest extraction
             return response()->json([
                 'message' => 'Document validated successfully.',
+                'warnings' => $warnings,
                 'document' => [
                     'id' => $document->id,
                     'status' => $document->status->value,
+                    'validated_by' => $document->validated_by,
+                    'validated_at' => $document->validated_at,
                 ],
                 'latest_extraction' => array_merge(
                     ['version' => $newExtraction->version],
