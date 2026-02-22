@@ -28,10 +28,10 @@ Scrum a été choisi pour permettre des itérations rapides sur les composants I
 
 | Indicateur | Valeur |
 |------------|--------|
-| **Sprints terminés** | 3 sur 6 (Sprints 0, 1, 2) |
-| **Story Points livrés** | 51 SP sur 121 SP (42%) |
-| **Vélocité moyenne** | 17 SP/sprint |
-| **Sprint en cours** | Sprint 3 (IA Réelle + HITL) |
+| **Sprints terminés** | 5 sur 6 (Sprints 0 à 4) |
+| **Story Points livrés** | 97 SP sur 128 SP (76%) |
+| **Vélocité moyenne** | 19,4 SP/sprint |
+| **Sprint en cours** | Sprint 5 (Analytiques + Durcissement) |
 | **Statut global** | Conforme au planning |
 
 **Vélocité cumulée (SP)**
@@ -42,14 +42,15 @@ Scrum a été choisi pour permettre des itérations rapides sur les composants I
 | Sprint 1 | 16 | 32 |
 | Sprint 2 | 19 | 51 |
 | Sprint 3 | 22 | 73 |
+| Sprint 4 | 24 | 97 |
 
 ### Jalons Clés
 
-| Release | Date Cible | Contenu |
+| Version | Date cible | Contenu |
 |---------|------------|---------|
 | **MVP (Alpha)** | Terminé | Upload, traitement async, audit |
 | **Beta** | Semaine 10 | OCR réel, HITL, authentification |
-| **v1.0 (Finale)** | Semaine 14 | Analytics, hardening, soutenance |
+| **v1.0 (Finale)** | Semaine 14 | Analytiques, durcissement, soutenance |
 
 ### Clarification MVP
 
@@ -75,7 +76,7 @@ Le MVP technique prouve la faisabilité tandis que le MVP utilisateur assure une
 7. [Sprint Backlog Détaillé](#7-sprint-backlog-détaillé)
 8. [Définition de Terminé](#8-définition-de-terminé)
 9. [Registre des Risques](#9-registre-des-risques)
-10. [Vélocité et Planification de Release](#10-vélocité-et-planification-de-release)
+10. [Vélocité et planification de version](#10-vélocité-et-planification-de-version)
 11. [Stratégie de Livraison Incrémentale](#11-stratégie-de-livraison-incrémentale)
 12. [Cérémonies Scrum](#12-cérémonies-scrum)
 13. [Dette Technique](#13-dette-technique)
@@ -123,10 +124,10 @@ Ce projet étant réalisé par un développeur unique dans un cadre académique,
 | **Équipe de développement** | 1 développeur (étudiant) |
 | **Product Owner** | Encadrant PFE (proxy PO) — valide les priorités et incréments |
 | **Scrum Master** | Auto-organisation — l'étudiant gère le processus |
-| **Daily Standup** | Auto-évaluation quotidienne (5 min) — revue progression/blocages |
-| **Sprint Review** | Démo bi-hebdomadaire à l'encadrant |
-| **Sprint Retrospective** | Réflexion personnelle documentée dans le devlog |
-| **Backlog Refinement** | Session hebdomadaire solo — clarification des stories à venir |
+| **Point quotidien** | Auto-évaluation quotidienne (5 min) — revue progression / blocages |
+| **Revue de sprint** | Démo bi-hebdomadaire à l'encadrant |
+| **Rétrospective** | Réflexion personnelle documentée dans le devlog |
+| **Affinage du backlog** | Session hebdomadaire solo — clarification des stories à venir |
 
 **Justification :** Cette adaptation maintient les bénéfices de Scrum (itérations, feedback, amélioration continue) tout en étant réaliste pour un contexte de projet individuel.
 
@@ -243,14 +244,14 @@ Ce projet étant réalisé par un développeur unique dans un cadre académique,
 | E1 | Infrastructure & Architecture | Fondation technique | 0 | 14 SP |
 | E2 | Pipeline de Réception | Upload et stockage | 1 | 16 SP |
 | E3 | Pipeline de Traitement IA | Extraction automatisée | 2-3 | 21 SP |
-| E4 | Validation Humaine (HITL) | Assurance qualité | 3-4 | 18 SP |
+| E4 | Validation Humaine (HITL) | Assurance qualité | 3-4 | 25 SP |
 | E5 | Authentification & Autorisation | Sécurité | 4 | 12 SP |
 | E6 | Reporting & Analytiques | Visibilité | 5 | 10 SP |
 | E7 | Durcissement & Optimisation | Qualité production | 5-6 | 6 SP |
 | E8 | Excellence Technique | Qualité code | Continu | 9 SP |
-| | **TOTAL BACKLOG** | | | **106 SP** |
+| | **TOTAL BACKLOG** | | | **113 SP** |
 | | *+ Travaux transverses (docs, présentation, bugs)* | | | *+15 SP* |
-| | **TOTAL PROJET** | | | **121 SP** |
+| | **TOTAL PROJET** | | | **128 SP** |
 
 ### 5.2 Backlog Complet par Epic
 
@@ -285,7 +286,7 @@ Ce projet étant réalisé par un développeur unique dans un cadre académique,
 | US-015 | En tant que système, je veux enregistrer les tentatives de traitement échouées dans ai_requests afin que les échecs soient traçables. | P1 | 2 | 3 |
 | US-016 | En tant que système, je veux empêcher le traitement en double du même document afin que les extractions ne soient pas dupliquées. | P1 | 3 | 3 |
 
-#### Epic E4 : Validation Humaine — HITL (18 SP)
+#### Epic E4 : Validation Humaine — HITL (25 SP)
 
 | ID | User Story | Priorité | Points | Sprint |
 |----|------------|----------|--------|--------|
@@ -294,6 +295,8 @@ Ce projet étant réalisé par un développeur unique dans un cadre académique,
 | US-019 | En tant que responsable conformité, je veux que toutes les corrections soient journalisées (table field_corrections) afin que les changements soient auditables. | P1 | 3 | 4 |
 | US-020 | En tant qu'agent de sinistres, je veux soumettre les données validées afin que le statut du document passe à VALIDATED. | P1 | 3 | 4 |
 | US-021 | En tant qu'agent de sinistres, je veux que les champs avec une confiance < 70% soient mis en évidence afin de concentrer ma révision sur les extractions incertaines. | P2 | 2 | 4 |
+| US-033 | En tant que système, je veux une couche de validation des règles métier (avertissement facture future, montant élevé, blocage montant négatif 422, gestion des erreurs champ par champ) afin de garantir un flux de validation conforme. | P1 | 5 | 4 |
+| US-034 | En tant que responsable conformité, je veux une traçabilité d'audit de validation (validated_by, validated_at) afin que chaque validation soit auditable. | P1 | 2 | 4 |
 
 #### Epic E5 : Authentification & Autorisation (12 SP)
 
@@ -321,7 +324,7 @@ Ce projet étant réalisé par un développeur unique dans un cadre académique,
 | US-031 | En tant que système, je veux limiter le débit des requêtes API afin que le système soit protégé contre les abus. | P2 | 2 | 6 |
 | US-032 | En tant que système, je veux des index sur les colonnes fréquemment requêtées afin que les temps de réponse soient rapides. | P2 | 2 | 5 |
 
-**Note :** US-033 (Configuration déploiement) retiré du backlog — hors scope PFE (environnement local uniquement).
+**Note :** Configuration déploiement (Docker/CI-CD) hors périmètre PFE — environnement local uniquement.
 
 #### Epic E8 : Excellence Technique (9 SP)
 
@@ -335,11 +338,11 @@ Ce projet étant réalisé par un développeur unique dans un cadre académique,
 
 | Priorité | Description | Nb Stories | Points | % Total |
 |----------|-------------|------------|--------|---------|
-| **P0** | Indispensable pour le MVP | 11 | 39 SP | 37% |
-| **P1** | Nécessaire pour un système utilisable | 13 | 42 SP | 40% |
-| **P2** | Améliore significativement le produit | 10 | 20 SP | 19% |
+| **P0** | Indispensable pour le MVP | 11 | 39 SP | 34% |
+| **P1** | Nécessaire pour un système utilisable | 15 | 49 SP | 43% |
+| **P2** | Améliore significativement le produit | 10 | 20 SP | 18% |
 | **P3** | Nice-to-have | 2 | 4 SP | 4% |
-| **Total** | | **36** | **106 SP** | **100%** |
+| **Total** | | **38** | **113 SP** | **100%** |
 
 ### 5.4 Critères d'Acceptation (Exemples Clés)
 
@@ -406,13 +409,13 @@ Scénario: Affichage des champs extraits
 |         | Sprint 0| Sprint 1| Sprint 2| Sprint 3| Sprint 4| Sprint 5| Sprint 6|             |
 |         | Sem 1-2 | Sem 3-4 | Sem 5-6 | Sem 7-8 | Sem 9-10| Sem11-12| Sem13-14|             |
 +---------+---------+---------+---------+---------+---------+---------+---------+-------------+
-| Objectif|Fondation| Upload  |  Async  |IA+HITL  |  Auth   |Analytics| Polish  |             |
+| Objectif|Fondation| Upload  |  Async  |IA+HITL  |  Auth   |Analyt.  | Final.  |             |
 +---------+---------+---------+---------+---------+---------+---------+---------+-------------+
-| Points  |  16 SP  |  16 SP  |  19 SP  |  22 SP  |  17 SP  |  20 SP  |  11 SP  | Total:121SP |
+| Points  |  16 SP  |  16 SP  |  19 SP  |  22 SP  |  24 SP  |  20 SP  |  11 SP  | Total:128SP |
 +---------+---------+---------+---------+---------+---------+---------+---------+-------------+
-| Statut  |  Done   |  Done   |  Done   |  WIP    | Planned | Planned | Planned |             |
+| Statut  | Terminé | Terminé | Terminé | Terminé | Terminé | Planifié | Planifié |             |
 +---------+---------+---------+---------+---------+---------+---------+---------+-------------+
-| Release |         |         |   MVP   |         |  BETA   |         |  v1.0   |             |
+| Version |         |         |   MVP   |         |  BETA   |         |  v1.0   |             |
 +---------+---------+---------+---------+---------+---------+---------+---------+-------------+
 ```
 
@@ -424,11 +427,11 @@ Scénario: Affichage des champs extraits
 
 | ID | Élément | Points | Statut |
 |----|---------|--------|--------|
-| US-001 | Configuration monorepo | 3 | Done |
-| US-002 | Conception base de données | 5 | Done |
-| US-003 | Définition contrat API | 3 | Done |
-| - | Documentation d'architecture | 3 | Done |
-| - | Création diagramme de flux | 2 | Done |
+| US-001 | Configuration monorepo | 3 | Terminé |
+| US-002 | Conception base de données | 5 | Terminé |
+| US-003 | Définition contrat API | 3 | Terminé |
+| - | Documentation d'architecture | 3 | Terminé |
+| - | Création diagramme de flux | 2 | Terminé |
 | **Total** | | **16** | |
 
 **Incrément livré :**
@@ -448,11 +451,11 @@ Scénario: Affichage des champs extraits
 
 | ID | Élément | Points | Statut |
 |----|---------|--------|--------|
-| US-005 | API d'upload de documents | 5 | Done |
-| US-006 | Validation des fichiers | 3 | Done |
-| US-007 | Stockage sécurisé | 3 | Done |
-| US-008 | Liste des documents | 3 | Done |
-| US-009 | Détails du document | 2 | Done |
+| US-005 | API d'upload de documents | 5 | Terminé |
+| US-006 | Validation des fichiers | 3 | Terminé |
+| US-007 | Stockage sécurisé | 3 | Terminé |
+| US-008 | Liste des documents | 3 | Terminé |
+| US-009 | Détails du document | 2 | Terminé |
 | **Total** | | **16** | |
 
 **Incrément livré :**
@@ -471,12 +474,12 @@ Scénario: Affichage des champs extraits
 
 | ID | Élément | Points | Statut |
 |----|---------|--------|--------|
-| TS-004 | Infrastructure de queue | 3 | Done |
-| US-010 | Dispatch de job asynchrone | 3 | Done |
-| US-011 | Intégration service IA (mock) | 5 | Done |
-| US-012 | Stockage des extractions | 3 | Done |
-| US-013 | Cycle de vie des statuts | 3 | Done |
-| US-014 | Mécanisme de retry | 2 | Done |
+| TS-004 | Infrastructure de queue | 3 | Terminé |
+| US-010 | Dispatch de job asynchrone | 3 | Terminé |
+| US-011 | Intégration service IA (mock) | 5 | Terminé |
+| US-012 | Stockage des extractions | 3 | Terminé |
+| US-013 | Cycle de vie des statuts | 3 | Terminé |
+| US-014 | Mécanisme de retry | 2 | Terminé |
 | **Total** | | **19** | |
 
 **Incrément livré :**
@@ -491,45 +494,55 @@ Scénario: Affichage des champs extraits
 
 ---
 
-#### Sprint 3 (Semaine 7-8) — Intégration IA Réelle + Base HITL [EN COURS]
+#### Sprint 3 (Semaine 7-8) — Intégration IA Réelle + Base HITL [TERMINÉ]
 
 **Objectif :** Remplacer le mock par le vrai OCR FastAPI et construire l'interface de validation.
 
 | ID | Élément | Points | Statut |
 |----|---------|--------|--------|
-| US-011 | Intégration HTTP réelle FastAPI | 5 | Done |
-| US-015 | Audit des échecs | 2 | Done |
-| US-016 | Gardes d'idempotence | 3 | Done |
-| TS-036 | Refactoring AIService | 2 | Done |
-| US-017 | Affichage des extractions (React) | 5 | Planned |
-| US-018 | UI de correction des champs | 5 | Planned |
+| US-011 | Intégration HTTP réelle FastAPI | 5 | Terminé |
+| US-015 | Audit des échecs | 2 | Terminé |
+| US-016 | Gardes d'idempotence | 3 | Terminé |
+| TS-036 | Refactoring AIService | 2 | Terminé |
+| US-017 | Affichage des extractions (React) | 5 | Terminé |
+| US-018 | UI de correction des champs | 5 | Terminé |
 | **Total** | | **22** | |
 
-**Incrément attendu :**
+**Incrément livré :**
 - Extractions OCR réelles via FastAPI
 - Interface de validation fonctionnelle
 - Audit complet même en cas d'échec
 
+**Vélocité réelle :** 22 SP
+
 ---
 
-#### Sprint 4 (Semaine 9-10) — Finalisation HITL + Auth [PLANIFIÉ]
+#### Sprint 4 (Semaine 9-10) — Finalisation HITL + Auth [TERMINÉ]
 
 **Objectif :** Compléter le flux de validation et ajouter l'authentification.
 
-| ID | Élément | Points |
-|----|---------|--------|
-| US-019 | Historique des corrections | 3 |
-| US-020 | Soumission de validation | 3 |
-| US-021 | Alerte confiance faible | 2 |
-| US-022 | Inscription utilisateur | 3 |
-| US-023 | Connexion/déconnexion | 3 |
-| US-024 | Auth par token API | 3 |
-| **Total** | | **17** |
+*Adaptation du périmètre du sprint en raison d'exigences émergentes de conformité.*
 
-**Incrément attendu :**
+| ID | Élément | Points | Statut |
+|----|---------|--------|--------|
+| US-019 | Historique des corrections | 3 | Terminé |
+| US-020 | Soumission de validation | 3 | Terminé |
+| US-021 | Alerte confiance faible | 2 | Terminé |
+| US-022 | Inscription utilisateur | 3 | Terminé |
+| US-023 | Connexion/déconnexion | 3 | Terminé |
+| US-024 | Auth par token API | 3 | Terminé |
+| US-033 | Couche de validation des règles métier | 5 | Terminé |
+| US-034 | Traçabilité d'audit de validation | 2 | Terminé |
+| **Total** | | **24** | |
+
+**Incrément livré :**
 - Flux HITL complet (correction + validation + audit)
 - Accès authentifié via Sanctum
 - Workflow complet jusqu'à VALIDATED
+- Couche de validation des règles métier (avertissements facture future, montant élevé, blocage montant négatif 422)
+- Traçabilité d'audit (validated_by, validated_at)
+
+**Vélocité réelle :** 24 SP
 
 ---
 
@@ -555,7 +568,7 @@ Scénario: Affichage des champs extraits
 
 ---
 
-#### Sprint 6 (Semaine 13-14) — Polish + Livraison [PLANIFIÉ]
+#### Sprint 6 (Semaine 13-14) — Finalisation + Livraison [PLANIFIÉ]
 
 **Objectif :** Finitions, documentation complète et préparation de la soutenance.
 
@@ -619,7 +632,7 @@ Points restants
   12 +###########.........  Jour 5
    8 +#######.............  Jour 7
    4 +###.................  Jour 9
-   0 +....................  Jour 10 Done
+   0 +....................  Jour 10 Terminé
      +------------------------------------
        1  2  3  4  5  6  7  8  9  10  Jours
 ```
@@ -652,10 +665,10 @@ Points restants
 | Devlog | Sprint devlog complété et pushé |
 | Bugs | Aucun bug critique restant |
 | Tests | Couverture maintenue ou améliorée |
-| Review | Démo superviseur effectuée |
-| Retro | Rétrospective documentée |
+| Revue | Démo superviseur effectuée |
+| Rétrospective | Rétrospective documentée |
 
-### 8.3 Niveau Release
+### 8.3 Niveau version
 
 | Critère | MVP | Beta | v1.0 |
 |---------|-----|------|------|
@@ -705,7 +718,7 @@ Points restants
 
 ---
 
-## 10. Vélocité et Planification de Release
+## 10. Vélocité et planification de version
 
 ### 10.1 Vélocité Observée vs Prévue
 
@@ -714,18 +727,18 @@ Points restants
 | Sprint 0 | 16 SP | 16 SP | 0% | Conforme |
 | Sprint 1 | 16 SP | 16 SP | 0% | Conforme |
 | Sprint 2 | 19 SP | 19 SP | 0% | Conforme |
-| Sprint 3 | 22 SP | - | - | En cours |
-| Sprint 4 | 17 SP | - | - | Planifié |
+| Sprint 3 | 22 SP | 22 SP | 0% | Conforme |
+| Sprint 4 | 17 SP | 24 SP | +41% | Périmètre adapté (conformité) |
 | Sprint 5 | 20 SP | - | - | Planifié |
 | Sprint 6 | 11 SP | - | - | Planifié |
 
 ### 10.2 Analyse de Vélocité
 
 ```
-Vélocité moyenne (Sprints 0-2) = (16 + 16 + 19) / 3 = 17 SP/sprint
+Vélocité moyenne (Sprints 0-4) = (16 + 16 + 19 + 22 + 24) / 5 = 19,4 SP/sprint
 ```
 
-**Constat :** La vélocité est stabilisée après 3 sprints et reste cohérente avec la capacité estimée de 20 SP/sprint. L'écart de 3 SP constitue une marge de sécurité raisonnable.
+**Constat :** La vélocité est stabilisée après 5 sprints (moyenne 19,4 SP/sprint). Le Sprint 4 a dépassé la capacité prévue (+7 SP) en raison d'une adaptation du périmètre pour des exigences de conformité (US-033, US-034).
 
 ### 10.3 Calcul de Capacité
 
@@ -739,25 +752,25 @@ Capacité du Sprint :
 +-- Capacité finale                  : 20 SP/sprint
 ```
 
-### 10.4 Plan de Release
+### 10.4 Plan de version
 
-| Release | Sprints | Points | Date Cible | Contenu |
+| Version | Sprints | Points | Date cible | Contenu |
 |---------|---------|--------|------------|---------|
 | **MVP (Alpha)** | 0-2 | 51 SP | Terminé | Upload, traitement async, audit |
-| **Beta** | 3-4 | 39 SP | Semaine 10 | OCR réel, HITL complet, auth |
-| **v1.0 (Finale)** | 5-6 | 31 SP | Semaine 14 | Analytics, hardening, soutenance |
-| **Total** | 0-6 | **121 SP** | | |
+| **Beta** | 3-4 | 46 SP | Semaine 10 | OCR réel, HITL complet, auth, validation conforme |
+| **v1.0 (Finale)** | 5-6 | 31 SP | Semaine 14 | Analytiques, durcissement, soutenance |
+| **Total** | 0-6 | **128 SP** | | |
 
 ### 10.5 Burnup Chart Projet
 
 ```
 Points cumulés
      |
- 121 +                                        +---- v1.0
-  90 +                              +---------+ Beta
+ 128 +                                            +---- v1.0
+  97 +                              +-------------+ Beta
   73 +                    +---------+
   51 +          +---------+
-  51 +----------+ MVP Done
+  51 +----------+ MVP Livré
   32 +----+
   16 +----+
    0 +
@@ -789,7 +802,7 @@ Points cumulés
 
 ---
 
-### Phase 2 — Beta (Sprints 3-4) [EN COURS]
+### Phase 2 — Beta (Sprints 3-4) [TERMINÉ]
 
 **Objectif :** Système utilisable avec OCR réel et validation humaine
 
@@ -822,14 +835,14 @@ Points cumulés
 +-------------------------------------------------------------------------+
 |                           SYSTÈME COMPLET                               |
 +-------------------------------------------------------------------------+
-|  Upload -> OCR -> Extraction -> HITL -> Validation -> Analytics         |
+|  Upload -> OCR -> Extraction -> HITL -> Validation -> Analytiques        |
 +-------------------------------------------------------------------------+
-|  + Rôles     + Dashboard     + Performance     + Documentation          |
+|  + Rôles     + Tableau de bord  + Performance     + Documentation          |
 +-------------------------------------------------------------------------+
 ```
 
-**Valeur livrée :**
-- Dashboard analytique
+**Valeur attendue :**
+- Tableau de bord analytique
 - Gestion des rôles
 - Optimisation performance
 - Documentation complète
@@ -843,11 +856,11 @@ Points cumulés
 
 | Cérémonie | Fréquence | Durée | Adaptation |
 |-----------|-----------|-------|------------|
-| **Sprint Planning** | Bi-hebdomadaire | 1h | Sélection stories + découpage tâches (solo) |
-| **Daily Standup** | Quotidien | 5 min | Auto-évaluation écrite (progression/blocages) |
-| **Sprint Review** | Fin de sprint | 30 min | Démo à l'encadrant + feedback |
-| **Rétrospective** | Fin de sprint | 15 min | Réflexion personnelle documentée dans devlog |
-| **Backlog Refinement** | Hebdomadaire | 30 min | Clarification stories à venir (solo) |
+| **Planification de sprint** | Bi-hebdomadaire | 1h | Sélection des stories + découpage des tâches (solo) |
+| **Point quotidien** | Quotidien | 5 min | Auto-évaluation écrite (progression / blocages) |
+| **Revue de sprint** | Fin de sprint | 30 min | Démo à l'encadrant + feedback |
+| **Rétrospective** | Fin de sprint | 15 min | Réflexion personnelle documentée dans le devlog |
+| **Affinage du backlog** | Hebdomadaire | 30 min | Clarification des stories à venir (solo) |
 
 ---
 
@@ -857,7 +870,7 @@ Points cumulés
 
 | ID | Description | Origine | Impact | Résolution Prévue |
 |----|-------------|---------|--------|-------------------|
-| TD-001 | Remplacer mock AIService par HTTP réel | Sprint 2 | Élevé | Sprint 3 (Done) |
+| TD-001 | Remplacer mock AIService par HTTP réel | Sprint 2 | Élevé | Sprint 3 (Terminé) |
 | TD-002 | Ajouter API Resources pour formatage | Sprint 1 | Faible | Phase 2 |
 | TD-003 | Implémenter couche de cache | - | Moyen | Post-MVP |
 | TD-004 | Supprimer temp_path de la réponse FastAPI | Sprint 1 | Moyen | Sprint 3 |
@@ -867,7 +880,7 @@ Points cumulés
 ### 13.2 Politique de Gestion
 
 - **Identification :** Lors des revues de code et rétrospectives
-- **Priorisation :** Intégrée au backlog refinement
+- **Priorisation :** Intégrée à l'affinage du backlog
 - **Budget :** ~10% de chaque sprint réservé à la dette
 - **Suivi :** Mis à jour dans chaque devlog
 
@@ -882,7 +895,8 @@ Points cumulés
 | Sprint 0 | Day 1-2 | `2026-02-07.md`, `2026-02-08.md` | Terminé |
 | Sprint 1 | Day 3 | `2026-02-12.md` | Terminé |
 | Sprint 2 | Day 4 | `2026-02-13.md` | Terminé |
-| Sprint 3 | Day 5-6 | `2026-02-14.md` | En cours |
+| Sprint 3 | Day 5-6 | `2026-02-14.md` | Terminé |
+| Sprint 4 | Day 7-11 | `2026-02-*.md` | Terminé (périmètre adapté) |
 
 ### 14.2 Artefacts du Projet
 
@@ -917,25 +931,29 @@ Points cumulés
 | **HITL** | Human-in-the-Loop — Validation humaine des extractions IA |
 | **OCR** | Optical Character Recognition — Reconnaissance de texte |
 | **MVP** | Minimum Viable Product — Version minimale fonctionnelle |
-| **SP** | Story Points — Unité d'estimation de complexité |
-| **DoD** | Definition of Done — Critères de terminaison |
+| **SP** | Story Points (SP) — Unité d'estimation de complexité |
+| **DoD** | Définition de terminé — Critères de terminaison |
 | **PO** | Product Owner — Responsable du backlog produit |
 
-### 14.5 Scope Exclusions
+### 14.5 Notes de Mise à Jour du Planning
 
-Les éléments suivants sont explicitement hors scope pour ce PFE :
+**Sprint 4 — Adaptation du périmètre :** En cours d'implémentation (Days 7–11), des exigences de conformité ont émergé (séparation avertissements IA vs règles métier, traçabilité d'audit, gestion d'erreurs 422 champ par champ). Les User Stories US-033 (couche de validation des règles métier) et US-034 (traçabilité d'audit de validation) ont été ajoutées au backlog Sprint 4 et livrées en complément. US-025 (RBAC) et US-026 (Analytiques) restent planifiés en Sprint 5.
+
+### 14.6 Exclusions de périmètre
+
+Les éléments suivants sont explicitement hors périmètre pour ce PFE :
 
 | Élément | Raison |
 |---------|--------|
 | Déploiement production | Environnement local suffisant pour démonstration académique |
 | Configuration Docker/CI-CD | Non requis pour validation PFE |
 | Infrastructure cloud | Complexité hors périmètre académique |
-| Monitoring production | Non applicable sans déploiement |
+| Surveillance en production | Non applicable sans déploiement |
 
 ---
 
 **Document préparé pour :** Encadrant PFE  
-**Prochaine mise à jour :** Fin Sprint 3  
+**Prochaine mise à jour :** Fin Sprint 5  
 **Contact :** chihebddine.selmi@etudiant-fst.utm.tn
 
 ---
