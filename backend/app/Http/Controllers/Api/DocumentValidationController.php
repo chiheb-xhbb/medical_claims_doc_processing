@@ -72,10 +72,44 @@ class DocumentValidationController extends Controller
 
             $invoiceDate = $newFields['invoice_date'] ?? null;
             $totalTTC = $newFields['total_ttc'] ?? null;
-
             // Rule 1 — Future invoice date (warning)
-            if ($invoiceDate && Carbon::parse($invoiceDate)->isFuture()) {
-                $warnings[] = 'Invoice date is in the future.';
+
+            if ($invoiceDate) {
+
+                $formats = ['Y-m-d', 'd/m/Y', 'Y/m/d'];
+                $parsedDate = null;
+
+                foreach ($formats as $format) {
+                    try {
+                        $date = Carbon::createFromFormat($format, $invoiceDate);
+
+                        // Strict validation (prevents partial matches)
+                        if ($date && $date->format($format) === $invoiceDate) {
+                            $parsedDate = $date;
+                            break;
+                        }
+                    } catch (\Exception $e) {
+                        // Try next format
+                    }
+                }
+
+                if (!$parsedDate) {
+                    return response()->json([
+                        'message' => 'Invalid date format.',
+                        'errors' => [
+                            'invoice_date' => [
+                                'Supported formats: YYYY-MM-DD, DD/MM/YYYY, YYYY/MM/DD'
+                            ]
+                        ]
+                    ], 422);
+                }
+
+                // Normalize internally to ISO format
+                $newFields['invoice_date'] = $parsedDate->format('Y-m-d');
+
+                if ($parsedDate->isFuture()) {
+                    $warnings[] = 'Invoice date is in the future.';
+                }
             }
 
             // Rule 2 — Negative or zero amount (blocking error)
