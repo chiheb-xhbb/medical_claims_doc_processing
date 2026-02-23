@@ -1,16 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
-
-
-// Status badge configuration
-const STATUS_CONFIG = {
-  UPLOADED: { class: 'bg-secondary', label: 'Uploaded' },
-  PROCESSING: { class: 'bg-primary', label: 'Processing', spinner: true },
-  PROCESSED: { class: 'bg-warning text-dark', label: 'Processed' },
-  VALIDATED: { class: 'bg-success', label: 'Validated' },
-  FAILED: { class: 'bg-danger', label: 'Failed' }
-};
+import { StatusBadge, Loader, ErrorAlert, EmptyState } from '../ui';
 
 function DocumentsList() {
   const navigate = useNavigate();
@@ -100,21 +91,9 @@ function DocumentsList() {
     setupPolling(docs);
   };
 
-  // Render status badge
+  // Render status badge - using UI component
   const renderStatusBadge = (status) => {
-    const config = STATUS_CONFIG[status] || STATUS_CONFIG.UPLOADED;
-    return (
-      <span className={`badge ${config.class} d-inline-flex align-items-center gap-1`}>
-        {config.spinner && (
-          <span 
-            className="spinner-border spinner-border-sm" 
-            role="status" 
-            style={{ width: '0.75rem', height: '0.75rem' }}
-          ></span>
-        )}
-        {config.label}
-      </span>
-    );
+    return <StatusBadge status={status} />;
   };
 
   // Render action button based on status
@@ -166,18 +145,7 @@ function DocumentsList() {
   if (loading) {
     return (
       <div className="container py-5">
-        <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '400px' }}>
-          <div className="text-center">
-            <div 
-              className="spinner-border text-primary mb-3" 
-              role="status" 
-              style={{ width: '3rem', height: '3rem' }}
-            >
-              <span className="visually-hidden">Loading...</span>
-            </div>
-            <p className="text-muted">Loading documents...</p>
-          </div>
-        </div>
+        <Loader message="Loading documents..." size="md" />
       </div>
     );
   }
@@ -188,10 +156,7 @@ function DocumentsList() {
       <div className="container py-5">
         <div className="row justify-content-center">
           <div className="col-lg-8">
-            <div className="alert alert-danger d-flex align-items-center" role="alert">
-              <i className="bi bi-exclamation-triangle-fill me-2"></i>
-              <div>{error}</div>
-            </div>
+            <ErrorAlert message={error} title="" showIcon={true} />
           </div>
         </div>
       </div>
@@ -205,17 +170,21 @@ function DocumentsList() {
         <div className="row justify-content-center">
           <div className="col-lg-8">
             <div className="card shadow-sm">
-              <div className="card-body text-center py-5">
-                <i className="bi bi-folder2-open text-muted" style={{ fontSize: '4rem' }}></i>
-                <h5 className="mt-3 text-muted">No Documents Found</h5>
-                <p className="text-muted mb-4">Upload your first document to get started.</p>
-                <button
-                  className="btn btn-primary"
-                  onClick={() => navigate('/documents/upload')}
-                >
-                  <i className="bi bi-cloud-upload me-2"></i>
-                  Upload Document
-                </button>
+              <div className="card-body">
+                <EmptyState
+                  icon="folder2-open"
+                  title="No Documents Found"
+                  description="Upload your first document to get started."
+                  action={
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => navigate('/documents/upload')}
+                    >
+                      <i className="bi bi-cloud-upload me-2"></i>
+                      Upload Document
+                    </button>
+                  }
+                />
               </div>
             </div>
           </div>
@@ -227,8 +196,8 @@ function DocumentsList() {
   return (
     <div className="container py-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="mb-0">
-          <i className="bi bi-files me-2"></i>
+        <h2 className="mb-0 page-title" style={{ marginBottom: 0 }}>
+          <i className="bi bi-files me-2 opacity-75"></i>
           Documents
         </h2>
         <button
@@ -240,9 +209,9 @@ function DocumentsList() {
         </button>
       </div>
 
-      <div className="card shadow-sm">
+      <div className="card">
         <div className="table-responsive">
-          <table className="table table-hover mb-0">
+          <table className="table table-hover table-striped mb-0">
             <thead className="table-light">
               <tr>
                 <th scope="col">ID</th>

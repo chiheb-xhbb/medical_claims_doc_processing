@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login } from '../services/auth';
+import { ErrorAlert } from '../ui';
 
 function Login() {
   const navigate = useNavigate();
@@ -76,29 +77,28 @@ function Login() {
   };
 
   return (
-    <div className="min-vh-100 d-flex align-items-center justify-content-center bg-light">
+    <div className="min-vh-100 d-flex align-items-center justify-content-center">
       <div className="container">
         <div className="row justify-content-center">
           <div className="col-md-6 col-lg-5 col-xl-4">
-            <div className="card shadow">
+            <div className="card shadow-lg">
               {/* Header */}
               <div className="card-header bg-primary text-white text-center py-4">
-                <h4 className="mb-0 d-flex align-items-center justify-content-center">
+                <h4 className="mb-1 d-flex align-items-center justify-content-center">
                   <i className="bi bi-file-medical me-2"></i>
                   MedDocs
                 </h4>
-                <small className="opacity-75">Medical Document Processing</small>
+                <small className="text-white">Medical Document Processing</small>
               </div>
 
               {/* Body */}
               <div className="card-body p-4">
-                <h5 className="text-center mb-4">Sign In</h5>
+                <h5 className="text-center mb-4 text-secondary">Sign In</h5>
 
                 {/* Error Alert */}
                 {error && (
-                  <div className="alert alert-danger d-flex align-items-center" role="alert">
-                    <i className="bi bi-exclamation-triangle-fill me-2"></i>
-                    <div>{error}</div>
+                  <div className="mb-3">
+                    <ErrorAlert message={error} title="" />
                   </div>
                 )}
 

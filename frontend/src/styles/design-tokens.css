@@ -1,0 +1,258 @@
+/**
+ * CSS variables for colors, spacing, typography, etc.
+ * Use these instead of hardcoded values.
+ */
+
+:root {
+  /* Primary colors */
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-primary-active: #1e40af;
+  --color-primary-light: #dbeafe;
+  --color-primary-subtle: rgba(37, 99, 235, 0.12);
+
+  /* Success colors */
+  --color-success: #059669;
+  --color-success-hover: #047857;
+  --color-success-light: #d1fae5;
+  --color-success-subtle: rgba(5, 150, 105, 0.12);
+
+  /* Warning colors */
+  --color-warning: #d97706;
+  --color-warning-hover: #b45309;
+  --color-warning-light: #fef3c7;
+  --color-warning-subtle: rgba(217, 119, 6, 0.12);
+  --color-warning-dark: #92400e;
+  --color-warning-text: #78350f;
+
+  /* Danger colors */
+  --color-danger: #dc2626;
+  --color-danger-hover: #b91c1c;
+  --color-danger-light: #fee2e2;
+  --color-danger-subtle: rgba(220, 38, 38, 0.12);
+
+  /* Info colors */
+  --color-info: #0891b2;
+  --color-info-hover: #0e7490;
+  --color-info-light: #cffafe;
+  --color-info-subtle: rgba(8, 145, 178, 0.12);
+
+  /* Neutral colors */
+  --color-white: #ffffff;
+  --color-gray-50: #f8fafc;
+  --color-gray-100: #f1f5f9;
+  --color-gray-200: #e2e8f0;
+  --color-gray-300: #cbd5e1;
+  --color-gray-400: #94a3b8;
+  --color-gray-500: #64748b;
+  --color-gray-600: #475569;
+  --color-gray-700: #334155;
+  --color-gray-800: #1e293b;
+  --color-gray-900: #0f172a;
+  --color-black: #000000;
+
+  /* Background colors */
+  --color-bg-page: #f1f5f9;
+  --color-bg-card: #ffffff;
+  --color-bg-muted: var(--color-gray-50);
+  --color-bg-subtle: var(--color-gray-100);
+
+  /* Text colors */
+  --color-text-primary: #0f172a;
+  --color-text-secondary: var(--color-gray-600);
+  --color-text-muted: var(--color-gray-500);
+  --color-text-light: var(--color-gray-400);
+  --color-text-inverse: var(--color-white);
+
+  /* Border colors */
+  --color-border: #e2e8f0;
+  --color-border-light: var(--color-gray-200);
+  --color-border-focus: var(--color-primary);
+
+  /* Spacing scale (4px base) */
+  --spacing-0: 0;
+  --spacing-1: 0.25rem;   /* 4px */
+  --spacing-2: 0.5rem;    /* 8px */
+  --spacing-3: 0.75rem;   /* 12px */
+  --spacing-4: 1rem;      /* 16px */
+  --spacing-5: 1.25rem;   /* 20px */
+  --spacing-6: 1.5rem;    /* 24px */
+  --spacing-7: 1.75rem;   /* 28px */
+  --spacing-8: 2rem;      /* 32px */
+  --spacing-10: 2.5rem;   /* 40px */
+  --spacing-12: 3rem;     /* 48px */
+  --spacing-16: 4rem;     /* 64px */
+  --spacing-20: 5rem;     /* 80px */
+
+  /* Border radius */
+  --radius-none: 0;
+  --radius-sm: 0.25rem;   /* 4px */
+  --radius-md: 0.375rem;  /* 6px */
+  --radius-lg: 0.5rem;    /* 8px */
+  --radius-xl: 0.75rem;   /* 12px */
+  --radius-2xl: 1rem;     /* 16px */
+  --radius-full: 9999px;  /* Pill shape */
+
+  /* Typography */
+  /* Font families */
+  --font-family-base: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-family-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* Font sizes */
+  --font-size-xs: 0.75rem;    /* 12px */
+  --font-size-sm: 0.875rem;   /* 14px */
+  --font-size-md: 1rem;       /* 16px */
+  --font-size-lg: 1.125rem;   /* 18px */
+  --font-size-xl: 1.25rem;    /* 20px */
+  --font-size-2xl: 1.5rem;    /* 24px */
+  --font-size-3xl: 1.875rem;  /* 30px */
+  --font-size-4xl: 2.25rem;   /* 36px */
+
+  /* Font weights */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Line heights */
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.625;
+
+  /* Letter spacing */
+  --letter-spacing-tight: -0.025em;
+  --letter-spacing-normal: 0;
+  --letter-spacing-wide: 0.025em;
+  --letter-spacing-wider: 0.05em;
+  --letter-spacing-widest: 0.1em;
+
+  /* Shadows */
+  --shadow-none: none;
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  
+  /* Colored shadows */
+  --shadow-primary: 0 4px 6px rgba(13, 110, 253, 0.25);
+  --shadow-success: 0 4px 6px rgba(25, 135, 84, 0.25);
+  --shadow-danger: 0 4px 6px rgba(220, 53, 69, 0.25);
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-normal: 200ms ease;
+  --transition-slow: 300ms ease;
+  --transition-slower: 500ms ease;
+
+  /* Specific transitions */
+  --transition-colors: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
+  --transition-transform: transform 200ms ease;
+  --transition-shadow: box-shadow 200ms ease;
+  --transition-all: all 200ms ease;
+
+  /* Z-index layers */
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-tooltip: 1070;
+
+  /* Card tokens */
+  --card-padding: var(--spacing-6);
+  --card-padding-lg: var(--spacing-8);
+  --card-radius: var(--radius-xl);
+  --card-shadow: var(--shadow-sm);
+  --card-shadow-hover: var(--shadow-md);
+  --card-border: 1px solid var(--color-border-light);
+
+  /* Button tokens */
+  --btn-padding-y: var(--spacing-2);
+  --btn-padding-x: var(--spacing-4);
+  --btn-padding-y-sm: var(--spacing-1);
+  --btn-padding-x-sm: var(--spacing-3);
+  --btn-padding-y-lg: var(--spacing-3);
+  --btn-padding-x-lg: var(--spacing-6);
+  --btn-radius: var(--radius-md);
+  --btn-font-weight: var(--font-weight-medium);
+  --btn-transition: var(--transition-colors), var(--transition-shadow), var(--transition-transform);
+
+  /* Form input tokens */
+  --input-padding-y: var(--spacing-2);
+  --input-padding-x: var(--spacing-3);
+  --input-radius: var(--radius-md);
+  --input-border: 1px solid var(--color-gray-300);
+  --input-border-focus: 2px solid var(--color-primary);
+  --input-shadow-focus: 0 0 0 0.25rem var(--color-primary-subtle);
+
+  /* Table tokens */
+  --table-cell-padding-y: var(--spacing-4);
+  --table-cell-padding-x: var(--spacing-5);
+  --table-header-bg: var(--color-gray-50);
+  --table-header-color: var(--color-gray-500);
+  --table-border: 1px solid var(--color-gray-200);
+  --table-row-hover-bg: var(--color-gray-50);
+  --table-stripe-bg: var(--color-gray-50);
+
+  /* Badge tokens */
+  --badge-padding-y: var(--spacing-2);
+  --badge-padding-x: var(--spacing-4);
+  --badge-font-size: var(--font-size-sm);
+  --badge-font-weight: var(--font-weight-semibold);
+  --badge-radius: var(--radius-full);
+
+  /* Alert tokens */
+  --alert-padding: var(--spacing-4);
+  --alert-radius: var(--radius-lg);
+  --alert-border-left: 4px solid;
+
+  /* Layout tokens */
+  --container-max-width: 1200px;
+  --page-padding-y: var(--spacing-8);
+  --page-padding-x: var(--spacing-4);
+  --section-spacing: var(--spacing-6);
+
+  /* Additional tokens */
+  --color-bg-enterprise: #f4f6f9;
+  --color-bg-card-elevated: #ffffff;
+  --color-bg-surface: #fafbfc;
+  
+  /* Navbar */
+  --navbar-bg: linear-gradient(135deg, #1e40af 0%, #2563eb 50%, #3b82f6 100%);
+  --navbar-shadow: 0 2px 12px rgba(37, 99, 235, 0.15), 0 1px 3px rgba(0, 0, 0, 0.08);
+  --navbar-height: 64px;
+  
+  /* Card shadows */
+  --card-shadow-premium: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.06);
+  --card-shadow-premium-hover: 0 4px 16px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.06);
+  --card-shadow-elevated: 0 8px 30px rgba(0, 0, 0, 0.12);
+  --card-radius-premium: 12px;
+  
+  /* Table styles */
+  --table-header-bg-premium: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  --table-row-hover-premium: rgba(37, 99, 235, 0.04);
+  --table-stripe-premium: rgba(248, 250, 252, 0.7);
+  --table-border-premium: #e5e9f0;
+  
+  /* Button shadows */
+  --btn-shadow-primary: 0 2px 8px rgba(37, 99, 235, 0.25);
+  --btn-shadow-primary-hover: 0 4px 12px rgba(37, 99, 235, 0.35);
+  --btn-shadow-success: 0 2px 8px rgba(5, 150, 105, 0.25);
+  --btn-radius-premium: 8px;
+  
+  /* Form input styles */
+  --input-border-premium: #d1d9e6;
+  --input-shadow-premium: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+  --input-focus-shadow-premium: 0 0 0 3px rgba(37, 99, 235, 0.12), 0 0 0 1px var(--color-primary);
+  
+  /* Page spacing */
+  --spacing-page: 2rem;
+  --spacing-section: 1.75rem;
+  
+  /* Heading styles */
+  --heading-letter-spacing: -0.02em;
+  --heading-line-height: 1.2;
+}

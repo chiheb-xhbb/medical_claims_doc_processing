@@ -4,12 +4,11 @@ import DocumentValidation from './pages/DocumentValidation';
 import DocumentsList from './pages/DocumentsList';
 import DocumentUpload from './pages/DocumentUpload';
 import Login from './pages/Login';
-import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
+import { MainLayout } from './layout';
 import { setAuthToken } from './utils/setAuthToken';
-import 'bootstrap/dist/css/bootstrap.min.css';
-import 'bootstrap-icons/font/bootstrap-icons.css';
-import './App.css';
+
+// Note: All styles are imported in main.jsx to ensure correct load order
 
 function App() {
   // Initialize auth token on mount
@@ -22,8 +21,7 @@ function App() {
 
   return (
     <BrowserRouter>
-      <div className="bg-light" style={{ minHeight: '100vh' }}>
-        <Navbar />
+      <MainLayout>
         <Routes>
           <Route 
             path="/login" 
@@ -59,7 +57,7 @@ function App() {
           />
           <Route path="/" element={<Navigate to="/login" replace />} />
         </Routes>
-      </div>
+      </MainLayout>
     </BrowserRouter>
   );
 }

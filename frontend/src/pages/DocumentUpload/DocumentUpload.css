@@ -1,0 +1,113 @@
+/**
+ * DocumentUpload Page Styles
+ * 
+ * Page-specific styles for the document upload view.
+ * Uses design tokens for consistency.
+ */
+
+/* Main upload card */
+.document-upload .card {
+  border: none;
+  border-radius: var(--card-radius);
+  box-shadow: var(--shadow-md);
+}
+
+/* Card header */
+.document-upload .card-header {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  padding: var(--spacing-5);
+}
+
+.document-upload .card-header h5 {
+  margin: 0;
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Card body */
+.document-upload .card-body {
+  padding: var(--spacing-6);
+}
+
+/* File drop zone */
+.document-upload .drop-zone {
+  border: 2px dashed var(--color-gray-300);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-8);
+  text-align: center;
+  background-color: var(--color-gray-50);
+  cursor: pointer;
+  transition: var(--transition-all);
+}
+
+.document-upload .drop-zone:hover {
+  border-color: var(--color-primary);
+  background-color: var(--color-primary-light);
+}
+
+.document-upload .drop-zone.has-file {
+  border-color: var(--color-success);
+  border-style: solid;
+}
+
+/* Upload icon */
+.document-upload .upload-icon {
+  font-size: 3rem;
+  color: var(--color-text-muted);
+  margin-bottom: var(--spacing-3);
+}
+
+.document-upload .drop-zone.has-file .upload-icon {
+  color: var(--color-success);
+}
+
+/* File info */
+.document-upload .file-name {
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--spacing-1);
+}
+
+.document-upload .file-size {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* Choose file button */
+.document-upload .choose-file-btn {
+  margin-top: var(--spacing-4);
+  width: 100%;
+}
+
+/* Upload button */
+.document-upload .upload-btn {
+  padding: var(--btn-padding-y) var(--btn-padding-x);
+  font-weight: var(--font-weight-medium);
+}
+
+.document-upload .upload-btn:disabled {
+  opacity: 0.6;
+}
+
+/* Help text */
+.document-upload .help-text {
+  margin-top: var(--spacing-6);
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* Back link */
+.document-upload .back-link {
+  text-align: center;
+  margin-top: var(--spacing-4);
+}
+
+.document-upload .back-link .btn-link {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+}
+
+.document-upload .back-link .btn-link:hover {
+  text-decoration: underline;
+}

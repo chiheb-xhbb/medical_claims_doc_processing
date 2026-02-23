@@ -1,0 +1,84 @@
+/**
+ * DocumentsList Page Styles
+ * 
+ * Page-specific styles for the documents list view.
+ * Uses design tokens for consistency.
+ */
+
+/* Documents table container */
+.documents-list .card {
+  border: none;
+  border-radius: var(--card-radius);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+/* Table header styling */
+.documents-list .table thead th {
+  background-color: var(--table-header-bg);
+  color: var(--table-header-color);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-widest);
+  padding: var(--table-cell-padding-y) var(--table-cell-padding-x);
+  border-bottom: 2px solid var(--color-gray-200);
+  white-space: nowrap;
+}
+
+/* Table body styling */
+.documents-list .table td {
+  padding: var(--spacing-4) var(--spacing-5);
+  vertical-align: middle;
+  border-bottom: 1px solid var(--color-gray-100);
+}
+
+/* Row hover effect */
+.documents-list .table-hover tbody tr {
+  transition: var(--transition-colors);
+}
+
+.documents-list .table-hover tbody tr:hover {
+  background-color: var(--color-gray-50);
+}
+
+/* Action buttons */
+.documents-list .btn-sm {
+  padding: var(--btn-padding-y-sm) var(--btn-padding-x-sm);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  min-width: 85px;
+}
+
+/* Page header */
+.documents-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-6);
+}
+
+.documents-list-header h2 {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+/* Pagination footer */
+.documents-list .card-footer {
+  background-color: var(--color-white);
+  border-top: 1px solid var(--color-gray-100);
+  padding: var(--spacing-3) var(--spacing-5);
+}
+
+.documents-list .pagination-info {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* File icon in table */
+.documents-list .file-icon {
+  color: var(--color-text-muted);
+  margin-right: var(--spacing-2);
+}

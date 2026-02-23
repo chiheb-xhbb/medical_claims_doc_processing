@@ -1,9 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import ConfidenceBadge from '../components/ConfidenceBadge';
-
-
+import { 
+  ConfidenceBadge, 
+  Loader, 
+  ErrorAlert, 
+  SuccessAlert, 
+  WarningAlert,
+  InfoAlert,
+  SectionDivider 
+} from '../ui';
 
 // Field label mapping for display
 const FIELD_LABELS = {
@@ -22,45 +28,45 @@ const FIELD_TYPES = {
 // Confidence threshold for highlighting low confidence rows
 const LOW_CONFIDENCE_THRESHOLD = 0.70;
 
-// Custom styles for professional medical system aesthetic
+// Custom styles using CSS variables
 const styles = {
   pageContainer: {
-    maxWidth: '1200px',
-    animation: 'fadeIn 0.3s ease-in-out'
+    maxWidth: 'var(--container-max-width)',
+    animation: 'fadeIn var(--transition-slow)'
   },
   card: {
-    borderRadius: '12px',
+    borderRadius: 'var(--card-radius)',
     border: 'none'
   },
   cardHeader: {
-    background: 'linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%)',
+    background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%)',
     borderBottom: 'none'
   },
   warningPanel: {
-    borderLeft: '4px solid #fd7e14',
-    borderRadius: '0 8px 8px 0',
-    backgroundColor: 'rgba(253, 126, 20, 0.1)'
+    borderLeft: '4px solid var(--color-warning)',
+    borderRadius: '0 var(--radius-lg) var(--radius-lg) 0',
+    backgroundColor: 'var(--color-warning-subtle)'
   },
   lowConfidenceRow: {
-    backgroundColor: 'rgba(253, 126, 20, 0.15)',
-    borderLeft: '4px solid #fd7e14'
+    backgroundColor: 'var(--color-warning-subtle)',
+    borderLeft: '4px solid var(--color-warning)'
   },
   tableInput: {
-    transition: 'all 0.2s ease',
-    borderRadius: '6px'
+    transition: 'var(--transition-all)',
+    borderRadius: 'var(--radius-md)'
   },
   validateButton: {
-    padding: '1rem 2rem',
-    fontSize: '1.1rem',
-    fontWeight: '600',
-    letterSpacing: '0.025em',
-    borderRadius: '8px',
-    transition: 'all 0.3s ease',
-    boxShadow: '0 4px 6px rgba(13, 110, 253, 0.25)'
+    padding: 'var(--spacing-4) var(--spacing-8)',
+    fontSize: 'var(--font-size-lg)',
+    fontWeight: 'var(--font-weight-semibold)',
+    letterSpacing: 'var(--letter-spacing-wide)',
+    borderRadius: 'var(--radius-lg)',
+    transition: 'var(--transition-all)',
+    boxShadow: 'var(--shadow-primary)'
   },
   statusIcon: {
     fontSize: '1.5rem',
-    transition: 'transform 0.2s ease'
+    transition: 'var(--transition-transform)'
   }
 };
 
@@ -217,16 +223,7 @@ function DocumentValidation() {
   if (isLoading) {
     return (
       <div className="container py-5" style={styles.pageContainer}>
-        <div className="d-flex flex-column justify-content-center align-items-center" style={{ minHeight: '500px' }}>
-          <div 
-            className="spinner-border text-primary mb-3" 
-            role="status" 
-            style={{ width: '4rem', height: '4rem', borderWidth: '0.3rem' }}
-          >
-            <span className="visually-hidden">Loading...</span>
-          </div>
-          <p className="text-muted fs-5">Loading document...</p>
-        </div>
+        <Loader message="Loading document..." size="lg" />
       </div>
     );
   }
@@ -237,17 +234,10 @@ function DocumentValidation() {
       <div className="container py-5" style={styles.pageContainer}>
         <div className="row justify-content-center">
           <div className="col-lg-10">
-            <div 
-              className="alert alert-danger d-flex align-items-start p-4 shadow-sm" 
-              role="alert"
-              style={{ borderRadius: '12px', borderLeft: '4px solid #dc3545' }}
-            >
-              <i className="bi bi-exclamation-triangle-fill me-3 fs-4"></i>
-              <div>
-                <h5 className="alert-heading mb-2">Error Loading Document</h5>
-                <p className="mb-0">{error}</p>
-              </div>
-            </div>
+            <ErrorAlert 
+              message={error} 
+              title="Error Loading Document" 
+            />
           </div>
         </div>
       </div>
@@ -277,12 +267,12 @@ function DocumentValidation() {
                         {document.original_filename}
                       </span>
                       {document.file_size && (
-                        <span className="d-flex align-items-center" style={{ opacity: 0.75, fontSize: '0.875rem' }}>
+                        <span className="d-flex align-items-center" style={{ opacity: 0.75, fontSize: 'var(--font-size-sm)' }}>
                           <i className="bi bi-hdd me-1"></i>
                           {(document.file_size / 1024).toFixed(1)} KB
                         </span>
                       )}
-                      <span className="d-flex align-items-center" style={{ opacity: 0.75, fontSize: '0.875rem' }}>
+                      <span className="d-flex align-items-center" style={{ opacity: 0.75, fontSize: 'var(--font-size-sm)' }}>
                         <i className="bi bi-calendar3 me-1"></i>
                         {document.created_at ? new Date(document.created_at).toLocaleDateString() : 'N/A'}
                       </span>
@@ -292,7 +282,7 @@ function DocumentValidation() {
                 {document && (
                   <span 
                     className={`badge ${getStatusBadgeClass(document.status)} fs-6`}
-                    style={{ padding: '0.6rem 1.2rem', fontWeight: '600', letterSpacing: '0.05em' }}
+                    style={{ padding: 'var(--spacing-3) var(--spacing-5)', fontWeight: 'var(--font-weight-semibold)', letterSpacing: 'var(--letter-spacing-wider)' }}
                   >
                     <i className={`bi ${document.status?.toUpperCase() === 'VALIDATED' ? 'bi-check-circle-fill' : 'bi-clock-history'} me-1`}></i>
                     {document.status}
@@ -304,50 +294,28 @@ function DocumentValidation() {
             <div className="card-body p-4 p-lg-5">
               {/* Success Message */}
               {successMessage && (
-                <div 
-                  className="alert alert-success d-flex align-items-start p-4 mb-4 shadow-sm" 
-                  role="alert"
-                  style={{ borderRadius: '10px', borderLeft: '4px solid #198754' }}
-                >
-                  <i className="bi bi-check-circle-fill me-3 fs-4 text-success"></i>
-                  <div>
-                    <h6 className="alert-heading mb-1 fw-semibold">Validation Successful</h6>
-                    <p className="mb-0">{successMessage}</p>
-                  </div>
+                <div className="mb-4">
+                  <SuccessAlert 
+                    message={successMessage} 
+                    title="Validation Successful" 
+                  />
                 </div>
               )}
 
               {/* Business Validation Warnings */}
               {businessWarnings.length > 0 && (
-                <div 
-                  className="alert alert-warning d-flex align-items-start p-4 mb-4 shadow-sm" 
-                  role="alert"
-                  style={{ borderRadius: '10px', borderLeft: '4px solid #ffc107' }}
-                >
-                  <i className="bi bi-exclamation-triangle-fill me-3 fs-4 text-warning"></i>
-                  <div className="flex-grow-1">
-                    <h6 className="alert-heading mb-2 fw-semibold">Business Validation Warnings</h6>
-                    <ul className="mb-0 ps-3">
-                      {businessWarnings.map((warning, index) => (
-                        <li key={index} className="mb-1">{warning}</li>
-                      ))}
-                    </ul>
-                  </div>
+                <div className="mb-4">
+                  <WarningAlert 
+                    warnings={businessWarnings}
+                    title="Business Validation Warnings" 
+                  />
                 </div>
               )}
 
               {/* Error Message */}
               {error && (
-                <div 
-                  className="alert alert-danger d-flex align-items-start p-4 mb-4 shadow-sm" 
-                  role="alert"
-                  style={{ borderRadius: '10px', borderLeft: '4px solid #dc3545' }}
-                >
-                  <i className="bi bi-exclamation-triangle-fill me-3 fs-4 text-danger"></i>
-                  <div>
-                    <h6 className="alert-heading mb-1 fw-semibold">Error</h6>
-                    <p className="mb-0">{error}</p>
-                  </div>
+                <div className="mb-4">
+                  <ErrorAlert message={error} />
                 </div>
               )}
 
@@ -386,28 +354,15 @@ function DocumentValidation() {
 
               {/* No Extraction Data Message */}
               {!hasExtraction && (
-                <div 
-                  className="alert alert-info d-flex align-items-start p-4" 
-                  role="alert"
-                  style={{ borderRadius: '10px', borderLeft: '4px solid #0dcaf0' }}
-                >
-                  <i className="bi bi-info-circle-fill me-3 fs-4 text-info"></i>
-                  <div>
-                    <h6 className="alert-heading mb-1 fw-semibold">Processing In Progress</h6>
-                    <p className="mb-0">No extraction data available for this document. Please wait for processing to complete.</p>
-                  </div>
-                </div>
+                <InfoAlert 
+                  message="No extraction data available for this document. Please wait for processing to complete."
+                  title="Processing In Progress" 
+                />
               )}
 
               {/* Section Divider */}
               {hasExtraction && (
-                <div className="d-flex align-items-center mb-4">
-                  <hr className="flex-grow-1" style={{ borderColor: '#dee2e6' }} />
-                  <span className="px-3 text-muted fw-medium small text-uppercase" style={{ letterSpacing: '0.1em' }}>
-                    <i className="bi bi-table me-2"></i>Extracted Fields
-                  </span>
-                  <hr className="flex-grow-1" style={{ borderColor: '#dee2e6' }} />
-                </div>
+                <SectionDivider label="Extracted Fields" icon="table" />
               )}
 
               {/* Editable Fields Table */}
@@ -419,17 +374,17 @@ function DocumentValidation() {
                       style={{ borderCollapse: 'separate', borderSpacing: 0 }}
                     >
                       <thead>
-                        <tr style={{ backgroundColor: '#f8fafc' }}>
+                        <tr style={{ backgroundColor: 'var(--table-header-bg)' }}>
                           <th 
                             style={{ 
                               width: '25%', 
-                              padding: '1rem 1.25rem',
-                              borderBottom: '2px solid #e2e8f0',
-                              fontSize: '0.75rem',
+                              padding: 'var(--table-cell-padding-y) var(--table-cell-padding-x)',
+                              borderBottom: '2px solid var(--color-gray-200)',
+                              fontSize: 'var(--font-size-xs)',
                               textTransform: 'uppercase',
-                              letterSpacing: '0.1em',
-                              color: '#64748b',
-                              fontWeight: '600'
+                              letterSpacing: 'var(--letter-spacing-widest)',
+                              color: 'var(--table-header-color)',
+                              fontWeight: 'var(--font-weight-semibold)'
                             }}
                           >
                             Field Name
@@ -437,13 +392,13 @@ function DocumentValidation() {
                           <th 
                             style={{ 
                               width: '40%', 
-                              padding: '1rem 1.25rem',
-                              borderBottom: '2px solid #e2e8f0',
-                              fontSize: '0.75rem',
+                              padding: 'var(--table-cell-padding-y) var(--table-cell-padding-x)',
+                              borderBottom: '2px solid var(--color-gray-200)',
+                              fontSize: 'var(--font-size-xs)',
                               textTransform: 'uppercase',
-                              letterSpacing: '0.1em',
-                              color: '#64748b',
-                              fontWeight: '600'
+                              letterSpacing: 'var(--letter-spacing-widest)',
+                              color: 'var(--table-header-color)',
+                              fontWeight: 'var(--font-weight-semibold)'
                             }}
                           >
                             Value
@@ -452,13 +407,13 @@ function DocumentValidation() {
                             className="text-center"
                             style={{ 
                               width: '20%', 
-                              padding: '1rem 1.25rem',
-                              borderBottom: '2px solid #e2e8f0',
-                              fontSize: '0.75rem',
+                              padding: 'var(--table-cell-padding-y) var(--table-cell-padding-x)',
+                              borderBottom: '2px solid var(--color-gray-200)',
+                              fontSize: 'var(--font-size-xs)',
                               textTransform: 'uppercase',
-                              letterSpacing: '0.1em',
-                              color: '#64748b',
-                              fontWeight: '600'
+                              letterSpacing: 'var(--letter-spacing-widest)',
+                              color: 'var(--table-header-color)',
+                              fontWeight: 'var(--font-weight-semibold)'
                             }}
                           >
                             Confidence
@@ -467,13 +422,13 @@ function DocumentValidation() {
                             className="text-center"
                             style={{ 
                               width: '15%', 
-                              padding: '1rem 1.25rem',
-                              borderBottom: '2px solid #e2e8f0',
-                              fontSize: '0.75rem',
+                              padding: 'var(--table-cell-padding-y) var(--table-cell-padding-x)',
+                              borderBottom: '2px solid var(--color-gray-200)',
+                              fontSize: 'var(--font-size-xs)',
                               textTransform: 'uppercase',
-                              letterSpacing: '0.1em',
-                              color: '#64748b',
-                              fontWeight: '600'
+                              letterSpacing: 'var(--letter-spacing-widest)',
+                              color: 'var(--table-header-color)',
+                              fontWeight: 'var(--font-weight-semibold)'
                             }}
                           >
                             Status
@@ -494,16 +449,16 @@ function DocumentValidation() {
                               <td 
                                 className="fw-semibold"
                                 style={{ 
-                                  padding: '1.25rem 1.25rem',
-                                  fontSize: '0.95rem',
-                                  color: lowConfidence ? '#92400e' : '#334155',
-                                  borderBottom: '1px solid #e2e8f0'
+                                  padding: 'var(--spacing-5)',
+                                  fontSize: 'var(--font-size-md)',
+                                  color: lowConfidence ? 'var(--color-warning-text)' : 'var(--color-gray-700)',
+                                  borderBottom: 'var(--table-border)'
                                 }}
                               >
                                 <i className={`bi ${fieldKey === 'invoice_date' ? 'bi-calendar3' : fieldKey === 'provider_name' ? 'bi-building' : 'bi-currency-euro'} me-2 text-primary`}></i>
                                 {FIELD_LABELS[fieldKey]}
                               </td>
-                              <td style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e2e8f0' }}>
+                              <td style={{ padding: 'var(--spacing-4) var(--spacing-5)', borderBottom: 'var(--table-border)' }}>
                                 <input
                                   type={fieldType}
                                   className="form-control form-control-lg"
@@ -529,20 +484,20 @@ function DocumentValidation() {
                                   disabled={isValidated}
                                   style={{
                                     ...styles.tableInput,
-                                    backgroundColor: isValidated ? '#f8fafc' : '#fff',
-                                    border: lowConfidence ? '2px solid #fd7e14' : '1px solid #d1d5db'
+                                    backgroundColor: isValidated ? 'var(--color-gray-50)' : 'var(--color-white)',
+                                    border: lowConfidence ? '2px solid var(--color-warning)' : '1px solid var(--color-gray-300)'
                                   }}
                                 />
                               </td>
-                              <td className="text-center" style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e2e8f0' }}>
+                              <td className="text-center" style={{ padding: 'var(--spacing-4) var(--spacing-5)', borderBottom: 'var(--table-border)' }}>
                                 <ConfidenceBadge score={confidenceScores[fieldKey]} />
                               </td>
-                              <td className="text-center" style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e2e8f0' }}>
+                              <td className="text-center" style={{ padding: 'var(--spacing-4) var(--spacing-5)', borderBottom: 'var(--table-border)' }}>
                                 {lowConfidence ? (
                                   <i 
                                     className="bi bi-exclamation-diamond-fill" 
                                     title="Low confidence - please review"
-                                    style={{ ...styles.statusIcon, color: '#fd7e14' }}
+                                    style={{ ...styles.statusIcon, color: 'var(--color-warning)' }}
                                   ></i>
                                 ) : (
                                   <i 
@@ -561,7 +516,7 @@ function DocumentValidation() {
 
                   {/* Extraction Version Info */}
                   {document?.latest_extraction?.version && (
-                    <div className="d-flex align-items-center justify-content-between text-muted small mb-4 p-3 rounded" style={{ backgroundColor: '#f8fafc' }}>
+                    <div className="d-flex align-items-center justify-content-between text-muted small mb-4 p-3 rounded" style={{ backgroundColor: 'var(--color-gray-50)' }}>
                       <span>
                         <i className="bi bi-layers me-2"></i>
                         Extraction Version: <strong>{document.latest_extraction.version}</strong>
@@ -576,7 +531,7 @@ function DocumentValidation() {
                   )}
 
                   {/* Section Divider */}
-                  <hr className="my-4" style={{ borderColor: '#e2e8f0' }} />
+                  <hr className="my-4" style={{ borderColor: 'var(--color-gray-200)' }} />
 
                   {/* Validate Button */}
                   <div className="d-grid">
@@ -587,7 +542,7 @@ function DocumentValidation() {
                       disabled={isSubmitting || isValidated}
                       style={{
                         ...styles.validateButton,
-                        ...(isValidated ? { boxShadow: '0 4px 6px rgba(25, 135, 84, 0.25)' } : {})
+                        ...(isValidated ? { boxShadow: 'var(--shadow-success)' } : {})
                       }}
                     >
                       {isSubmitting ? (
@@ -622,8 +577,8 @@ function DocumentValidation() {
               <div 
                 className="card-footer py-3 px-4"
                 style={{ 
-                  backgroundColor: '#f8fafc', 
-                  borderTop: '1px solid #e2e8f0' 
+                  backgroundColor: 'var(--color-gray-50)', 
+                  borderTop: '1px solid var(--color-gray-200)' 
                 }}
               >
                 <div className="row text-muted small align-items-center">

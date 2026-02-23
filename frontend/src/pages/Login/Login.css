@@ -1,0 +1,118 @@
+/**
+ * Login Page Styles
+ * 
+ * Page-specific styles for the login view.
+ * Uses design tokens for consistency.
+ */
+
+/* Login page container */
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-bg-page);
+  padding: var(--spacing-6);
+}
+
+/* Login card */
+.login-card {
+  border: none;
+  border-radius: var(--card-radius);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  width: 100%;
+  max-width: 400px;
+}
+
+/* Card header with branding */
+.login-card .card-header {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  text-align: center;
+  padding: var(--spacing-8) var(--spacing-6);
+}
+
+.login-card .brand-title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-2);
+}
+
+.login-card .brand-subtitle {
+  opacity: 0.85;
+  font-size: var(--font-size-sm);
+  margin-top: var(--spacing-1);
+}
+
+/* Card body */
+.login-card .card-body {
+  padding: var(--spacing-8) var(--spacing-6);
+}
+
+/* Form title */
+.login-card .form-title {
+  text-align: center;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-6);
+}
+
+/* Form fields */
+.login-card .form-group {
+  margin-bottom: var(--spacing-5);
+}
+
+.login-card .form-label {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-2);
+  font-size: var(--font-size-sm);
+}
+
+.login-card .form-control {
+  padding: var(--spacing-3) var(--spacing-4);
+  border-radius: var(--radius-md);
+  transition: var(--transition-all);
+}
+
+.login-card .form-control:focus {
+  border-color: var(--color-primary);
+  box-shadow: var(--input-shadow-focus);
+}
+
+/* Submit button */
+.login-card .submit-btn {
+  width: 100%;
+  padding: var(--spacing-3) var(--spacing-4);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-md);
+  border-radius: var(--radius-md);
+  transition: var(--transition-all);
+}
+
+.login-card .submit-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.login-card .submit-btn:disabled {
+  opacity: 0.7;
+}
+
+/* Card footer */
+.login-card .card-footer {
+  background-color: var(--color-white);
+  text-align: center;
+  padding: var(--spacing-4) var(--spacing-6);
+  border-top: 1px solid var(--color-gray-100);
+}
+
+.login-card .card-footer small {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}

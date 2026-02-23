@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
-
+import { SuccessAlert, ErrorAlert } from '../ui';
 
 // Allowed file types
 const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'application/pdf'];
@@ -126,7 +126,7 @@ function DocumentUpload() {
     <div className="container py-5">
       <div className="row justify-content-center">
         <div className="col-lg-6 col-md-8">
-          <div className="card shadow">
+          <div className="card shadow-lg">
             <div className="card-header bg-primary text-white">
               <h5 className="mb-0 d-flex align-items-center">
                 <i className="bi bi-cloud-upload me-2"></i>
@@ -136,17 +136,18 @@ function DocumentUpload() {
             <div className="card-body p-4">
               {/* Success Alert */}
               {success && (
-                <div className="alert alert-success d-flex align-items-center" role="alert">
-                  <i className="bi bi-check-circle-fill me-2"></i>
-                  <div>Document uploaded successfully! Redirecting...</div>
+                <div className="mb-3">
+                  <SuccessAlert 
+                    message="Document uploaded successfully! Redirecting..." 
+                    title=""
+                  />
                 </div>
               )}
 
               {/* Error Alert */}
               {error && (
-                <div className="alert alert-danger d-flex align-items-center" role="alert">
-                  <i className="bi bi-exclamation-triangle-fill me-2"></i>
-                  <div>{error}</div>
+                <div className="mb-3">
+                  <ErrorAlert message={error} title="" />
                 </div>
               )}
 

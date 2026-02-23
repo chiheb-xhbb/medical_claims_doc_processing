@@ -1,29 +1,29 @@
-/* App-level styles - kept minimal to avoid conflicts with Bootstrap */
+/* App-specific styles */
 
 /* Additional hover effects for interactive elements */
-.btn:hover {
+.btn:hover:not(:disabled) {
   transform: translateY(-1px);
 }
 
-.btn:active {
+.btn:active:not(:disabled) {
   transform: translateY(0);
 }
 
 /* Table row hover enhancement */
 .table tbody tr:hover {
-  transition: background-color 0.15s ease;
+  transition: var(--transition-colors);
 }
 
 /* Input focus enhancement */
 .form-control:focus {
-  border-color: #86b7fe;
-  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15);
+  border-color: var(--color-primary);
+  box-shadow: var(--input-shadow-focus);
 }
 
 /* Card shadow enhancement on hover */
-.card.shadow-lg:hover {
-  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175) !important;
-  transition: box-shadow 0.3s ease;
+.card:hover {
+  box-shadow: var(--card-shadow-hover);
+  transition: var(--transition-shadow);
 }
 
 /* Spinner pulse effect */

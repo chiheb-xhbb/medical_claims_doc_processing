@@ -1,0 +1,4 @@
+/* Import design tokens and common styles */
+
+@import './design-tokens.css';
+@import './common.css';
