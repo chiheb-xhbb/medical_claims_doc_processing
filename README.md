@@ -15,7 +15,6 @@ Plateforme MVP d’automatisation du traitement des documents médicaux (facture
 1. [Présentation du projet](#présentation-du-projet)  
 2. [Architecture du système](#architecture-du-système)  
    - [Vue d’ensemble](#vue-densemble)  
-   - [Diagramme d’architecture](#diagramme-darchitecture)  
 3. [Workflow fonctionnel](#workflow-fonctionnel)  
 4. [Fonctionnalités principales](#fonctionnalités-principales)  
 5. [Exemple d’API REST](#exemple-dapi-rest)  
@@ -26,7 +25,6 @@ Plateforme MVP d’automatisation du traitement des documents médicaux (facture
 10. [Améliorations prévues](#améliorations-prévues)  
 11. [Contexte académique](#contexte-académique)  
 12. [Auteur](#auteur)  
-13. [Licence](#licence)
 
 ---
 
@@ -299,4 +297,13 @@ Le projet met en œuvre :
 - Des **règles métiers** appliquées aux documents médicaux
 - Une intégration **OCR** avec extraction structurée et **scoring de confiance**
 
+## Auteur
 
+Chihebddine Selmi  
+Projet de Fin d’Études – GLSI  
+
+Encadrante académique :  
+Mme Sana Younes  
+
+Encadrant professionnel :  
+M. Yassine Kasmi
