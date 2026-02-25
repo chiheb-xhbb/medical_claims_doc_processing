@@ -1,11 +1,28 @@
 # Planification Scrum – Système de Traitement des Documents Médicaux
- 
-**Date :** 2026-02-14  
-**Auteur :** Chiheb Selmi  
+
+**Date :** 2026-02-24  
+**Auteur :** Chihebddine Selmi  
 **Projet :** Traitement Automatisé des Documents Médicaux (PFE)  
-**Encadrant :** Yessine Kasmi
 
 ---
+
+## Note sur la vélocité et l’avancement technique
+
+La mise en œuvre du projet a révélé une **vélocité réelle significativement supérieure aux prévisions initiales**. Alors que la planification de départ prévoyait environ **10 semaines** pour les Sprints 0 à 4 (soit 5 sprints de 2 semaines), ces mêmes sprints ont été effectivement **finalisés en 12 jours de travail** continus, selon le suivi détaillé dans les devlogs et le mapping des jours PFE.
+
+Cette avance s’explique principalement par :
+
+- **Une forte concentration sur l’implémentation technique** : les activités ont été orientées en priorité vers la construction d’un pipeline fonctionnel de bout en bout (upload, traitement asynchrone, OCR réel, validation HITL, authentification).
+- **Une stabilité architecturale précoce** : les décisions d’architecture (contrat d’API Laravel–FastAPI, schéma de base de données, organisation du monorepo) ont été figées rapidement, limitant les refontes structurelles en cours de route.
+- **Une faible dette technique sur le noyau du système** : les choix de conception (séparation claire des responsabilités, queue asynchrone, audit trail) ont permis d’éviter l’accumulation de dette technique bloquante durant les premiers incréments.
+
+Le **temps gagné** par rapport au planning initial n’est pas considéré comme une simple avance de calendrier, mais comme un **levier de renforcement de la qualité** du Projet de Fin d’Études. Il est explicitement réinvesti dans :
+
+- **Le renforcement de la rigueur du rapport académique** : structuration approfondie des chapitres, explicitation des décisions d’architecture, justification des choix méthodologiques et techniques.
+- **La modélisation UML complète** : élaboration et consolidation des diagrammes de classes, de séquence, de cas d’utilisation ainsi que d’un diagramme d’architecture technique cohérent avec l’implémentation.
+- **L’amélioration continue du système** : optimisation de la chaîne OCR (Tesseract), affinage du prétraitement d’images (OpenCV), renforcement de la robustesse du pipeline et consolidation de la conformité métier (validation des règles et audit trail).
+
+Cette stratégie a pour objectif de **concilier rythme d’implémentation et exigence académique**, en documentant la manière dont l’avance technique est mise au service d’une documentation et d’une modélisation de niveau ingénierie, plutôt que d’une simple accélération du calendrier.
 
 ## Résumé Exécutif
 
@@ -31,7 +48,7 @@ Scrum a été choisi pour permettre des itérations rapides sur les composants I
 | **Sprints terminés** | 5 sur 6 (Sprints 0 à 4) |
 | **Story Points livrés** | 97 SP sur 128 SP (76%) |
 | **Vélocité moyenne** | 19,4 SP/sprint |
-| **Sprint en cours** | Sprint 5 (Analytiques + Durcissement) |
+| **Sprint en cours** | Sprint 5 (Phase de modélisation et de rédaction académique) |
 | **Statut global** | Conforme au planning |
 
 **Vélocité cumulée (SP)**
@@ -81,6 +98,7 @@ Le MVP technique prouve la faisabilité tandis que le MVP utilisateur assure une
 12. [Cérémonies Scrum](#12-cérémonies-scrum)
 13. [Dette Technique](#13-dette-technique)
 14. [Annexes](#14-annexes)
+15. [Synthèse de l’état d’avancement](#15-synthèse-de-létat-davancement)
 
 ---
 
@@ -117,19 +135,18 @@ La précision de l'OCR et de l'extraction IA est imprévisible avant les tests r
 
 ### 1.3 Adaptation Scrum au Contexte Solo/Académique
 
-Ce projet étant réalisé par un développeur unique dans un cadre académique, Scrum a été adapté tout en conservant ses principes fondamentaux :
+Ce projet étant réalisé par un développeur unique dans un cadre académique, Scrum a été adapté tout en conservant ses principes fondamentaux (transparence, inspection, adaptation) :
 
 | Élément Scrum | Adaptation |
 |---------------|------------|
 | **Équipe de développement** | 1 développeur (étudiant) |
-| **Product Owner** | Encadrant PFE (proxy PO) — valide les priorités et incréments |
-| **Scrum Master** | Auto-organisation — l'étudiant gère le processus |
-| **Point quotidien** | Auto-évaluation quotidienne (5 min) — revue progression / blocages |
-| **Revue de sprint** | Démo bi-hebdomadaire à l'encadrant |
-| **Rétrospective** | Réflexion personnelle documentée dans le devlog |
-| **Affinage du backlog** | Session hebdomadaire solo — clarification des stories à venir |
+| **Product Owner** | Encadrant PFE (proxy PO) |
+| **Scrum Master** | Rôle assumé par l'étudiant (auto-organisation, suivi du cadre) |
+| **Point quotidien** | Auto-évaluation quotidienne (5 min) — revue de la progression et des blocages |
+| **Rétrospective** | Réflexion personnelle documentée dans le devlog avec actions d’amélioration explicites |
+| **Affinage du backlog** | Session hebdomadaire individuelle — clarification des stories à venir et réévaluation des priorités |
 
-**Justification :** Cette adaptation maintient les bénéfices de Scrum (itérations, feedback, amélioration continue) tout en étant réaliste pour un contexte de projet individuel.
+Dans un contexte mono-développeur, cette adaptation conserve les bénéfices attendus de Scrum (itérations courtes, feedback fréquent, amélioration continue) tout en ajustant la forme des cérémonies et des rôles à la réalité d’un projet individuel.
 
 ---
 
@@ -396,6 +413,24 @@ Scénario: Affichage des champs extraits
   Et je peux voir le document original à côté des champs
 ```
 
+### 5.5 Stratégie d’Estimation en Story Points
+
+L’estimation du backlog est réalisée en **Story Points (SP)**, en suivant une logique de complexité relative et non de temps calendaire direct. Une story de référence de complexité moyenne est implicitement utilisée comme base (valeur 3 SP), et les autres stories sont positionnées par comparaison (plus simple, équivalente ou plus complexe) en tenant compte des dimensions suivantes :
+
+- Complexité fonctionnelle et métier.
+- Complexité technique (intégration avec FastAPI, gestion de la queue, règles métier, audit trail).
+- Incertitude (notamment pour les tâches liées à l’OCR et à l’IA).
+
+Les Story Points servent ensuite à dériver une **capacité de sprint** (section 10.3) en combinant :
+
+- La vélocité moyenne observée (SP livrés par sprint).
+- Le nombre de jours ouvrés disponibles et le temps effectif de développement par jour.
+
+Dans ce contexte mono-développeur, l’estimation en Story Points permet de :
+
+- Distinguer les variations de charge réelle sans sur-spécifier la durée horaire de chaque tâche.
+- Conserver une base commune pour la planification des versions (MVP, Beta, v1.0) sans modifier les chiffres réels d’effort.
+
 ---
 
 ## 6. Roadmap des Sprints
@@ -496,7 +531,7 @@ Scénario: Affichage des champs extraits
 
 #### Sprint 3 (Semaine 7-8) — Intégration IA Réelle + Base HITL [TERMINÉ]
 
-**Objectif :** Remplacer le mock par le vrai OCR FastAPI et construire l'interface de validation.
+**Objectif :** Intégrer le service IA réel via FastAPI (OCR Tesseract + prétraitement OpenCV) et construire une interface de validation HITL pleinement fonctionnelle.
 
 | ID | Élément | Points | Statut |
 |----|---------|--------|--------|
@@ -509,9 +544,11 @@ Scénario: Affichage des champs extraits
 | **Total** | | **22** | |
 
 **Incrément livré :**
-- Extractions OCR réelles via FastAPI
-- Interface de validation fonctionnelle
-- Audit complet même en cas d'échec
+- Intégration réelle du service IA via FastAPI avec appels HTTP sécurisés depuis Laravel.
+- Exploitation de Tesseract OCR couplé à un prétraitement d’images via OpenCV pour améliorer la qualité des extractions.
+- Persistance détaillée des résultats d’extraction et des événements dans les tables `ai_requests`, `extractions` et `field_corrections` afin de garantir un audit trail complet.
+- Interface de validation fonctionnelle côté React permettant la revue et la correction des champs extraits (HITL).
+- Journalisation systématique des succès, échecs et corrections pour assurer traçabilité et conformité métier.
 
 **Vélocité réelle :** 22 SP
 
@@ -546,9 +583,9 @@ Scénario: Affichage des champs extraits
 
 ---
 
-#### Sprint 5 (Semaine 11-12) — Analytiques + Durcissement [PLANIFIÉ]
+#### Sprint 5 (Semaine 11-12) — Phase de modélisation et de rédaction académique [PLANIFIÉ]
 
-**Objectif :** Ajouter les fonctionnalités de reporting et améliorer la robustesse.
+**Objectif :** Consolider le travail technique réalisé par une phase structurée de modélisation UML et de rédaction académique, tout en poursuivant les efforts de reporting et de durcissement prévus.
 
 | ID | Élément | Points |
 |----|---------|--------|
@@ -562,9 +599,22 @@ Scénario: Affichage des champs extraits
 | **Total** | | **20** |
 
 **Incrément attendu :**
-- Tableau de bord avec métriques clés
-- Rôles appliqués (agent, superviseur, admin)
-- Système optimisé et testé
+- Élaboration des principaux diagrammes UML du système :
+  - Diagramme de classes aligné sur le modèle de données et les agrégats métier.
+  - Diagrammes de séquence illustrant le flux complet (upload → queue → IA → HITL → validation).
+  - Diagrammes de cas d’utilisation pour les rôles (agent, superviseur, responsable conformité, administrateur).
+  - Diagramme d’architecture technique reliant Laravel, FastAPI, Tesseract, OpenCV, MySQL et le frontend React.
+- Structuration complète du rapport de PFE autour des sections :
+  - Introduction, contexte et problématique.
+  - Architecture et choix de conception.
+  - Implémentation détaillée (backend, microservice IA, frontend).
+  - Sécurité (authentification Sanctum, gestion des droits, robustesse des flux).
+  - Validation métier, tests et analyse des résultats.
+  - Conclusion et perspectives.
+- Poursuite du volet analytique et de durcissement :
+  - Tableau de bord avec métriques clés (débit, taux de correction, qualité OCR).
+  - Rôles appliqués (agent, superviseur, admin) et vérifiés.
+  - Système optimisé, testé et prêt à être documenté de manière académique.
 
 ---
 
@@ -722,23 +772,25 @@ Points restants
 
 ### 10.1 Vélocité Observée vs Prévue
 
-| Sprint | Prévue | Réelle | Écart | Commentaire |
-|--------|--------|--------|-------|-------------|
-| Sprint 0 | 16 SP | 16 SP | 0% | Conforme |
-| Sprint 1 | 16 SP | 16 SP | 0% | Conforme |
-| Sprint 2 | 19 SP | 19 SP | 0% | Conforme |
-| Sprint 3 | 22 SP | 22 SP | 0% | Conforme |
-| Sprint 4 | 17 SP | 24 SP | +41% | Périmètre adapté (conformité) |
-| Sprint 5 | 20 SP | - | - | Planifié |
-| Sprint 6 | 11 SP | - | - | Planifié |
+| Sprint | Prévue | Réelle | Écart | Commentaire | Statut Réel ou Date de complétion réelle |
+|--------|--------|--------|-------|-------------|-------------------------------------------|
+| Sprint 0 | 16 SP | 16 SP | 0% | Conforme | Terminé (Days 1-2 PFE) |
+| Sprint 1 | 16 SP | 16 SP | 0% | Conforme | Terminé (Day 3 PFE) |
+| Sprint 2 | 19 SP | 19 SP | 0% | Conforme | Terminé (Day 4 PFE) |
+| Sprint 3 | 22 SP | 22 SP | 0% | Conforme | Terminé (Days 5-6 PFE) |
+| Sprint 4 | 17 SP | 24 SP | +41% | Périmètre adapté (conformité) | Terminé (Days 7-11 PFE) |
+| Sprint 5 | 20 SP | - | - | Planifié | Phase de modélisation et de rédaction académique (à exécuter) |
+| Sprint 6 | 11 SP | - | - | Planifié | Finalisation et soutenance (à exécuter) |
 
 ### 10.2 Analyse de Vélocité
 
 ```
-Vélocité moyenne (Sprints 0-4) = (16 + 16 + 19 + 22 + 24) / 5 = 19,4 SP/sprint
+Vélocité moyenne observée (Sprints 0-4) = (16 + 16 + 19 + 22 + 24) / 5 = 19,4 SP/sprint
 ```
 
-**Constat :** La vélocité est stabilisée après 5 sprints (moyenne 19,4 SP/sprint). Le Sprint 4 a dépassé la capacité prévue (+7 SP) en raison d'une adaptation du périmètre pour des exigences de conformité (US-033, US-034).
+La vélocité observée sur les cinq premiers sprints (19,4 SP/sprint) résulte de plusieurs facteurs structurels : (i) un contexte de développement mono-développeur, limitant les coûts de coordination d’équipe, (ii) un environnement exclusivement local, sans contraintes de déploiement ni de support en production, et (iii) une dette technique limitée sur le noyau du système, liée à une architecture stabilisée dès les premiers incréments.  
+Le dépassement de capacité du Sprint 4 (+7 SP) est corrélé à l’intégration d’exigences de conformité supplémentaires (US-033, US-034) et reste cohérent avec la capacité calculée en section 10.3.  
+Dans ce contexte, la vélocité élevée ne traduit pas un planning irréaliste, mais la focalisation du projet sur l’implémentation technique et la réduction des activités annexes (support, gestion opérationnelle, coordination multi-équipes), conformément au périmètre académique défini.
 
 ### 10.3 Calcul de Capacité
 
@@ -754,12 +806,12 @@ Capacité du Sprint :
 
 ### 10.4 Plan de version
 
-| Version | Sprints | Points | Date cible | Contenu |
-|---------|---------|--------|------------|---------|
-| **MVP (Alpha)** | 0-2 | 51 SP | Terminé | Upload, traitement async, audit |
-| **Beta** | 3-4 | 46 SP | Semaine 10 | OCR réel, HITL complet, auth, validation conforme |
-| **v1.0 (Finale)** | 5-6 | 31 SP | Semaine 14 | Analytiques, durcissement, soutenance |
-| **Total** | 0-6 | **128 SP** | | |
+| Version | Sprints | Points | Date cible | Contenu | Statut Réel ou Date de complétion réelle |
+|---------|---------|--------|------------|---------|-------------------------------------------|
+| **MVP (Alpha)** | 0-2 | 51 SP | Terminé | Upload, traitement async, audit | Terminé (Days 1-4 PFE) |
+| **Beta** | 3-4 | 46 SP | Semaine 10 | OCR réel, HITL complet, auth, validation conforme | Terminé (Days 5-11 PFE) |
+| **v1.0 (Finale)** | 5-6 | 31 SP | Semaine 14 | Analytiques, durcissement, phase de modélisation et de rédaction académique, soutenance | Planifié (post Days 11 PFE) |
+| **Total** | 0-6 | **128 SP** | | | |
 
 ### 10.5 Burnup Chart Projet
 
@@ -770,7 +822,7 @@ Points cumulés
   97 +                              +-------------+ Beta
   73 +                    +---------+
   51 +          +---------+
-  51 +----------+ MVP Livré
+  51 +----------+ MVP livré
   32 +----+
   16 +----+
    0 +
@@ -846,27 +898,13 @@ Points cumulés
 - Gestion des rôles
 - Optimisation performance
 - Documentation complète
-- Prêt pour soutenance
+- Support de soutenance préparé
 
 ---
 
-## 12. Cérémonies Scrum
+## 12. Dette Technique
 
-### 12.1 Adaptation au Contexte Solo
-
-| Cérémonie | Fréquence | Durée | Adaptation |
-|-----------|-----------|-------|------------|
-| **Planification de sprint** | Bi-hebdomadaire | 1h | Sélection des stories + découpage des tâches (solo) |
-| **Point quotidien** | Quotidien | 5 min | Auto-évaluation écrite (progression / blocages) |
-| **Revue de sprint** | Fin de sprint | 30 min | Démo à l'encadrant + feedback |
-| **Rétrospective** | Fin de sprint | 15 min | Réflexion personnelle documentée dans le devlog |
-| **Affinage du backlog** | Hebdomadaire | 30 min | Clarification des stories à venir (solo) |
-
----
-
-## 13. Dette Technique
-
-### 13.1 Registre de Dette
+### 12.1 Registre de Dette
 
 | ID | Description | Origine | Impact | Résolution Prévue |
 |----|-------------|---------|--------|-------------------|
@@ -877,7 +915,7 @@ Points cumulés
 | TD-005 | Validation stricte MIME (mimetypes) | Sprint 1 | Faible | Sprint 5 |
 | TD-006 | Ajouter index supplémentaires si >1000 docs | Sprint 2 | Moyen | Sprint 5 |
 
-### 13.2 Politique de Gestion
+### 12.2 Politique de Gestion
 
 - **Identification :** Lors des revues de code et rétrospectives
 - **Priorisation :** Intégrée à l'affinage du backlog
@@ -886,19 +924,19 @@ Points cumulés
 
 ---
 
-## 14. Annexes
+## 13. Annexes
 
-### 14.1 Mapping Progression Actuelle
+### 13.1 Mapping Progression Actuelle
 
-| Sprint | Jours PFE | Devlog | Statut |
-|--------|-----------|--------|--------|
-| Sprint 0 | Day 1-2 | `2026-02-07.md`, `2026-02-08.md` | Terminé |
-| Sprint 1 | Day 3 | `2026-02-12.md` | Terminé |
-| Sprint 2 | Day 4 | `2026-02-13.md` | Terminé |
-| Sprint 3 | Day 5-6 | `2026-02-14.md` | Terminé |
-| Sprint 4 | Day 7-11 | `2026-02-*.md` | Terminé (périmètre adapté) |
+| Sprint | Jours PFE | Devlog | Statut | Statut Réel ou Date de complétion réelle |
+|--------|-----------|--------|--------|-------------------------------------------|
+| Sprint 0 | Day 1-2 | `2026-02-07.md`, `2026-02-08.md` | Terminé | Terminé en 2 jours effectifs (Days 1-2) |
+| Sprint 1 | Day 3 | `2026-02-12.md` | Terminé | Terminé en 1 jour effectif (Day 3) |
+| Sprint 2 | Day 4 | `2026-02-13.md` | Terminé | Terminé en 1 jour effectif (Day 4) |
+| Sprint 3 | Day 5-6 | `2026-02-14.md` | Terminé | Terminé en 2 jours effectifs (Days 5-6) |
+| Sprint 4 | Day 7-11 | `2026-02-*.md` | Terminé (périmètre adapté) | Terminé en 5 jours effectifs (Days 7-11) |
 
-### 14.2 Artefacts du Projet
+### 13.2 Artefacts du Projet
 
 | Artefact | Emplacement | Description |
 |----------|-------------|-------------|
@@ -911,7 +949,7 @@ Points cumulés
 | Diagrammes | `docs/DIAGRAMS/` | Schémas et flux |
 | Scrum Planning | `docs/scrum-planning.md` | Ce document |
 
-### 14.3 Stack Technique Détaillée
+### 13.3 Stack Technique Détaillée
 
 | Composant | Technologie | Version | Rôle |
 |-----------|-------------|---------|------|
@@ -924,7 +962,7 @@ Points cumulés
 | Queue | Laravel Queue (DB) | - | Traitement asynchrone |
 | Stockage | Local filesystem | - | Fichiers documents |
 
-### 14.4 Glossaire
+### 13.4 Glossaire
 
 | Terme | Définition |
 |-------|------------|
@@ -935,11 +973,11 @@ Points cumulés
 | **DoD** | Définition de terminé — Critères de terminaison |
 | **PO** | Product Owner — Responsable du backlog produit |
 
-### 14.5 Notes de Mise à Jour du Planning
+### 13.5 Notes de Mise à Jour du Planning
 
 **Sprint 4 — Adaptation du périmètre :** En cours d'implémentation (Days 7–11), des exigences de conformité ont émergé (séparation avertissements IA vs règles métier, traçabilité d'audit, gestion d'erreurs 422 champ par champ). Les User Stories US-033 (couche de validation des règles métier) et US-034 (traçabilité d'audit de validation) ont été ajoutées au backlog Sprint 4 et livrées en complément. US-025 (RBAC) et US-026 (Analytiques) restent planifiés en Sprint 5.
 
-### 14.6 Exclusions de périmètre
+### 13.6 Exclusions de périmètre
 
 Les éléments suivants sont explicitement hors périmètre pour ce PFE :
 
@@ -949,6 +987,28 @@ Les éléments suivants sont explicitement hors périmètre pour ce PFE :
 | Configuration Docker/CI-CD | Non requis pour validation PFE |
 | Infrastructure cloud | Complexité hors périmètre académique |
 | Surveillance en production | Non applicable sans déploiement |
+
+---
+
+## 14. Synthèse de l’état d’avancement
+
+À la date de mise à jour de ce document, les **Sprints 0 à 4** ont été réalisés et ont permis de livrer :
+
+- Un **MVP technique** (Sprints 0–2) couvrant le pipeline complet `upload → queue → traitement IA (mock puis réel) → stockage`, démontrant la faisabilité de bout en bout.
+- Un **MVP utilisateur / version Beta** (Sprints 3–4) intégrant l’OCR réel (FastAPI + Tesseract + OpenCV), la validation Human-in-the-Loop, les règles métier et l’authentification basée sur Laravel Sanctum.
+
+Les **Sprints 5 et 6** restent planifiés et portent respectivement sur :
+
+- La **phase de modélisation et de rédaction académique**, comprenant la production des diagrammes UML (classes, séquence, cas d’utilisation, architecture) et la structuration détaillée du rapport de PFE.
+- La **finalisation v1.0**, incluant les analytiques, le durcissement, la documentation finale et la préparation de la soutenance.
+
+La planification et l’exécution s’appuient sur :
+
+- Une estimation en Story Points cohérente avec la capacité observée.
+- Une adaptation méthodologique de Scrum au contexte mono-développeur.
+- Un accent particulier mis sur la **traçabilité**, la **conformité** et l’**auditabilité** (statuts, audit trail, journalisation des corrections).
+
+Ce document vise ainsi à fournir une vue consolidée et reproductible de la planification Scrum du projet, directement exploitable dans le cadre de la soutenance de PFE.
 
 ---
 
