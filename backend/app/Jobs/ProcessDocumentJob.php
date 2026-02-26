@@ -73,7 +73,10 @@ class ProcessDocumentJob implements ShouldQueue, ShouldBeUnique
             Log::warning('ProcessDocumentJob: Document not found', ['id' => $this->documentId]);
             return;
         }
-
+        //  Prevent status regression
+        if ($document->status === DocumentStatus::VALIDATED) {
+            return;
+        }
         // Idempotence guard: already processed
         if ($document->status === DocumentStatus::PROCESSED) {
             Log::info('ProcessDocumentJob: Already processed', ['id' => $this->documentId]);
@@ -87,7 +90,6 @@ class ProcessDocumentJob implements ShouldQueue, ShouldBeUnique
 
         if ($existingExtraction) {
             Log::info('ProcessDocumentJob: Extraction v1 already exists', ['id' => $this->documentId]);
-            $document->update(['status' => DocumentStatus::PROCESSED]);
             return;
         }
 
@@ -173,6 +175,12 @@ class ProcessDocumentJob implements ShouldQueue, ShouldBeUnique
             ]);
             return;
         }
+
+        // Prevent status regression (never reprocess validated documents)
+        if ($document->status === DocumentStatus::VALIDATED) {
+            return;
+        }
+
 
         // Update document status to FAILED
         $document->update(['status' => DocumentStatus::FAILED]);

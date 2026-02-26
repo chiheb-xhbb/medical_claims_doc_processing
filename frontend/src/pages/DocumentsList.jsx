@@ -14,6 +14,13 @@ function DocumentsList() {
   const [lastPage, setLastPage] = useState(1);
   const [total, setTotal] = useState(0);
 
+  // Track current page for polling
+  const currentPageRef = useRef(currentPage);
+
+  useEffect(() => {
+    currentPageRef.current = currentPage;
+  }, [currentPage]);
+
   // Ref for polling interval
   const pollingIntervalRef = useRef(null);
 
@@ -56,7 +63,7 @@ function DocumentsList() {
     // Start polling if needed
     if (needsPolling(docs)) {
       pollingIntervalRef.current = setInterval(async () => {
-        const newDocs = await fetchDocuments(currentPage);
+        const newDocs = await fetchDocuments(currentPageRef.current);
         // If no more documents need polling, the next call will clear the interval
         if (!needsPolling(newDocs) && pollingIntervalRef.current) {
           clearInterval(pollingIntervalRef.current);

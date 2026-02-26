@@ -18,7 +18,7 @@ class DocumentController extends Controller
     {
         $document = $this->documentService->store(
             file: $request->file('file'),
-            userId: null
+            userId: auth()->id()
         );
 
         return response()->json([
@@ -33,6 +33,10 @@ class DocumentController extends Controller
 
     public function show(Document $document): JsonResponse
     {
+        // Authorization check
+        if ($document->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized access to this document');
+        }
         $latestExtraction = $document->extractions()
             ->latest('version')
             ->first();
@@ -59,7 +63,9 @@ class DocumentController extends Controller
 
     public function index(): JsonResponse
     {
-        $documents = Document::latest()->paginate(10);
+        $documents = Document::where('user_id', auth()->id())
+        ->latest()
+        ->paginate(10);
 
         return response()->json($documents);
     }

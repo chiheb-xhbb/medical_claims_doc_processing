@@ -18,6 +18,11 @@ class DocumentValidationController extends Controller
      */
     public function validateDocument(Request $request, Document $document)
     {
+        // Authorization check
+        if ($document->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized validation attempt');
+        }
+        
         // Step 0 — Only allow validation if the document is in PROCESSED state
         if ($document->status !== DocumentStatus::PROCESSED) {
             return response()->json([
