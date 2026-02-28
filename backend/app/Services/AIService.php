@@ -37,15 +37,20 @@ class AIService
             'file_size' => filesize($fullPath)
         ]);
 
+        // 1. Open the file handle safely
+        $fileHandle = fopen($fullPath, 'r');
+
         try {
+            // 2. Make the HTTP request
             $response = Http::timeout(30)
                 ->attach(
                     'file',
-                    fopen($fullPath, 'r'),
+                    $fileHandle,
                     basename($filePath)
                 )
                 ->post($this->fastApiUrl . '/process', [
-                    'doc_type' => $docType ?? 'unknown'
+                    // Ensure we send 'medical_invoice' by default
+                    'doc_type' => $docType ?? 'medical_invoice' 
                 ]);
 
             if ($response->successful()) {
@@ -85,6 +90,11 @@ class AIService
             ]);
             
             throw $e;
+        } finally {
+            // 3. ARCHITECTURE FIX: ALWAYS close the file handle to prevent memory leaks!
+            if (is_resource($fileHandle)) {
+                fclose($fileHandle);
+            }
         }
     }
 }

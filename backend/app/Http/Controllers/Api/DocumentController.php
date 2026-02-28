@@ -16,9 +16,11 @@ class DocumentController extends Controller
 
     public function store(StoreDocumentRequest $request): JsonResponse
     {
+        $docType = $request->validated('doc_type') ?? 'medical_invoice';
         $document = $this->documentService->store(
             file: $request->file('file'),
-            userId: auth()->id()
+            userId: auth()->id(),
+            docType: $docType
         );
 
         return response()->json([
