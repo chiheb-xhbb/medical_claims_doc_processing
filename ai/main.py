@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import pytesseract
 from PIL import Image
-import fitz  # PyMuPDF
+import fitz  # PyMuPDF for PDF processing
 import io
 import re
 import time
@@ -12,19 +12,17 @@ import os
 from typing import Optional
 from datetime import datetime
 
-# Configure Tesseract executable path dynamically to ensure cross-platform portability.
+# Setup Tesseract path. This checks if we are on a server (using env vars) or local Windows.
 tesseract_path = os.getenv('TESSERACT_CMD')
 if tesseract_path:
-    # Prefer environment variable for containerized or production environments.
     pytesseract.pytesseract.tesseract_cmd = tesseract_path
 elif os.name == 'nt':
-    # Fallback to standard Windows installation path for local development.
+    # Default Windows path for local development
     pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-# Note: POSIX systems (Linux/macOS) typically resolve 'tesseract' via system PATH automatically.
 
 app = FastAPI(title="Medical Document Processing API")
 
-# Configure Cross-Origin Resource Sharing (CORS) policies.
+# Allow the Laravel frontend to communicate with this FastAPI backend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -33,18 +31,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Define the expected data contract schema (v1).
+# The exact fields our Laravel database is expecting
 REQUIRED_FIELDS = ["invoice_date", "provider_name", "total_ttc"]
-
-# Baseline confidence threshold for identifying missing entities.
 MISSING_FIELD_CONFIDENCE = 0.0
-
 
 @app.get("/health")
 def health():
-    """Endpoint to verify service availability and operational status."""
+    """Simple health check to make sure the AI microservice is running."""
     return {"status": "ok", "service": "medical-doc-ocr"}
-
 
 @app.post("/process")
 async def process_document(
@@ -52,15 +46,12 @@ async def process_document(
     doc_type: Optional[str] = Form("medical_invoice")
 ):
     """
-    Process an uploaded medical document utilizing Optical Character Recognition (OCR).
-    Returns a standardized JSON payload strictly adhering to the v1 data contract.
-    
-    Constraint limitation: The current implementation processes only the initial page of multi-page PDFs.
+    Main endpoint to receive a file, run OCR, and extract the data.
     """
     start_time = time.time()
     request_id = str(uuid.uuid4())
     
-    # Initialize response schema with null values to maintain a strict API contract.
+    # Initialize our response objects
     fields = {key: None for key in REQUIRED_FIELDS}
     confidence = {key: MISSING_FIELD_CONFIDENCE for key in REQUIRED_FIELDS}
     extra = {}
@@ -68,42 +59,39 @@ async def process_document(
     errors = []
     
     try:
-        # Read file buffer into memory.
         contents = await file.read()
         
-        # Enforce payload size constraints (10MB threshold).
+        # Security: Prevent massive files from crashing the server (10MB limit)
         if len(contents) > 10 * 1024 * 1024:
-            raise ValueError("Payload size exceeds the 10MB limit.")
+            raise ValueError("File is too large. Maximum size is 10MB.")
         
-        # Validate MIME type and file extension compatibility.
+        # Validation: Check if it's an image or PDF
         filename = file.filename or "unknown"
         if not is_supported_file(filename):
             raise ValueError(f"Unsupported file format: {filename}")
         
-        # Perform text extraction (Image or PDF parsing).
+        # Step 1: Convert the image/PDF into raw text
         text = extract_text_from_file(contents, filename)
         
-        # Execute regex-based entity extraction.
+        # Step 2: Use regex to find specific data like dates and amounts
         extracted, extra_fields = extract_fields_from_text(text, doc_type)
         
-        # Map extracted entities to the standardized response schema.
+        # Map what we found into the required fields
         for key in REQUIRED_FIELDS:
             if key in extracted:
                 fields[key] = extracted[key]
         
-        # Append auxiliary data and a textual preview for diagnostic purposes.
+        # Store additional data (like patient name) and a text preview for debugging
         extra = extra_fields
-        extra["text_preview"] = text[:200] if text else ""
+        extra["text_preview"] = text[:200].replace('\n', ' ') if text else ""
         
-        # Compute confidence matrices for extracted entities.
+        # Step 3: Calculate how confident the AI is in its results
         confidence = calculate_confidence(fields, text)
-        
-        # Append diagnostic warnings for sub-optimal extraction results.
         warnings = generate_warnings(fields, confidence)
         
-        # Calculate algorithmic execution time.
         processing_time_ms = int((time.time() - start_time) * 1000)
         
+        # Return the final JSON payload to Laravel
         return {
             "meta": {
                 "doc_type": doc_type,
@@ -111,7 +99,7 @@ async def process_document(
                 "processing_time_ms": processing_time_ms,
                 "ocr_engine": "tesseract",
                 "extra": extra,
-                "note": "Limitation: Single-page processing enforced for PDF artifacts."
+                "note": "Currently processes only the first page of PDFs."
             },
             "fields": fields,
             "confidence": confidence,
@@ -120,195 +108,142 @@ async def process_document(
         }
     
     except ValueError as e:
-        # Handle client-side validation failures (HTTP 400 Bad Request).
+        # Client errors (like bad file type) return a 400 Bad Request
         processing_time_ms = int((time.time() - start_time) * 1000)
         return JSONResponse(
             status_code=400,
             content={
-                "meta": {
-                    "doc_type": doc_type,
-                    "request_id": request_id,
-                    "processing_time_ms": processing_time_ms,
-                    "extra": {},
-                    "error": str(e)
-                },
-                "fields": fields,
-                "confidence": confidence,
-                "warnings": [],
-                "errors": [str(e)]
+                "meta": {"request_id": request_id, "processing_time_ms": processing_time_ms, "extra": {}, "error": str(e)},
+                "fields": fields, "confidence": confidence, "warnings": [], "errors": [str(e)]
             }
         )
-    
     except Exception as e:
-        # Handle internal server anomalies (HTTP 500 Internal Server Error).
+        # Catch-all for unexpected errors so the server doesn't crash (500 Internal Error)
         processing_time_ms = int((time.time() - start_time) * 1000)
         return JSONResponse(
             status_code=500,
             content={
-                "meta": {
-                    "doc_type": doc_type,
-                    "request_id": request_id,
-                    "processing_time_ms": processing_time_ms,
-                    "extra": {},
-                    "error": "Internal server error"
-                },
-                "fields": fields,
-                "confidence": confidence,
-                "warnings": [],
-                "errors": [f"Processing pipeline failed: {str(e)}"]
+                "meta": {"request_id": request_id, "processing_time_ms": processing_time_ms, "extra": {}, "error": "Internal server error"},
+                "fields": fields, "confidence": confidence, "warnings": [], "errors": [f"Pipeline failed: {str(e)}"]
             }
         )
 
-
 def is_supported_file(filename: str) -> bool:
-    """Evaluate file extension against the whitelist of supported formats."""
+    """Checks the file extension against our allowed list."""
     supported_extensions = ['.pdf', '.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif']
     return any(filename.lower().endswith(ext) for ext in supported_extensions)
 
-
 def extract_text_from_file(contents: bytes, filename: str) -> str:
-    """
-    Execute Optical Character Recognition on the provided byte stream.
-    PDF streams are converted to high-DPI raster images prior to OCR analysis.
-    """
+    """Handles the actual image processing and Tesseract OCR execution."""
     filename_lower = filename.lower()
     
     if filename_lower.endswith('.pdf'):
-        # Convert the primary PDF page into a high-resolution byte array.
+        # If it's a PDF, we render the first page into an image
         with fitz.open(stream=contents, filetype="pdf") as pdf_document:
             if len(pdf_document) == 0:
-                raise ValueError("The provided PDF artifact contains no pages.")
-            
+                raise ValueError("The provided PDF is empty.")
             page = pdf_document[0]
-            pix = page.get_pixmap(dpi=200)  # Enhanced DPI yields superior OCR fidelity.
+            # Use 300 DPI to ensure clear text, especially for 3-decimal amounts
+            pix = page.get_pixmap(dpi=300)  
             image = Image.open(io.BytesIO(pix.tobytes("png")))
     else:
-        # Decode raw image bytes.
+        # If it's already an image, just load it
         try:
             image = Image.open(io.BytesIO(contents))
         except Exception as e:
-            raise ValueError(f"Corrupted or invalid image byte stream: {str(e)}")
+            raise ValueError(f"Could not read the image file: {str(e)}")
     
-    # Apply greyscale preprocessing to optimize Tesseract contrast detection.
+    # Convert image to grayscale to improve OCR accuracy
     if image.mode != 'L':
         image = image.convert('L')
     
-    # Execute the underlying Tesseract C++ engine.
-    text = pytesseract.image_to_string(image, lang='fra+eng')
-    return text
-
+    # Run Tesseract supporting both French and English
+    return pytesseract.image_to_string(image, lang='fra+eng')
 
 def extract_fields_from_text(text: str, doc_type: str) -> tuple[dict, dict]:
-    """
-    Apply regular expressions and heuristic parsing to extract semantic entities.
-    Returns a tuple containing mapped required entities and unmapped supplementary data.
-    """
+    """The brain of the operation: Uses Regex to find dates, amounts, and names."""
     required_fields = {}
     extra_fields = {}
     
-    # Isolate standardized temporal markers (Dates).
+    # 1. Date Extraction (Looks for standard DD/MM/YYYY or YYYY-MM-DD formats)
     date_pattern = r'(\d{2}[/-]\d{2}[/-]\d{4}|\d{4}[/-]\d{2}[/-]\d{2})'
     date_match = re.search(date_pattern, text)
     if date_match:
         required_fields["invoice_date"] = normalize_date(date_match.group(1))
     
-    # Isolate fiscal values utilizing proximity heuristics to keywords (TTC, Total).
-    amount_pattern = r'(?:total|ttc|montant)[^\d]*(\d+[.,]\d{2})\s*(?:€|EUR|DT|TND)?'
-    amount_match = re.search(amount_pattern, text, re.IGNORECASE)
-    if amount_match:
-        required_fields["total_ttc"] = float(amount_match.group(1).replace(',', '.'))
+    # 2. Total Amount (Looks for TTC/Total, supporting 3 decimals for Tunisian Millimes)
+    amt_keywords = r'(?:total\s*t\.?t\.?c\.?|ttc|net\s*a\s*payer|montant\s*total)'
+    amt_value = r'(\d+[\.,]\d{2,3})'
+    # Find all matches, then take the LAST one because the grand total is usually at the bottom
+    matches = re.findall(f'{amt_keywords}[^\d]*{amt_value}', text, re.IGNORECASE)
+    if matches:
+        raw_val = matches[-1].replace(',', '.')
+        required_fields["total_ttc"] = float(raw_val)
     
-    # Heuristic determination of provider identity based on structural positioning.
-    # Excludes common document headers to isolate the corporate entity.
-    header_words = ['facture', 'invoice', 'labo', 'laboratoire', 'pharmacie', 'ordonnance', 'reçu']
-    lines = [l.strip() for l in text.split('\n') if l.strip()]
+    # 3. Provider Name (Looks at the top lines of the document)
+    header_ignore = ['facture', 'note', 'reçu', 'invoice', 'date', 'tél', 'labo', 'pharmacie']
+    # Split text into lines, ignoring empty ones
+    lines = [l.strip() for l in text.split('\n') if len(l.strip()) > 4]
     
-    for line in lines:
-        line_lower = line.lower()
-        if not any(line_lower == hw or line_lower.startswith(hw + ' ') for hw in header_words):
-            if re.search(r'[A-Za-zÀ-ÿ]{2,}', line):
-                required_fields["provider_name"] = line[:50]
+    for line in lines[:8]:  # Search only the top 8 lines
+        # Skip lines that are just saying "Facture" or "Date"
+        if not any(x in line.lower() for x in header_ignore):
+            # Clean up common OCR noise (e.g., random symbols before the actual name)
+            cleaned_name = re.sub(r'^[^a-zA-ZÀ-ÿ]+', '', line)
+            if len(cleaned_name) > 3:
+                required_fields["provider_name"] = cleaned_name[:50]
                 break
-    
-    # Fallback protocol if structural heuristics fail.
+                
+    # If we couldn't find a clean name, just grab the very first line as a fallback
     if "provider_name" not in required_fields and lines:
         required_fields["provider_name"] = lines[0][:50]
     
-    # Supplementary entity extraction: Patient demographics.
-    patient_pattern = r'(?:patient|nom|client)[:\s]+([A-Za-zÀ-ÿ\s]+)'
+    # 4. Extra info: Patient Name (Stops reading at the end of the line to avoid grabbing addresses)
+    patient_pattern = r'(?:patient|nom|client)[:\s]+([^\n]+)'
     patient_match = re.search(patient_pattern, text, re.IGNORECASE)
     if patient_match:
         extra_fields["patient_name"] = patient_match.group(1).strip()[:50]
     
-    # Volumetric metric for payload diagnostics.
     extra_fields["text_length"] = len(text)
     
     return required_fields, extra_fields
 
-
 def normalize_date(date_str: str) -> str:
-    """
-    Standardize diverse date string representations into ISO 8601 subset format (YYYY-MM-DD).
-    """
-    formats = [
-        "%d/%m/%Y",
-        "%d-%m-%Y",
-        "%Y-%m-%d",
-        "%Y/%m/%d",
-    ]
-    
+    """Converts any found date into the standard YYYY-MM-DD database format."""
+    formats = ["%d/%m/%Y", "%d-%m-%Y", "%Y-%m-%d", "%Y/%m/%d"]
     for fmt in formats:
         try:
-            parsed = datetime.strptime(date_str, fmt)
-            return parsed.strftime("%Y-%m-%d")
+            return datetime.strptime(date_str, fmt).strftime("%Y-%m-%d")
         except ValueError:
             continue
-    
-    # Return unparsed string if it deviates from expected formatting protocols.
     return date_str
 
-
 def calculate_confidence(fields: dict, text: str) -> dict:
-    """
-    Compute deterministic confidence coefficients for extracted entities.
-    Variables are scored based on the rigidity of their extraction pattern.
-    """
+    """Assigns a confidence score. Used by the UI to show warnings."""
     confidence = {}
-    
     for field_name in REQUIRED_FIELDS:
         value = fields.get(field_name)
-        
         if value is None:
-            # Null entities mandate a 0.0 coefficient to trigger manual review workflows.
             confidence[field_name] = 0.0
         elif field_name == "invoice_date":
-            # Strict regex matching yields high statistical confidence.
-            confidence[field_name] = 0.85
+            # Dates are very predictable, high confidence
+            confidence[field_name] = 0.90
         elif field_name == "total_ttc" and isinstance(value, (int, float)):
-            confidence[field_name] = 0.80
-        elif field_name == "provider_name":
-            # Structural heuristics exhibit higher variance, necessitating a lower coefficient.
-            confidence[field_name] = 0.65
+            # Numbers are reliable, but OCR can misread an '8' as a 'B' occasionally
+            confidence[field_name] = 0.85
         else:
-            confidence[field_name] = 0.60
-    
+            # Names and text are highly variable, moderate confidence to encourage human review
+            confidence[field_name] = 0.65
     return confidence
 
-
 def generate_warnings(fields: dict, confidence: dict) -> list:
-    """
-    Compile a diagnostic array of warnings based on threshold validations.
-    Triggers on entity omission or sub-optimal confidence coefficients.
-    """
+    """Generates human-readable warnings if the AI isn't sure about a field."""
     warnings = []
-    
     for field_name in REQUIRED_FIELDS:
         value = fields.get(field_name)
         score = confidence.get(field_name, 0.0)
-        
         if value is None:
-            warnings.append(f"Entity omission detected for required parameter: '{field_name}'")
+            warnings.append(f"Missing required parameter: '{field_name}'")
         elif score < 0.70:
-            warnings.append(f"Sub-optimal confidence coefficient ({score:.0%}) for entity: '{field_name}'")
-    
+            warnings.append(f"Sub-optimal confidence ({score:.0%}) for entity: '{field_name}'")
     return warnings
