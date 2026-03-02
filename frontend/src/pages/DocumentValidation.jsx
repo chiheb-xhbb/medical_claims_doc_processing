@@ -28,6 +28,38 @@ const FIELD_TYPES = {
 // Confidence threshold for highlighting low confidence rows
 const LOW_CONFIDENCE_THRESHOLD = 0.70;
 
+// Normalize date to YYYY-MM-DD format for <input type="date">
+const normalizeDate = (value) => {
+  if (!value) return null;
+
+  const raw = String(value).trim();
+
+  // Case 1: Already correct format YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    return raw;
+  }
+
+  // Case 2: DD-MM-YYYY or DD/MM/YYYY
+  const clean = raw.replace(/\//g, '-');
+  const parts = clean.split('-');
+
+  if (parts.length === 3) {
+    const [a, b, c] = parts;
+
+    // DD-MM-YYYY
+    if (a.length === 2 && c.length === 4) {
+      return `${c}-${b}-${a}`;
+    }
+
+    // YYYY-MM-DD but badly formatted
+    if (a.length === 4) {
+      return `${a}-${b}-${c}`;
+    }
+  }
+
+  // Unknown format
+  return null;
+};
 // Custom styles using CSS variables
 const styles = {
   pageContainer: {
@@ -99,7 +131,14 @@ function DocumentValidation() {
       // Extract fields, confidence, and warnings from latest_extraction
       if (doc.latest_extraction) {
         const extraction = doc.latest_extraction;
-        setEditedFields(extraction.fields || {});
+        
+        // Normalize date fields before setting state
+        const normalizedFields = {
+          ...extraction.fields,
+          invoice_date: normalizeDate(extraction.fields?.invoice_date)
+        };
+        
+        setEditedFields(normalizedFields || {});
         setConfidenceScores(extraction.confidence || {});
         setWarnings(extraction.warnings || []);
       } else {
