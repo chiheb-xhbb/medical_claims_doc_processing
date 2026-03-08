@@ -1,0 +1,80 @@
+@startuml
+skinparam monochrome true
+skinparam classAttributeIconSize 0
+hide methods
+
+enum Role <<enumeration>> {
+  AGENT
+  GESTIONNAIRE
+  ADMIN
+}
+
+enum DocumentStatus <<enumeration>> {
+  UPLOADED
+  PROCESSING
+  PROCESSED
+  VALIDATED
+  FAILED
+}
+
+class User {
+  - id : Integer
+  - name : String
+  - email : String
+  - role : Role
+  - created_at : DateTime
+  - updated_at : DateTime
+}
+
+class Document {
+  - id : Integer
+  - original_filename : String
+  - file_path : String
+  - mime_type : String
+  - file_size : Integer
+  - doc_type : String
+  - status : DocumentStatus
+  - error_message : Text
+  - validated_at : DateTime
+  - created_at : DateTime
+  - updated_at : DateTime
+}
+
+class Extraction {
+  - id : Integer
+  - version : Integer
+  - result_json : JSON
+  - created_at : DateTime
+  - updated_at : DateTime
+}
+
+class AiRequest {
+  - id : Integer
+  - request_id : UUID
+  - status : String
+  - processing_time_ms : Integer
+  - error_message : Text
+  - created_at : DateTime
+  - updated_at : DateTime
+}
+
+class FieldCorrection {
+  - id : Integer
+  - field_name : String
+  - original_value : Text
+  - corrected_value : Text
+  - created_at : DateTime
+  - updated_at : DateTime
+}
+
+User "1" -- "0..*" Document : téléverse >
+User "0..1" -- "0..*" Document : valide >
+User "1" -- "0..*" FieldCorrection : effectue >
+
+Document "1" *-- "0..*" Extraction : possède
+Document "1" -- "0..*" AiRequest : trace >
+Document "1" -- "0..*" FieldCorrection : subit >
+
+AiRequest "1" -- "0..1" Extraction : produit >
+
+@enduml
