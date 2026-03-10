@@ -1,0 +1,45 @@
+@startuml
+skinparam monochrome true
+skinparam packageStyle rectangle
+left to right direction
+
+actor "Administrateur" as Admin
+actor "Gestionnaire" as Gestionnaire
+actor "Agent" as Agent
+
+rectangle "Plateforme intelligente de traitement des documents médicaux" {
+
+  usecase "S'authentifier" as UC_Auth
+
+  usecase "Gérer les utilisateurs" as UC_ManageUsers
+  usecase "Consulter tous les documents" as UC_AllDocs
+  usecase "Consulter le tableau de bord global" as UC_GlobalDashboard
+
+  usecase "Corriger les données extraites" as UC_CorrectData
+  usecase "Valider un document" as UC_ValidateDocument
+
+  usecase "Téléverser un document" as UC_UploadDocument
+  usecase "Consulter ses documents" as UC_OwnDocs
+  usecase "Consulter le tableau de bord personnel" as UC_PersonalDashboard
+}
+
+Admin --> UC_Auth
+Gestionnaire --> UC_Auth
+Agent --> UC_Auth
+
+Admin --> UC_ManageUsers
+Admin --> UC_AllDocs
+Admin --> UC_GlobalDashboard
+
+Gestionnaire --> UC_AllDocs
+Gestionnaire --> UC_GlobalDashboard
+Gestionnaire --> UC_CorrectData
+Gestionnaire --> UC_ValidateDocument
+
+Agent --> UC_UploadDocument
+Agent --> UC_OwnDocs
+Agent --> UC_PersonalDashboard
+Agent --> UC_CorrectData
+Agent --> UC_ValidateDocument
+
+@enduml
