@@ -13,26 +13,13 @@ return new class extends Migration
     {
         Schema::create('field_corrections', function (Blueprint $table) {
             $table->id();
-
-            // Link to documents table
-            $table->foreignId('document_id')
-                  ->constrained()
-                  ->cascadeOnDelete();
-
-            // Name of the corrected field (e.g., total_amount, invoice_date)
+            $table->foreignId('document_id')->constrained()->cascadeOnDelete();
             $table->string('field_name');
-
-            // Original AI value
             $table->text('original_value')->nullable();
-
-            // User corrected value (required)
+            // User corrected value 
             $table->text('corrected_value')->nullable();
-
-            // User who made the correction (optional)
-            $table->foreignId('user_id')
-                  ->nullable()
-                  ->constrained()
-                  ->nullOnDelete();
+            // User who made the correction
+            $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
 
             $table->timestamps();
 

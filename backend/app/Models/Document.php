@@ -48,4 +48,9 @@ class Document extends Model
         return $this->hasMany(FieldCorrection::class);
     }
 
+    public function validator()
+    {
+        return $this->belongsTo(User::class, 'validated_by');
+    }
+
 }

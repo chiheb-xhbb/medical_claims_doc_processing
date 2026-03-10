@@ -24,8 +24,8 @@ class AiRequest extends Model
         return $this->belongsTo(Document::class);
     }
 
-    public function extraction()
+    public function extractions()
     {
-        return $this->hasOne(Extraction::class);
+        return $this->hasMany(Extraction::class);
     }
 }
