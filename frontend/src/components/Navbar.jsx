@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { logout } from '../services/auth';
 
@@ -6,36 +5,33 @@ function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Authentication state
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  // Check authentication status periodically
-  useEffect(() => {
-    const hasToken = !!localStorage.getItem('auth_token');
-    setIsAuthenticated(hasToken);
-  }, [location]);
-
+  // Read authentication directly from localStorage.
+  // The component re-renders on route changes, so this is enough here.
+  const isAuthenticated = !!localStorage.getItem('auth_token');
 
   // Check if a path is active (for highlighting)
   const isActive = (path) => {
     if (path === '/documents') {
-      // Match /documents exactly or /documents/:id/validate
-      return location.pathname === '/documents' || location.pathname.match(/^\/documents\/\d+\/validate$/);
+      return (
+        location.pathname === '/documents' ||
+        /^\/documents\/\d+\/validate$/.test(location.pathname)
+      );
     }
+
     return location.pathname === path;
   };
 
-  // Handle logout
   const handleLogout = async () => {
     try {
       await logout();
-    } catch (err) {
-      // Logout will clear token even if API call fails
+    } catch {
+      // Logout still clears local state/token handling even if the API call fails.
     }
+
     navigate('/login', { replace: true });
   };
 
-  // Don't show navbar on login page
+  // Hide navbar on login page
   if (location.pathname === '/login') {
     return null;
   }
@@ -43,7 +39,10 @@ function Navbar() {
   return (
     <nav className="navbar navbar-expand-lg navbar-dark bg-primary">
       <div className="container">
-        <NavLink className="navbar-brand d-flex align-items-center" to={isAuthenticated ? '/documents' : '/login'}>
+        <NavLink
+          className="navbar-brand d-flex align-items-center"
+          to={isAuthenticated ? '/documents' : '/login'}
+        >
           <i className="bi bi-file-medical me-2"></i>
           MedDocs
         </NavLink>
@@ -73,6 +72,7 @@ function Navbar() {
                     Documents
                   </NavLink>
                 </li>
+
                 <li className="nav-item">
                   <NavLink
                     className={`nav-link ${location.pathname === '/documents/upload' ? 'active' : ''}`}
@@ -82,12 +82,13 @@ function Navbar() {
                     Upload
                   </NavLink>
                 </li>
+
                 <li className="nav-item">
                   <button
-                  className="nav-link btn btn-link text-white"
-                  onClick={handleLogout}
+                    className="nav-link btn btn-link text-white"
+                    onClick={handleLogout}
                   >
-                  <i className="bi bi-box-arrow-right me-1"></i>
+                    <i className="bi bi-box-arrow-right me-1"></i>
                     Logout
                   </button>
                 </li>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { StatusBadge, Loader, ErrorAlert, EmptyState } from '../ui';
@@ -6,35 +6,52 @@ import { StatusBadge, Loader, ErrorAlert, EmptyState } from '../ui';
 function DocumentsList() {
   const navigate = useNavigate();
 
-  // State management
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const [retryingIds, setRetryingIds] = useState([]);
 
-  // Track current page for polling
   const currentPageRef = useRef(currentPage);
+  const pollingIntervalRef = useRef(null);
 
   useEffect(() => {
     currentPageRef.current = currentPage;
   }, [currentPage]);
 
-  // Ref for polling interval
-  const pollingIntervalRef = useRef(null);
+  const needsPolling = useCallback((docs) => {
+    return docs.some((doc) => doc.status === 'UPLOADED' || doc.status === 'PROCESSING');
+  }, []);
 
-  // Fetch documents from API
-  const fetchDocuments = async (page = currentPage) => {
+  const formatDocumentError = (message) => {
+    if (!message) {
+      return 'Processing failed.';
+    }
+
+    let cleaned = message.trim();
+
+    cleaned = cleaned.replace(/^FastAPI rejected the document \(HTTP \d+\):\s*/i, '');
+    cleaned = cleaned.replace(/^FastAPI service error \(HTTP \d+\):\s*/i, '');
+    cleaned = cleaned.replace(/^FastAPI service unavailable:\s*/i, '');
+    cleaned = cleaned.replace(/^Pipeline failed:\s*/i, '');
+    cleaned = cleaned.replace(/^[A-Za-z]+Error:\s*/i, '');
+
+    return cleaned || 'Processing failed.';
+  };
+
+  const fetchDocuments = useCallback(async (page = 1) => {
     try {
       setError(null);
+
       const response = await api.get(`/documents?page=${page}`);
       const data = response.data;
 
       setDocuments(data.data || []);
-      setCurrentPage(data.current_page);
-      setLastPage(data.last_page);
-      setTotal(data.total);
+      setCurrentPage(data.current_page ?? 1);
+      setLastPage(data.last_page ?? 1);
+      setTotal(data.total ?? 0);
 
       return data.data || [];
     } catch (err) {
@@ -43,101 +60,113 @@ function DocumentsList() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  // Check if any document needs polling
-  const needsPolling = (docs) => {
-    return docs.some(doc => 
-      doc.status === 'UPLOADED' || doc.status === 'PROCESSING'
-    );
-  };
+  const setupPolling = useCallback(
+    (docs) => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
 
-  // Setup polling logic
-  const setupPolling = (docs) => {
-    // Clear existing interval
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
-      pollingIntervalRef.current = null;
-    }
+      if (needsPolling(docs)) {
+        pollingIntervalRef.current = setInterval(async () => {
+          const newDocs = await fetchDocuments(currentPageRef.current);
 
-    // Start polling if needed
-    if (needsPolling(docs)) {
-      pollingIntervalRef.current = setInterval(async () => {
-        const newDocs = await fetchDocuments(currentPageRef.current);
-        // If no more documents need polling, the next call will clear the interval
-        if (!needsPolling(newDocs) && pollingIntervalRef.current) {
-          clearInterval(pollingIntervalRef.current);
-          pollingIntervalRef.current = null;
-        }
-      }, 3000);
-    }
-  };
+          if (!needsPolling(newDocs) && pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+          }
+        }, 3000);
+      }
+    },
+    [fetchDocuments, needsPolling]
+  );
 
-  // Initial load
   useEffect(() => {
     const loadDocuments = async () => {
       const docs = await fetchDocuments(1);
       setupPolling(docs);
     };
+
     loadDocuments();
 
-    // Cleanup on unmount
     return () => {
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
         pollingIntervalRef.current = null;
       }
     };
-  }, []);
+  }, [fetchDocuments, setupPolling]);
 
-  // Handle page change
   const handlePageChange = async (page) => {
     if (page < 1 || page > lastPage) return;
+
     setLoading(true);
     const docs = await fetchDocuments(page);
     setupPolling(docs);
   };
 
-  // Render status badge - using UI component
-  const renderStatusBadge = (status) => {
-    return <StatusBadge status={status} />;
+  const handleRetry = async (documentId) => {
+    try {
+      setError(null);
+      setRetryingIds((prev) => [...prev, documentId]);
+
+      await api.post(`/documents/${documentId}/retry`);
+
+      const docs = await fetchDocuments(currentPageRef.current);
+      setupPolling(docs);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to retry document.');
+    } finally {
+      setRetryingIds((prev) => prev.filter((id) => id !== documentId));
+    }
   };
 
-  // Render action button based on status
-  const renderActionButton = (doc) => {
-    const { id, status } = doc;
+  const renderStatusBadge = (status) => <StatusBadge status={status} />;
 
-    switch (status) {
+  const renderActionButton = (doc) => {
+    const isRetrying = retryingIds.includes(doc.id);
+
+    switch (doc.status) {
       case 'PROCESSED':
         return (
           <button
             className="btn btn-primary btn-sm"
-            onClick={() => navigate(`/documents/${id}/validate`)}
+            onClick={() => navigate(`/documents/${doc.id}/validate`)}
           >
             Validate
           </button>
         );
+
       case 'VALIDATED':
         return (
           <button
             className="btn btn-success btn-sm"
-            onClick={() => navigate(`/documents/${id}/validate`)}
+            onClick={() => navigate(`/documents/${doc.id}/validate`)}
           >
             View
           </button>
         );
+
       case 'FAILED':
         return (
-          <button className="btn btn-danger btn-sm" disabled>
-            Failed
+          <button
+            className="btn btn-warning btn-sm"
+            onClick={() => handleRetry(doc.id)}
+            disabled={isRetrying}
+          >
+            {isRetrying ? 'Retrying...' : 'Retry'}
           </button>
         );
+
       case 'PROCESSING':
         return (
           <button className="btn btn-secondary btn-sm" disabled>
             Processing...
           </button>
         );
+
       case 'UPLOADED':
       default:
         return (
@@ -148,7 +177,6 @@ function DocumentsList() {
     }
   };
 
-  // Loading state
   if (loading) {
     return (
       <div className="container py-5">
@@ -157,8 +185,7 @@ function DocumentsList() {
     );
   }
 
-  // Error state
-  if (error) {
+  if (error && documents.length === 0) {
     return (
       <div className="container py-5">
         <div className="row justify-content-center">
@@ -170,7 +197,6 @@ function DocumentsList() {
     );
   }
 
-  // Empty state
   if (documents.length === 0) {
     return (
       <div className="container py-5">
@@ -203,10 +229,11 @@ function DocumentsList() {
   return (
     <div className="container py-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="mb-0 page-title" style={{ marginBottom: 0 }}>
+        <h2 className="mb-0 page-title">
           <i className="bi bi-files me-2 opacity-75"></i>
           Documents
         </h2>
+
         <button
           className="btn btn-primary"
           onClick={() => navigate('/documents/upload')}
@@ -216,40 +243,67 @@ function DocumentsList() {
         </button>
       </div>
 
+      {error && (
+        <div className="mb-3">
+          <ErrorAlert message={error} title="" showIcon={true} />
+        </div>
+      )}
+
       <div className="card">
         <div className="table-responsive">
-          <table className="table table-hover table-striped mb-0">
+          <table className="table table-hover table-striped mb-0 align-middle">
             <thead className="table-light">
               <tr>
                 <th scope="col">ID</th>
                 <th scope="col">Filename</th>
                 <th scope="col">Status</th>
                 <th scope="col">Date</th>
+                <th scope="col">Error</th>
                 <th scope="col">Actions</th>
               </tr>
             </thead>
+
             <tbody>
-              {documents.map((doc) => (
-                <tr key={doc.id}>
-                  <td>{doc.id}</td>
-                  <td>
-                    <i className="bi bi-file-earmark me-2 text-muted"></i>
-                    {doc.original_filename}
-                  </td>
-                  <td>{renderStatusBadge(doc.status)}</td>
-                  <td>{new Date(doc.created_at).toLocaleString()}</td>
-                  <td>{renderActionButton(doc)}</td>
-                </tr>
-              ))}
+              {documents.map((doc) => {
+                const formattedError = formatDocumentError(doc.error_message);
+
+                return (
+                  <tr key={doc.id}>
+                    <td>{doc.id}</td>
+
+                    <td>
+                      <i className="bi bi-file-earmark me-2 text-muted"></i>
+                      {doc.original_filename}
+                    </td>
+
+                    <td>{renderStatusBadge(doc.status)}</td>
+
+                    <td>{new Date(doc.created_at).toLocaleString()}</td>
+
+                    <td
+                      className="text-danger small"
+                      style={{ maxWidth: '320px', whiteSpace: 'normal' }}
+                    >
+                      {doc.status === 'FAILED' ? (
+                        <span title={formattedError}>{formattedError}</span>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+
+                    <td>{renderActionButton(doc)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
 
-        {/* Pagination */}
         <div className="card-footer bg-white d-flex justify-content-between align-items-center">
           <span className="text-muted">
             Page {currentPage} of {lastPage} ({total} total documents)
           </span>
+
           <div className="btn-group">
             <button
               className="btn btn-outline-primary btn-sm"
@@ -259,6 +313,7 @@ function DocumentsList() {
               <i className="bi bi-chevron-left me-1"></i>
               Previous
             </button>
+
             <button
               className="btn btn-outline-primary btn-sm"
               onClick={() => handlePageChange(currentPage + 1)}
