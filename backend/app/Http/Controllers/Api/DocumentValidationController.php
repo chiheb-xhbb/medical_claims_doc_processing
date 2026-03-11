@@ -6,24 +6,25 @@ use App\Enums\DocumentStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Document;
 use App\Models\FieldCorrection;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
+use Illuminate\Validation\ValidationException;
 
 class DocumentValidationController extends Controller
 {
     /**
-     * Validate a document and create field corrections.
-     * Ensures atomic updates with transactions and records audit trail.
+     * Validate a document, record field corrections,
+     * and create a new validated extraction version.
      */
     public function validateDocument(Request $request, Document $document)
     {
-        // Authorization check
+        // Only the owner can validate the document for now.
         if ($document->user_id !== auth()->id()) {
-            abort(403, 'Unauthorized validation attempt');
+            abort(403, 'Unauthorized validation attempt.');
         }
-        
-        // Step 0 — Only allow validation if the document is in PROCESSED state
+
+        // Fast pre-check before entering the transaction.
         if ($document->status !== DocumentStatus::PROCESSED) {
             return response()->json([
                 'message' => 'Document not eligible for validation.',
@@ -31,7 +32,6 @@ class DocumentValidationController extends Controller
             ], 400);
         }
 
-        // Step 1 — Validate incoming fields
         $validated = $request->validate([
             'fields' => ['required', 'array'],
             'fields.invoice_date' => ['nullable', 'string'],
@@ -39,155 +39,169 @@ class DocumentValidationController extends Controller
             'fields.total_ttc' => ['nullable', 'numeric'],
         ]);
 
-        // Step 2 — Perform all updates within a transaction for safety
-        return DB::transaction(function () use ($validated, $document) {
+        try {
+            return DB::transaction(function () use ($validated, $document) {
+                // Lock the document row first to prevent concurrent validation.
+                $document = Document::whereKey($document->id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
 
-            $allowedFields = ['invoice_date', 'provider_name', 'total_ttc'];
+                // Re-check status inside the transaction after the lock.
+                if ($document->status !== DocumentStatus::PROCESSED) {
+                    return response()->json([
+                        'message' => 'Document not eligible for validation.',
+                        'current_status' => $document->status->value,
+                    ], 400);
+                }
 
-            // Step 2.1 — Lock the latest extraction to prevent version conflicts
-            $latestExtraction = $document->extractions()
-                ->lockForUpdate()
-                ->latest('version')
-                ->first();
+                $allowedFields = ['invoice_date', 'provider_name', 'total_ttc'];
 
-            if (!$latestExtraction) {
-                return response()->json([
-                    'message' => 'No extraction found for this document.',
-                ], 404);
-            }
+                // Lock the latest extraction so version creation stays consistent.
+                $latestExtraction = $document->extractions()
+                    ->lockForUpdate()
+                    ->latest('version')
+                    ->first();
 
-            // Step 2.2 — Ensure ai_request_id exists (required for versioning)
-            if (!$latestExtraction->ai_request_id) {
-                return response()->json([
-                    'message' => 'Extraction has no ai_request_id; cannot create a new version safely.',
-                ], 500);
-            }
+                if (!$latestExtraction) {
+                    return response()->json([
+                        'message' => 'No extraction found for this document.',
+                    ], 404);
+                }
 
-            // Step 2.3 — Prepare the merged fields (original + new)
-            $originalFields = $latestExtraction->result_json['fields'] ?? [];
+                if (!$latestExtraction->ai_request_id) {
+                    throw new \RuntimeException('Extraction has no ai_request_id; cannot create a new version safely.');
+                }
 
-            $inputFields = array_intersect_key(
-                $validated['fields'],
-                array_flip($allowedFields)
-            );
+                $originalFields = $latestExtraction->result_json['fields'] ?? [];
 
-            $newFields = array_merge($originalFields, $inputFields);
-            // Step 2.3.1 — Business Rules Validation
-            $warnings = [];
+                $inputFields = array_intersect_key(
+                    $validated['fields'],
+                    array_flip($allowedFields)
+                );
 
-            $invoiceDate = $newFields['invoice_date'] ?? null;
-            $totalTTC = $newFields['total_ttc'] ?? null;
-            // Rule 1 — Future invoice date (warning)
+                $newFields = array_merge($originalFields, $inputFields);
 
-            if ($invoiceDate) {
+                $warnings = [];
 
-                $formats = ['Y-m-d', 'd/m/Y', 'Y/m/d'];
-                $parsedDate = null;
+                // Business rule: validate and normalize invoice date.
+                $invoiceDate = $newFields['invoice_date'] ?? null;
+                if ($invoiceDate) {
+                    $formats = ['Y-m-d', 'd/m/Y', 'Y/m/d'];
+                    $parsedDate = null;
 
-                foreach ($formats as $format) {
-                    try {
-                        $date = Carbon::createFromFormat($format, $invoiceDate);
+                    foreach ($formats as $format) {
+                        try {
+                            $date = Carbon::createFromFormat($format, $invoiceDate);
 
-                        // Strict validation (prevents partial matches)
-                        if ($date && $date->format($format) === $invoiceDate) {
-                            $parsedDate = $date;
-                            break;
+                            if ($date && $date->format($format) === $invoiceDate) {
+                                $parsedDate = $date;
+                                break;
+                            }
+                        } catch (\Exception $e) {
+                            // Try the next format.
                         }
-                    } catch (\Exception $e) {
-                        // Try next format
+                    }
+
+                    if (!$parsedDate) {
+                        throw ValidationException::withMessages([
+                            'fields.invoice_date' => [
+                                'Supported formats: YYYY-MM-DD, DD/MM/YYYY, YYYY/MM/DD',
+                            ],
+                        ]);
+                    }
+
+                    // Normalize to ISO format for consistency.
+                    $newFields['invoice_date'] = $parsedDate->format('Y-m-d');
+
+                    if ($parsedDate->isFuture()) {
+                        $warnings[] = 'Invoice date is in the future.';
                     }
                 }
 
-                if (!$parsedDate) {
-                    return response()->json([
-                        'message' => 'Invalid date format.',
-                        'errors' => [
-                            'invoice_date' => [
-                                'Supported formats: YYYY-MM-DD, DD/MM/YYYY, YYYY/MM/DD'
-                            ]
-                        ]
-                    ], 422);
-                }
-
-                // Normalize internally to ISO format
-                $newFields['invoice_date'] = $parsedDate->format('Y-m-d');
-
-                if ($parsedDate->isFuture()) {
-                    $warnings[] = 'Invoice date is in the future.';
-                }
-            }
-
-            // Rule 2 — Negative or zero amount (blocking error)
-            if (!is_null($totalTTC) && $totalTTC <= 0) {
-                return response()->json([
-                    'message' => 'Invalid amount: must be greater than 0.',
-                    'errors' => [
-                        'total_ttc' => ['Amount must be positive.']
-                    ]
-                ], 422);
-            }
-
-            // Rule 3 — High amount flag (warning)
-            if (!is_null($totalTTC) && $totalTTC > 10000) {
-                $warnings[] = 'High amount detected: requires supervisor review.';
-            }
-
-            // Step 2.4 — Record only the fields that changed for audit
-            foreach ($allowedFields as $fieldName) {
-                $oldValue = $originalFields[$fieldName] ?? null;
-                $newValue = $newFields[$fieldName] ?? null;
-
-                // Numeric comparison for total_ttc, string comparison for others
-                $changed = ($fieldName === 'total_ttc' && is_numeric($oldValue) && is_numeric($newValue))
-                    ? ((float) $oldValue !== (float) $newValue)
-                    : ($oldValue != $newValue);
-
-                if ($changed) {
-                    FieldCorrection::create([
-                        'document_id' => $document->id,
-                        'field_name' => $fieldName,
-                        'original_value' => is_null($oldValue) ? null : (string) $oldValue,
-                        'corrected_value' => is_null($newValue) ? null : (string) $newValue,
-                        'user_id' => auth()->id(), // Null if no authentication
+                // Business rule: amount must be strictly positive.
+                $totalTTC = $newFields['total_ttc'] ?? null;
+                if (!is_null($totalTTC) && $totalTTC <= 0) {
+                    throw ValidationException::withMessages([
+                        'fields.total_ttc' => ['Amount must be positive.'],
                     ]);
                 }
-            }
 
-            // Step 2.5 — Create a new extraction version (increment version)
-            $newVersion = $latestExtraction->version + 1;
+                // Business rule: flag unusually high amounts.
+                if (!is_null($totalTTC) && $totalTTC > 10000) {
+                    $warnings[] = 'High amount detected: requires supervisor review.';
+                }
 
-            $newResultJson = $latestExtraction->result_json;
-            $newResultJson['fields'] = $newFields;
+                // Record only fields that actually changed.
+                foreach ($allowedFields as $fieldName) {
+                    $oldValue = $originalFields[$fieldName] ?? null;
+                    $newValue = $newFields[$fieldName] ?? null;
 
-            $newExtraction = $document->extractions()->create([
-                'ai_request_id' => $latestExtraction->ai_request_id,
-                'version' => $newVersion,
-                'result_json' => $newResultJson,
-            ]);
+                    $changed = ($fieldName === 'total_ttc' && is_numeric($oldValue) && is_numeric($newValue))
+                        ? ((float) $oldValue !== (float) $newValue)
+                        : ($oldValue != $newValue);
 
-            // Step 2.6 — Update document status to VALIDATED
-            $document->update([
-                'status' => DocumentStatus::VALIDATED,
-                'error_message' => null,
-                'validated_by' => auth()->id(),
-                'validated_at' => now(),
-            ]);
+                    if ($changed) {
+                        FieldCorrection::create([
+                            'document_id' => $document->id,
+                            'field_name' => $fieldName,
+                            'original_value' => is_null($oldValue) ? null : (string) $oldValue,
+                            'corrected_value' => is_null($newValue) ? null : (string) $newValue,
+                            'user_id' => auth()->id(),
+                        ]);
+                    }
+                }
 
-            // Step 3 — Return the updated document and latest extraction
+                // Create a new extraction version instead of modifying the raw AI one.
+                $newVersion = $latestExtraction->version + 1;
+
+                $newResultJson = $latestExtraction->result_json;
+                $newResultJson['fields'] = $newFields;
+                $newResultJson['meta'] = array_merge(
+                    $newResultJson['meta'] ?? [],
+                    [
+                        'validated' => true,
+                        'validated_at' => now()->toISOString(),
+                        'validated_by' => auth()->id(),
+                        'source' => 'human_validation',
+                    ]
+                );
+
+                $newExtraction = $document->extractions()->create([
+                    'ai_request_id' => $latestExtraction->ai_request_id,
+                    'version' => $newVersion,
+                    'result_json' => $newResultJson,
+                ]);
+
+                // Once validated, the document becomes immutable in the workflow.
+                $document->update([
+                    'status' => DocumentStatus::VALIDATED,
+                    'error_message' => null,
+                    'validated_by' => auth()->id(),
+                    'validated_at' => now(),
+                ]);
+
+                return response()->json([
+                    'message' => 'Document validated successfully.',
+                    'warnings' => $warnings,
+                    'document' => [
+                        'id' => $document->id,
+                        'status' => $document->status->value,
+                        'validated_by' => $document->validated_by,
+                        'validated_at' => $document->validated_at,
+                    ],
+                    'latest_extraction' => array_merge(
+                        ['version' => $newExtraction->version],
+                        $newExtraction->result_json
+                    ),
+                ], 200);
+            });
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
             return response()->json([
-                'message' => 'Document validated successfully.',
-                'warnings' => $warnings,
-                'document' => [
-                    'id' => $document->id,
-                    'status' => $document->status->value,
-                    'validated_by' => $document->validated_by,
-                    'validated_at' => $document->validated_at,
-                ],
-                'latest_extraction' => array_merge(
-                    ['version' => $newExtraction->version],
-                    $newExtraction->result_json
-                ),
-            ], 200);
-        });
+                'message' => 'Validation failed.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 }

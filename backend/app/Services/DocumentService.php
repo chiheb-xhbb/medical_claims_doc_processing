@@ -12,7 +12,6 @@ use Illuminate\Support\Str;
 
 class DocumentService
 {
-    // 1. Added $docType to the parameters with a default value
     public function store(UploadedFile $file, ?int $userId = null, string $docType = 'medical_invoice'): Document
     {
         $extension = $file->getClientOriginalExtension();
@@ -21,11 +20,21 @@ class DocumentService
         $datePath = 'documents/' . now()->format('Y/m');
         $fullPath = $datePath . '/' . $filename;
 
-        // Write the file to the disk first
-        Storage::disk('local')->putFileAs($datePath, $file, $filename);
+        // Store the physical file first so we never create a DB record
+        // that points to a file which does not actually exist.
+        $storedPath = Storage::disk('local')->putFileAs($datePath, $file, $filename);
+
+        // Extra safety check in case storage returns an unexpected value.
+        if (!$storedPath) {
+            throw new \RuntimeException('Failed to store uploaded file.');
+        }
+
+        // Verify that the file really exists on disk before inserting into DB.
+        if (!Storage::disk('local')->exists($fullPath)) {
+            throw new \RuntimeException('Uploaded file was not found after storage.');
+        }
 
         try {
-            // Try to save to the database
             return DB::transaction(function () use ($file, $fullPath, $userId, $docType) {
                 $document = Document::create([
                     'user_id' => $userId,
@@ -33,20 +42,21 @@ class DocumentService
                     'file_path' => $fullPath,
                     'mime_type' => $file->getMimeType(),
                     'file_size' => $file->getSize(),
-                    'doc_type' => $docType, // 2. Save the doc_type to the database!
+                    'doc_type' => $docType,
                     'status' => DocumentStatus::UPLOADED,
                 ]);
 
+                // Dispatch the OCR/extraction job only after the DB transaction commits successfully.
                 ProcessDocumentJob::dispatch($document->id)->afterCommit();
 
                 return $document;
             });
-        } catch (\Exception $e) {
-            // 3. ARCHITECTURE FIX: If the database transaction fails, 
-            // we delete the physical file so we don't leak storage space.
+        } catch (\Throwable $e) {
+            // If the database transaction fails, remove the stored file
+            // to avoid leaving orphan files on disk.
             Storage::disk('local')->delete($fullPath);
-            
-            throw $e; // Re-throw the error so Laravel knows it failed
+
+            throw $e;
         }
     }
 }
