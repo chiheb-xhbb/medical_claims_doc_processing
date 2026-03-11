@@ -29,5 +29,6 @@ Route::middleware('auth:sanctum')->prefix('documents')->group(function () {
     Route::get('/', [DocumentController::class, 'index']);
     Route::get('/{document}', [DocumentController::class, 'show']);
     Route::post('/{document}/validate', [DocumentValidationController::class, 'validateDocument']);
+    Route::post('/{document}/retry', [DocumentController::class, 'retry']);
 });
 

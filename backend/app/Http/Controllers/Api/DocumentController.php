@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\DocumentStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreDocumentRequest;
+use App\Jobs\ProcessDocumentJob;
 use App\Models\Document;
 use App\Services\DocumentService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class DocumentController extends Controller
 {
@@ -17,6 +21,7 @@ class DocumentController extends Controller
     public function store(StoreDocumentRequest $request): JsonResponse
     {
         $docType = $request->validated('doc_type') ?? 'medical_invoice';
+
         $document = $this->documentService->store(
             file: $request->file('file'),
             userId: auth()->id(),
@@ -35,10 +40,11 @@ class DocumentController extends Controller
 
     public function show(Document $document): JsonResponse
     {
-        // Authorization check
+        // For now, a user can only access their own documents.
         if ($document->user_id !== auth()->id()) {
-            abort(403, 'Unauthorized access to this document');
+            abort(403, 'Unauthorized access to this document.');
         }
+
         $latestExtraction = $document->extractions()
             ->latest('version')
             ->first();
@@ -51,6 +57,8 @@ class DocumentController extends Controller
             'mime_type' => $document->mime_type,
             'file_size' => $document->file_size,
             'error_message' => $document->error_message,
+            'validated_by' => $document->validated_by,
+            'validated_at' => $document->validated_at,
             'created_at' => $document->created_at,
             'updated_at' => $document->updated_at,
             'latest_extraction' => $latestExtraction ? [
@@ -59,16 +67,61 @@ class DocumentController extends Controller
                 'confidence' => $latestExtraction->result_json['confidence'] ?? [],
                 'warnings' => $latestExtraction->result_json['warnings'] ?? [],
                 'meta' => $latestExtraction->result_json['meta'] ?? [],
-            ] : null
+            ] : null,
         ]);
     }
 
     public function index(): JsonResponse
     {
         $documents = Document::where('user_id', auth()->id())
-        ->latest()
-        ->paginate(10);
+            ->latest()
+            ->paginate(10);
 
         return response()->json($documents);
+    }
+
+    public function retry(Document $document): JsonResponse
+    {
+        // For now, a user can only retry their own failed documents.
+        if ($document->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized retry attempt.');
+        }
+
+        return DB::transaction(function () use ($document) {
+            // Lock the row to avoid duplicate retry actions at the same time.
+            $document = Document::whereKey($document->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($document->status !== DocumentStatus::FAILED) {
+                return response()->json([
+                    'message' => 'Only FAILED documents can be retried.',
+                    'current_status' => $document->status->value,
+                ], 400);
+            }
+
+            // Retry only makes sense if the original file is still present.
+            if (!Storage::disk('local')->exists($document->file_path)) {
+                return response()->json([
+                    'message' => 'Cannot retry this document because the source file is missing.',
+                ], 422);
+            }
+
+            $document->update([
+                'status' => DocumentStatus::UPLOADED,
+                'error_message' => null,
+            ]);
+
+            // Re-dispatch OCR/extraction only after the status update is committed.
+            ProcessDocumentJob::dispatch($document->id)->afterCommit();
+
+            return response()->json([
+                'message' => 'Document queued for reprocessing.',
+                'document' => [
+                    'id' => $document->id,
+                    'status' => $document->status->value,
+                ],
+            ], 202);
+        });
     }
 }
