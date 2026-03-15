@@ -3,7 +3,6 @@ skinparam monochrome true
 skinparam classAttributeIconSize 0
 hide methods
 
-
 enum Role {
   AGENT
   GESTIONNAIRE
@@ -18,10 +17,16 @@ enum DocumentStatus {
   FAILED
 }
 
+enum AiRequestStatus {
+  SUCCESS
+  FAILED
+}
+
 class User {
   - id : Integer
   - name : String
   - email : String
+  - password : String
   - role : Role
   - created_at : DateTime
   - updated_at : DateTime
@@ -46,7 +51,7 @@ class AiRequest {
   - request_id : UUID
   - doc_type_sent : String
   - http_status : Integer
-  - status : String
+  - status : AiRequestStatus
   - processing_time_ms : Integer
   - error_message : String
   - created_at : DateTime
@@ -74,10 +79,10 @@ User "1" -- "0..*" Document : televerse >
 User "0..1" -- "0..*" Document : valide >
 User "1" -- "0..*" FieldCorrection : effectue >
 
-Document "1" -- "0..*" AiRequest : trace >
-Document "1" *-- "0..*" Extraction : possede >
+Document "1" -- "0..*" AiRequest : genere >
+Document "1" -- "0..*" Extraction : contient >
 Document "1" -- "0..*" FieldCorrection : subit >
 
-AiRequest "1" -- "0..1" Extraction : produit >
+AiRequest "1" -- "0..*" Extraction : produit >
 
 @enduml
