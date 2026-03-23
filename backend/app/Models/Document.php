@@ -53,4 +53,9 @@ class Document extends Model
         return $this->belongsTo(User::class, 'validated_by');
     }
 
+    public function dossier() 
+{ 
+    return $this->belongsTo(Dossier::class); 
+}
+
 }

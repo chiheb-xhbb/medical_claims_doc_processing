@@ -174,12 +174,25 @@ Ajouter la vraie entité métier manquante : le dossier de remboursement.
 
 ### Champs recommandés pour `dossiers`
 
-- `numero_dossier`
-- `assure_name`
-- `status`
-- `created_by`
-- `notes` si utile
-- `timestamps`
+**Champs essentiels :**
+- `numero_dossier` : identifiant unique (généré automatiquement)
+- `patient_identifier` : numéro CIN (Carte d'Identité Nationale) sur 8 chiffres
+- `status` : statut métier du dossier (voir Semaine 4)
+- `montant_total` : montant total calculé puis figé à la validation
+- `created_by` : agent créateur (foreign key → users)
+
+**Champs optionnels :**
+- `episode_description` : description de l'épisode de soins (ex: "Grippe - Mars 2026")
+- `notes` : remarques libres
+
+**Champs de workflow :**
+- `submitted_at` : date de soumission par l'agent
+- `validated_by` : gestionnaire validateur (foreign key → users)
+- `validated_at` : date de validation ou rejet
+
+**Timestamps :**
+- `created_at`, `updated_at`
+
 
 ### Clarification importante
 
