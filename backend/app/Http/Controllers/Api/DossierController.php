@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Enums\DocumentStatus;
 use App\Enums\DossierStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\AttachDocumentsRequest;
+use App\Http\Requests\StoreDossierRequest;
+use App\Http\Requests\UpdateDossierRequest;
 use App\Models\Document;
 use App\Models\Dossier;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class DossierController extends Controller
@@ -23,13 +25,9 @@ class DossierController extends Controller
         return response()->json($dossiers, 200);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreDossierRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'assured_identifier' => ['required', 'string', 'size:8'],
-            'episode_description' => ['nullable', 'string', 'max:255'],
-            'notes' => ['nullable', 'string', 'max:1000'],
-        ]);
+        $validated = $request->validated();
 
         $dossier = Dossier::create([
             'assured_identifier' => $validated['assured_identifier'],
@@ -89,7 +87,7 @@ class DossierController extends Controller
         ], 200);
     }
 
-    public function update(Request $request, Dossier $dossier): JsonResponse
+    public function update(UpdateDossierRequest $request, Dossier $dossier): JsonResponse
     {
         if ($dossier->created_by !== auth()->id()) {
             abort(403, 'Unauthorized access to this dossier.');
@@ -102,10 +100,7 @@ class DossierController extends Controller
             ], 400);
         }
 
-        $validated = $request->validate([
-            'episode_description' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'notes' => ['sometimes', 'nullable', 'string', 'max:1000'],
-        ]);
+        $validated = $request->validated();
 
         $dossier->update([
             'episode_description' => array_key_exists('episode_description', $validated)
@@ -152,7 +147,7 @@ class DossierController extends Controller
         ], 200);
     }
 
-    public function attachDocuments(Request $request, Dossier $dossier): JsonResponse
+    public function attachDocuments(AttachDocumentsRequest $request, Dossier $dossier): JsonResponse
     {
         if ($dossier->created_by !== auth()->id()) {
             abort(403, 'Unauthorized access to this dossier.');
@@ -165,10 +160,7 @@ class DossierController extends Controller
             ], 400);
         }
 
-        $validated = $request->validate([
-            'document_ids' => ['required', 'array', 'min:1'],
-            'document_ids.*' => ['required', 'integer', 'distinct', 'exists:documents,id'],
-        ]);
+        $validated = $request->validated();
 
         try {
             return DB::transaction(function () use ($validated, $dossier) {
