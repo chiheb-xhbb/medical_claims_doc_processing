@@ -5,6 +5,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\DocumentValidationController;
+use App\Http\Controllers\Api\DossierController;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -32,3 +34,11 @@ Route::middleware('auth:sanctum')->prefix('documents')->group(function () {
     Route::post('/{document}/retry', [DocumentController::class, 'retry']);
 });
 
+Route::middleware('auth:sanctum')->prefix('dossiers')->group(function () {
+    Route::get('/', [DossierController::class, 'index']);
+    Route::post('/', [DossierController::class, 'store']);
+    Route::get('/{dossier}', [DossierController::class, 'show']);
+    Route::put('/{dossier}', [DossierController::class, 'update']);
+    Route::delete('/{dossier}', [DossierController::class, 'destroy']);
+    Route::post('/{dossier}/attach-documents', [DossierController::class, 'attachDocuments']);
+});
