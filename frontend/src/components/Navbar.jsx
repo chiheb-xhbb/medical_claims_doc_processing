@@ -74,6 +74,7 @@ function Navbar() {
                 <li className="nav-item">
                   <NavLink
                     className={`nav-link ${isActive('/documents') ? 'active' : ''}`}
+                    end
                     to="/documents"
                   >
                     <i className="bi bi-files me-1"></i>
