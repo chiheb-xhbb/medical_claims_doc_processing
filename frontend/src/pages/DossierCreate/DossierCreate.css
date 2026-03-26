@@ -1,0 +1,15 @@
+/* Dossier create page styles */
+
+.dossier-create-page .card {
+  border: none;
+  border-radius: var(--card-radius-premium);
+}
+
+.dossier-create-page .card-body {
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+}
+
+.dossier-create-page textarea.form-control {
+  resize: vertical;
+  min-height: 96px;
+}

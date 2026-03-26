@@ -3,6 +3,9 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import DocumentValidation from './pages/DocumentValidation';
 import DocumentsList from './pages/DocumentsList';
 import DocumentUpload from './pages/DocumentUpload';
+import DossiersList from './pages/DossiersList';
+import DossierCreate from './pages/DossierCreate';
+import DossierDetail from './pages/DossierDetail';
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import { MainLayout } from './layout';
@@ -54,6 +57,30 @@ function App() {
                 <DocumentValidation />
               </ProtectedRoute>
             } 
+          />
+          <Route
+            path="/dossiers"
+            element={
+              <ProtectedRoute>
+                <DossiersList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dossiers/create"
+            element={
+              <ProtectedRoute>
+                <DossierCreate />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dossiers/:id"
+            element={
+              <ProtectedRoute>
+                <DossierDetail />
+              </ProtectedRoute>
+            }
           />
           <Route path="/" element={<Navigate to="/login" replace />} />
         </Routes>

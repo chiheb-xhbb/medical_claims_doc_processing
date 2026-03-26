@@ -214,9 +214,8 @@ class DossierController extends Controller
                 // Then we attach them.
                 foreach ($documentsToAttach as $document) {
                     if ($document->dossier_id !== $dossier->id) {
-                        $document->update([
-                            'dossier_id' => $dossier->id,
-                        ]);
+                        $document->dossier_id = $dossier->id;
+                        $document->save();
 
                         $attachedCount++;
                     }

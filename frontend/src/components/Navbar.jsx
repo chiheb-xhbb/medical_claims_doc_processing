@@ -18,6 +18,14 @@ function Navbar() {
       );
     }
 
+    if (path === '/dossiers') {
+      return (
+        location.pathname === '/dossiers' ||
+        location.pathname === '/dossiers/create' ||
+        /^\/dossiers\/\d+$/.test(location.pathname)
+      );
+    }
+
     return location.pathname === path;
   };
 
@@ -80,6 +88,16 @@ function Navbar() {
                   >
                     <i className="bi bi-cloud-upload me-1"></i>
                     Upload
+                  </NavLink>
+                </li>
+
+                <li className="nav-item">
+                  <NavLink
+                    className={`nav-link ${isActive('/dossiers') ? 'active' : ''}`}
+                    to="/dossiers"
+                  >
+                    <i className="bi bi-briefcase me-1"></i>
+                    Dossiers
                   </NavLink>
                 </li>
 
