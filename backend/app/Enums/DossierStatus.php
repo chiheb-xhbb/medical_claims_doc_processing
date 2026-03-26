@@ -2,11 +2,11 @@
 
 namespace App\Enums;
 
-enum DossierStatus: string {
-    case RECU = 'RECU';
-    case EN_TRAITEMENT = 'EN_TRAITEMENT';
-    case A_VALIDER = 'A_VALIDER';
-    case VALIDE = 'VALIDE';
-    case REJETE = 'REJETE';
-    case EXPORTE = 'EXPORTE';
+enum DossierStatus: string
+{
+    case RECEIVED = 'RECEIVED';
+    case IN_PROGRESS = 'IN_PROGRESS';
+    case TO_VALIDATE = 'TO_VALIDATE';
+    case PROCESSED = 'PROCESSED';
+    case EXPORTED = 'EXPORTED';
 }

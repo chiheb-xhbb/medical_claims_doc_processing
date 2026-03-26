@@ -2,35 +2,39 @@
 
 namespace App\Models;
 
+use App\Enums\DossierStatus;
+use App\Enums\DocumentDecisionStatus;
+use App\Enums\DocumentStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Support\Str;
-use App\Enums\DossierStatus;
 
 class Dossier extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'numero_dossier', 
-        'assured_identifier', 
-        'episode_description', 
-        'created_by', 
-        'status', 
-        'notes'
+        'numero_dossier',
+        'assured_identifier',
+        'episode_description',
+        'created_by',
+        'status',
+        'notes',
     ];
 
     protected $casts = [
         'status' => DossierStatus::class,
         'montant_total' => 'decimal:3',
         'submitted_at' => 'datetime',
-        'validated_at' => 'datetime',
     ];
 
-    protected static function boot() 
+    protected static function boot(): void
     {
         parent::boot();
-        
+
         static::creating(function ($dossier) {
             if (empty($dossier->numero_dossier)) {
                 $random = strtoupper(Str::random(6));
@@ -39,70 +43,112 @@ class Dossier extends Model
         });
     }
 
-
-    public function documents() 
-    { 
-        return $this->hasMany(Document::class); 
-    }
-    
-    public function creator() 
-    { 
-        return $this->belongsTo(User::class, 'created_by'); 
-    }
-    
-    public function validator() 
-    { 
-        return $this->belongsTo(User::class, 'validated_by'); 
+    public function rubriques(): HasMany
+    {
+        return $this->hasMany(Rubrique::class);
     }
 
+    public function documents(): HasManyThrough
+    {
+        return $this->hasManyThrough(Document::class, Rubrique::class);
+    }
 
-     //buissness logic
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
 
-    public function isTotalFrozen(): bool
+    // Business rules
+
+    public function isFrozen(): bool
     {
         return in_array($this->status, [
-            DossierStatus::VALIDE, 
-            DossierStatus::REJETE, 
-            DossierStatus::EXPORTE
-        ]);
+            DossierStatus::PROCESSED,
+            DossierStatus::EXPORTED,
+        ], true);
     }
 
     public function canBeDeleted(): bool
     {
-        return !in_array($this->status, [
-            DossierStatus::VALIDE, 
-            DossierStatus::EXPORTE
-        ]);
+        return ! in_array($this->status, [
+            DossierStatus::PROCESSED,
+            DossierStatus::EXPORTED,
+        ], true);
     }
 
-    public function getCurrentTotal(): float
+    public function canBeSubmitted(): bool
+    {
+        return $this->status === DossierStatus::IN_PROGRESS
+            && $this->rubriques()->exists()
+            && $this->documents()->exists();
+    }
+
+    public function canBeProcessed(): bool
+    {
+        if ($this->status !== DossierStatus::TO_VALIDATE) {
+            return false;
+        }
+
+        if (! $this->documents()->exists()) {
+            return false;
+        }
+
+        return ! $this->documents()
+            ->where('documents.decision_status', DocumentDecisionStatus::PENDING->value)
+            ->exists();
+    }
+
+    public function getRequestedTotal(): float
     {
         $total = 0.0;
-        
-        $validatedDocuments = $this->documents()->where('status', 'VALIDATED')->get();
-        
+
+        $validatedDocuments = $this->documents()
+            ->where('documents.status', DocumentStatus::VALIDATED->value)
+            ->get();
+
         foreach ($validatedDocuments as $document) {
             $latestExtraction = $document->extractions()->latest('version')->first();
-            
+
             if ($latestExtraction) {
                 $fields = $latestExtraction->result_json['fields'] ?? [];
                 $total += (float) ($fields['total_ttc'] ?? 0);
             }
         }
-        
+
+        return $total;
+    }
+
+    public function getCurrentTotal(): float
+    {
+        $total = 0.0;
+
+        $acceptedDocuments = $this->documents()
+            ->where('documents.status', DocumentStatus::VALIDATED->value)
+            ->where('documents.decision_status', DocumentDecisionStatus::ACCEPTED->value)
+            ->get();
+
+        foreach ($acceptedDocuments as $document) {
+            $latestExtraction = $document->extractions()->latest('version')->first();
+
+            if ($latestExtraction) {
+                $fields = $latestExtraction->result_json['fields'] ?? [];
+                $total += (float) ($fields['total_ttc'] ?? 0);
+            }
+        }
+
         return $total;
     }
 
     public function getDisplayTotal(): float
     {
-        return $this->isTotalFrozen() 
-            ? (float) $this->montant_total 
+        return $this->isFrozen()
+            ? (float) $this->montant_total
             : $this->getCurrentTotal();
     }
 
     public function updateTotal(): void
     {
-        if (!$this->isTotalFrozen()) {
+        if (! $this->isFrozen()) {
             $this->montant_total = $this->getCurrentTotal();
             $this->saveQuietly();
         }

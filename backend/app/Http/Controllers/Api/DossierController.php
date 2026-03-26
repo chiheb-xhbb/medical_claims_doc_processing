@@ -2,25 +2,27 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Enums\DocumentStatus;
 use App\Enums\DossierStatus;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\AttachDocumentsRequest;
 use App\Http\Requests\StoreDossierRequest;
 use App\Http\Requests\UpdateDossierRequest;
-use App\Models\Document;
 use App\Models\Dossier;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
 
 class DossierController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $dossiers = Dossier::where('created_by', auth()->id())
-            ->withCount('documents')
+        $dossiers = Dossier::query()
+            ->where('created_by', $request->user()->id)
+            ->withCount(['rubriques', 'documents'])
             ->latest()
             ->paginate(10);
+
+        $dossiers->getCollection()->transform(function (Dossier $dossier) {
+            return $this->formatDossierSummary($dossier);
+        });
 
         return response()->json($dossiers, 200);
     }
@@ -33,71 +35,56 @@ class DossierController extends Controller
             'assured_identifier' => $validated['assured_identifier'],
             'episode_description' => $validated['episode_description'] ?? null,
             'notes' => $validated['notes'] ?? null,
-            'created_by' => auth()->id(),
-            'status' => DossierStatus::RECU,
+            'created_by' => $request->user()->id,
+            'status' => DossierStatus::RECEIVED,
         ]);
 
         return response()->json([
             'message' => 'Dossier created successfully.',
-            'dossier' => [
-                'id' => $dossier->id,
-                'numero_dossier' => $dossier->numero_dossier,
-                'assured_identifier' => $dossier->assured_identifier,
-                'status' => $dossier->status->value,
-                'montant_total' => $dossier->montant_total,
-                'episode_description' => $dossier->episode_description,
-                'notes' => $dossier->notes,
-                'created_by' => $dossier->created_by,
-                'created_at' => $dossier->created_at,
-                'updated_at' => $dossier->updated_at,
-            ],
+            'dossier' => $this->formatDossierDetail($dossier->fresh()),
+            'requested_total' => $dossier->getRequestedTotal(),
+            'current_total' => $dossier->getCurrentTotal(),
+            'display_total' => $dossier->getDisplayTotal(),
         ], 201);
     }
 
-    public function show(Dossier $dossier): JsonResponse
+    public function show(Request $request, Dossier $dossier): JsonResponse
     {
-        if ($dossier->created_by !== auth()->id()) {
-            abort(403, 'Unauthorized access to this dossier.');
+        if ((int) $dossier->created_by !== (int) $request->user()->id) {
+            return response()->json([
+                'message' => 'You are not allowed to view this dossier.',
+            ], 403);
         }
 
         $dossier->load([
-            'documents' => function ($query) {
-                $query->latest();
-            }
+            'creator',
+            'rubriques.creator',
+            'rubriques.documents.extractions',
+            'rubriques.documents.decisionMaker',
         ]);
 
         return response()->json([
-            'dossier' => [
-                'id' => $dossier->id,
-                'numero_dossier' => $dossier->numero_dossier,
-                'assured_identifier' => $dossier->assured_identifier,
-                'status' => $dossier->status->value,
-                'montant_total' => $dossier->montant_total,
-                'display_total' => $dossier->getDisplayTotal(),
-                'episode_description' => $dossier->episode_description,
-                'notes' => $dossier->notes,
-                'created_by' => $dossier->created_by,
-                'validated_by' => $dossier->validated_by,
-                'validated_at' => $dossier->validated_at,
-                'submitted_at' => $dossier->submitted_at,
-                'created_at' => $dossier->created_at,
-                'updated_at' => $dossier->updated_at,
-            ],
-            'documents' => $dossier->documents,
+            'dossier' => $this->formatDossierDetail($dossier),
+            'rubriques' => $dossier->rubriques,
+            'requested_total' => $dossier->getRequestedTotal(),
+            'current_total' => $dossier->getCurrentTotal(),
+            'display_total' => $dossier->getDisplayTotal(),
         ], 200);
     }
 
     public function update(UpdateDossierRequest $request, Dossier $dossier): JsonResponse
     {
-        if ($dossier->created_by !== auth()->id()) {
-            abort(403, 'Unauthorized access to this dossier.');
+        if ((int) $dossier->created_by !== (int) $request->user()->id) {
+            return response()->json([
+                'message' => 'You are not allowed to update this dossier.',
+            ], 403);
         }
 
-        if ($dossier->isTotalFrozen()) {
+        if ($dossier->isFrozen()) {
             return response()->json([
                 'message' => 'Cannot update a frozen dossier.',
                 'current_status' => $dossier->status->value,
-            ], 400);
+            ], 422);
         }
 
         $validated = $request->validated();
@@ -111,33 +98,30 @@ class DossierController extends Controller
                 : $dossier->notes,
         ]);
 
+        $dossier->refresh();
+
         return response()->json([
             'message' => 'Dossier updated successfully.',
-            'dossier' => [
-                'id' => $dossier->id,
-                'numero_dossier' => $dossier->numero_dossier,
-                'assured_identifier' => $dossier->assured_identifier,
-                'status' => $dossier->status->value,
-                'montant_total' => $dossier->montant_total,
-                'display_total' => $dossier->getDisplayTotal(),
-                'episode_description' => $dossier->episode_description,
-                'notes' => $dossier->notes,
-                'updated_at' => $dossier->updated_at,
-            ],
+            'dossier' => $this->formatDossierDetail($dossier),
+            'requested_total' => $dossier->getRequestedTotal(),
+            'current_total' => $dossier->getCurrentTotal(),
+            'display_total' => $dossier->getDisplayTotal(),
         ], 200);
     }
 
-    public function destroy(Dossier $dossier): JsonResponse
+    public function destroy(Request $request, Dossier $dossier): JsonResponse
     {
-        if ($dossier->created_by !== auth()->id()) {
-            abort(403, 'Unauthorized access to this dossier.');
+        if ((int) $dossier->created_by !== (int) $request->user()->id) {
+            return response()->json([
+                'message' => 'You are not allowed to delete this dossier.',
+            ], 403);
         }
 
         if (! $dossier->canBeDeleted()) {
             return response()->json([
                 'message' => 'Cannot delete this dossier in its current status.',
                 'current_status' => $dossier->status->value,
-            ], 400);
+            ], 422);
         }
 
         $dossier->delete();
@@ -147,100 +131,107 @@ class DossierController extends Controller
         ], 200);
     }
 
-    public function attachDocuments(AttachDocumentsRequest $request, Dossier $dossier): JsonResponse
+    private function formatDossierSummary(Dossier $dossier): array
     {
-        if ($dossier->created_by !== auth()->id()) {
-            abort(403, 'Unauthorized access to this dossier.');
-        }
+        return [
+            'id' => $dossier->id,
+            'numero_dossier' => $dossier->numero_dossier,
+            'assured_identifier' => $dossier->assured_identifier,
+            'status' => $dossier->status->value,
+            'montant_total' => $dossier->montant_total,
+            'display_total' => $dossier->getDisplayTotal(),
+            'rubriques_count' => $dossier->rubriques_count ?? 0,
+            'documents_count' => $dossier->documents_count ?? 0,
+            'created_by' => $dossier->created_by,
+            'created_at' => $dossier->created_at,
+            'updated_at' => $dossier->updated_at,
+        ];
+    }
 
-        if ($dossier->isTotalFrozen()) {
+    private function formatDossierDetail(Dossier $dossier): array
+    {
+        return [
+            'id' => $dossier->id,
+            'numero_dossier' => $dossier->numero_dossier,
+            'assured_identifier' => $dossier->assured_identifier,
+            'status' => $dossier->status->value,
+            'montant_total' => $dossier->montant_total,
+            'episode_description' => $dossier->episode_description,
+            'notes' => $dossier->notes,
+            'created_by' => $dossier->created_by,
+            'submitted_at' => $dossier->submitted_at,
+            'created_at' => $dossier->created_at,
+            'updated_at' => $dossier->updated_at,
+        ];
+    }
+
+    public function submit(Request $request, Dossier $dossier): JsonResponse
+    {
+        if ((int) $dossier->created_by !== (int) $request->user()->id) {
             return response()->json([
-                'message' => 'Cannot attach documents to a frozen dossier.',
-                'current_status' => $dossier->status->value,
-            ], 400);
+                'message' => 'You are not allowed to submit this dossier.',
+            ], 403);
         }
 
-        $validated = $request->validated();
-
-        try {
-            return DB::transaction(function () use ($validated, $dossier) {
-                $dossier = Dossier::whereKey($dossier->id)
-                    ->lockForUpdate()
-                    ->firstOrFail();
-
-                if ($dossier->created_by !== auth()->id()) {
-                    abort(403, 'Unauthorized access to this dossier.');
-                }
-
-                if ($dossier->isTotalFrozen()) {
-                    return response()->json([
-                        'message' => 'Cannot attach documents to a frozen dossier.',
-                        'current_status' => $dossier->status->value,
-                    ], 400);
-                }
-
-                $documentsToAttach = [];
-                $attachedCount = 0;
-
-                // First we lock and validate everything.
-                foreach ($validated['document_ids'] as $documentId) {
-                    $document = Document::whereKey($documentId)
-                        ->lockForUpdate()
-                        ->firstOrFail();
-
-                    if ($document->user_id !== auth()->id()) {
-                        abort(403, 'Unauthorized access to one or more documents.');
-                    }
-
-                    if ($document->status !== DocumentStatus::VALIDATED) {
-                        return response()->json([
-                            'message' => 'Only VALIDATED documents can be attached to a dossier.',
-                            'document_id' => $document->id,
-                            'current_status' => $document->status->value,
-                        ], 400);
-                    }
-
-                    if (! is_null($document->dossier_id) && $document->dossier_id !== $dossier->id) {
-                        return response()->json([
-                            'message' => 'One or more documents are already attached to another dossier.',
-                            'document_id' => $document->id,
-                            'current_dossier_id' => $document->dossier_id,
-                        ], 400);
-                    }
-
-                    $documentsToAttach[] = $document;
-                }
-
-                // Then we attach them.
-                foreach ($documentsToAttach as $document) {
-                    if ($document->dossier_id !== $dossier->id) {
-                        $document->dossier_id = $dossier->id;
-                        $document->save();
-
-                        $attachedCount++;
-                    }
-                }
-
-                $dossier->updateTotal();
-                $dossier->refresh();
-
-                return response()->json([
-                    'message' => 'Documents attached successfully.',
-                    'attached_count' => $attachedCount,
-                    'dossier' => [
-                        'id' => $dossier->id,
-                        'numero_dossier' => $dossier->numero_dossier,
-                        'status' => $dossier->status->value,
-                        'montant_total' => $dossier->montant_total,
-                        'display_total' => $dossier->getDisplayTotal(),
-                    ],
-                ], 200);
-            });
-        } catch (\Throwable $e) {
+        if ($dossier->isFrozen()) {
             return response()->json([
-                'message' => 'Failed to attach documents.',
-                'error' => $e->getMessage(),
-            ], 500);
+                'message' => 'This dossier is frozen and cannot be submitted.',
+            ], 422);
         }
+
+        if (! $dossier->canBeSubmitted()) {
+            return response()->json([
+                'message' => 'This dossier is not ready to be submitted.',
+            ], 422);
+        }
+
+        $dossier->status = DossierStatus::TO_VALIDATE;
+        $dossier->submitted_at = now();
+        $dossier->save();
+
+        $dossier->refresh();
+
+        return response()->json([
+            'message' => 'Dossier submitted successfully.',
+            'dossier' => $this->formatDossierDetail($dossier),
+            'requested_total' => $dossier->getRequestedTotal(),
+            'current_total' => $dossier->getCurrentTotal(),
+            'display_total' => $dossier->getDisplayTotal(),
+        ]);
+    }
+
+    public function process(Request $request, Dossier $dossier): JsonResponse
+    {
+        if ((int) $dossier->created_by !== (int) $request->user()->id) {
+            return response()->json([
+                'message' => 'You are not allowed to process this dossier.',
+            ], 403);
+        }
+
+        if ($dossier->isFrozen()) {
+            return response()->json([
+                'message' => 'This dossier is already frozen.',
+            ], 422);
+        }
+
+        if (! $dossier->canBeProcessed()) {
+            return response()->json([
+                'message' => 'This dossier cannot be processed yet.',
+            ], 422);
+        }
+
+        $dossier->status = DossierStatus::PROCESSED;
+        $dossier->montant_total = $dossier->getCurrentTotal();
+        $dossier->save();
+
+        $dossier->refresh();
+
+        return response()->json([
+            'message' => 'Dossier processed successfully.',
+            'dossier' => $this->formatDossierDetail($dossier),
+            'requested_total' => $dossier->getRequestedTotal(),
+            'current_total' => $dossier->getCurrentTotal(),
+            'display_total' => $dossier->getDisplayTotal(),
+        ]);
     }
 }
