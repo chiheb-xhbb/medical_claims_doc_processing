@@ -52,3 +52,33 @@
 .dossier-detail-page .attach-doc-item input {
   margin-top: 0;
 }
+
+.dossier-detail-page .finalized-banner {
+  border-left: 4px solid #f59e0b;
+}
+
+.dossier-detail-page .rubrique-list > .card:last-child {
+  margin-bottom: 0 !important;
+}
+
+.dossier-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1050;
+  padding: 1rem;
+}
+
+.dossier-modal-card {
+  width: min(720px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-light);
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.2);
+  padding: 1.25rem;
+}
