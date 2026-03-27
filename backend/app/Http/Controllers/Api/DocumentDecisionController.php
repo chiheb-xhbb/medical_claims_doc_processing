@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\DocumentDecisionStatus;
 use App\Enums\DocumentStatus;
+use App\Enums\DossierStatus;
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\Document;
 use App\Models\Dossier;
 use App\Models\Rubrique;
+use App\Models\User;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,98 +20,51 @@ class DocumentDecisionController extends Controller
 {
     public function accept(Request $request, Document $document): JsonResponse
     {
-        $user = $request->user();
-        $rubrique = $document->rubrique;
-
-        if (! $rubrique) {
-            return response()->json([
-                'message' => 'This document is not attached to any rubrique.',
-            ], 422);
-        }
-
-        $dossier = $rubrique->dossier;
-
-        if (! $dossier) {
-            return response()->json([
-                'message' => 'Parent dossier not found.',
-            ], 404);
-        }
-
-        if ((int) $dossier->created_by !== (int) $user->id) {
-            return response()->json([
-                'message' => 'You are not allowed to accept this document.',
-            ], 403);
-        }
-
-        if ($dossier->isFrozen()) {
-            return response()->json([
-                'message' => 'This dossier is frozen and cannot be modified.',
-            ], 422);
-        }
-
-        if ($document->status !== DocumentStatus::VALIDATED) {
-            return response()->json([
-                'message' => 'Only validated documents can be accepted.',
-            ], 422);
-        }
-
         $validated = $request->validate([
             'decision_note' => ['nullable', 'string'],
         ]);
 
-        DB::transaction(function () use ($document, $user, $validated) {
-            $lockedDocument = Document::query()
-                ->whereKey($document->id)
-                ->lockForUpdate()
-                ->firstOrFail();
-
-            if (! $lockedDocument->rubrique_id) {
-                $this->unprocessable('This document is not attached to any rubrique.');
-            }
-
-            $lockedRubrique = Rubrique::query()
-                ->whereKey($lockedDocument->rubrique_id)
-                ->lockForUpdate()
-                ->firstOrFail();
-
-            $lockedDossier = Dossier::query()
-                ->whereKey($lockedRubrique->dossier_id)
-                ->lockForUpdate()
-                ->firstOrFail();
-
-            if ((int) $lockedDossier->created_by !== (int) $user->id) {
-                $this->forbidden('You are not allowed to accept this document.');
-            }
-
-            if ($lockedDossier->isFrozen()) {
-                $this->unprocessable('This dossier is frozen and cannot be modified.');
-            }
-
-            if ($lockedDocument->status !== DocumentStatus::VALIDATED) {
-                $this->unprocessable('Only validated documents can be accepted.');
-            }
-
-            $lockedDocument->decision_status = DocumentDecisionStatus::ACCEPTED;
-            $lockedDocument->decision_by = $user->id;
-            $lockedDocument->decision_at = now();
-            $lockedDocument->decision_note = $validated['decision_note'] ?? null;
-            $lockedDocument->save();
-
-            $lockedRubrique->refreshStatusFromDocuments();
-            $lockedDossier->updateTotal();
-        });
-
-        return response()->json([
-            'message' => 'Document accepted successfully.',
-            'document' => $document->fresh(['rubrique']),
-        ]);
+        return $this->decide(
+            request: $request,
+            document: $document,
+            decisionStatus: DocumentDecisionStatus::ACCEPTED,
+            successMessage: 'Document accepted successfully.',
+            forbiddenMessage: 'You are not allowed to accept this document.',
+            invalidStatusMessage: 'Only validated documents can be accepted.',
+            decisionNote: $validated['decision_note'] ?? null,
+        );
     }
 
     public function reject(Request $request, Document $document): JsonResponse
     {
-        $user = $request->user();
-        $rubrique = $document->rubrique;
+        $validated = $request->validate([
+            'decision_note' => ['nullable', 'string'],
+        ]);
 
+        return $this->decide(
+            request: $request,
+            document: $document,
+            decisionStatus: DocumentDecisionStatus::REJECTED,
+            successMessage: 'Document rejected successfully.',
+            forbiddenMessage: 'You are not allowed to reject this document.',
+            invalidStatusMessage: 'Only validated documents can be rejected.',
+            decisionNote: $validated['decision_note'] ?? null,
+        );
+    }
+
+    private function decide(
+        Request $request,
+        Document $document,
+        DocumentDecisionStatus $decisionStatus,
+        string $successMessage,
+        string $forbiddenMessage,
+        string $invalidStatusMessage,
+        ?string $decisionNote = null
+    ): JsonResponse {
+        /** @var User $user */
+        $user = $request->user();
+
+        $rubrique = $document->rubrique;
         if (! $rubrique) {
             return response()->json([
                 'message' => 'This document is not attached to any rubrique.',
@@ -116,16 +72,15 @@ class DocumentDecisionController extends Controller
         }
 
         $dossier = $rubrique->dossier;
-
         if (! $dossier) {
             return response()->json([
                 'message' => 'Parent dossier not found.',
             ], 404);
         }
 
-        if ((int) $dossier->created_by !== (int) $user->id) {
+        if (! $this->canReviewDossiers($user)) {
             return response()->json([
-                'message' => 'You are not allowed to reject this document.',
+                'message' => $forbiddenMessage,
             ], 403);
         }
 
@@ -135,52 +90,73 @@ class DocumentDecisionController extends Controller
             ], 422);
         }
 
-        if ($document->status !== DocumentStatus::VALIDATED) {
+        if ($dossier->status !== DossierStatus::TO_VALIDATE) {
             return response()->json([
-                'message' => 'Only validated documents can be rejected.',
+                'message' => 'Documents can only be decided while the dossier is under review.',
             ], 422);
         }
 
-        $validated = $request->validate([
-            'decision_note' => ['nullable', 'string'],
-        ]);
+        if ($document->status !== DocumentStatus::VALIDATED) {
+            return response()->json([
+                'message' => $invalidStatusMessage,
+            ], 422);
+        }
 
-        DB::transaction(function () use ($document, $user, $validated) {
+        DB::transaction(function () use (
+            $dossier,
+            $rubrique,
+            $document,
+            $user,
+            $decisionStatus,
+            $decisionNote,
+            $forbiddenMessage,
+            $invalidStatusMessage
+        ) {
+            // Lock from top to bottom to reduce deadlock risk:
+            // dossier -> rubrique -> document
+            $lockedDossier = Dossier::query()
+                ->whereKey($dossier->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $lockedRubrique = Rubrique::query()
+                ->whereKey($rubrique->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
             $lockedDocument = Document::query()
                 ->whereKey($document->id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if (! $lockedDocument->rubrique_id) {
-                $this->unprocessable('This document is not attached to any rubrique.');
-            }
-
-            $lockedRubrique = Rubrique::query()
-                ->whereKey($lockedDocument->rubrique_id)
-                ->lockForUpdate()
-                ->firstOrFail();
-
-            $lockedDossier = Dossier::query()
-                ->whereKey($lockedRubrique->dossier_id)
-                ->lockForUpdate()
-                ->firstOrFail();
-
-            if ((int) $lockedDossier->created_by !== (int) $user->id) {
-                $this->forbidden('You are not allowed to reject this document.');
+            if (! $this->canReviewDossiers($user)) {
+                $this->forbidden($forbiddenMessage);
             }
 
             if ($lockedDossier->isFrozen()) {
                 $this->unprocessable('This dossier is frozen and cannot be modified.');
             }
 
-            if ($lockedDocument->status !== DocumentStatus::VALIDATED) {
-                $this->unprocessable('Only validated documents can be rejected.');
+            if ($lockedDossier->status !== DossierStatus::TO_VALIDATE) {
+                $this->unprocessable('Documents can only be decided while the dossier is under review.');
             }
 
-            $lockedDocument->decision_status = DocumentDecisionStatus::REJECTED;
+            if ((int) $lockedRubrique->dossier_id !== (int) $lockedDossier->id) {
+                $this->unprocessable('This rubrique does not belong to the expected dossier.');
+            }
+
+            if ((int) $lockedDocument->rubrique_id !== (int) $lockedRubrique->id) {
+                $this->unprocessable('This document does not belong to the expected rubrique.');
+            }
+
+            if ($lockedDocument->status !== DocumentStatus::VALIDATED) {
+                $this->unprocessable($invalidStatusMessage);
+            }
+
+            $lockedDocument->decision_status = $decisionStatus;
             $lockedDocument->decision_by = $user->id;
             $lockedDocument->decision_at = now();
-            $lockedDocument->decision_note = $validated['decision_note'] ?? null;
+            $lockedDocument->decision_note = $decisionNote;
             $lockedDocument->save();
 
             $lockedRubrique->refreshStatusFromDocuments();
@@ -188,9 +164,27 @@ class DocumentDecisionController extends Controller
         });
 
         return response()->json([
-            'message' => 'Document rejected successfully.',
+            'message' => $successMessage,
             'document' => $document->fresh(['rubrique']),
-        ]);
+        ], 200);
+    }
+
+    private function canReviewDossiers(User $user): bool
+    {
+        return $this->hasRole($user, UserRole::GESTIONNAIRE, UserRole::ADMIN);
+    }
+
+    private function hasRole(User $user, UserRole ...$roles): bool
+    {
+        $currentRole = $user->role instanceof UserRole
+            ? $user->role
+            : UserRole::tryFrom((string) $user->role);
+
+        if (! $currentRole) {
+            return false;
+        }
+
+        return in_array($currentRole, $roles, true);
     }
 
     private function forbidden(string $message): void

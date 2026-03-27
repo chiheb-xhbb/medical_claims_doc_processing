@@ -2,17 +2,18 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
     /**
-     * Register a new user
+     * Register a new user.
      */
     public function register(Request $request)
     {
@@ -26,19 +27,20 @@ class AuthController extends Controller
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
+            'role' => UserRole::AGENT,
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
             'message' => 'User registered successfully.',
-            'user' => $user,
+            'user' => $this->formatUser($user),
             'token' => $token,
         ], 201);
     }
 
     /**
-     * Login user and create token
+     * Login user and create token.
      */
     public function login(Request $request)
     {
@@ -53,36 +55,57 @@ class AuthController extends Controller
             ]);
         }
 
+        /** @var User $user */
         $user = Auth::user();
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
             'message' => 'Login successful.',
-            'user' => $user,
+            'user' => $this->formatUser($user),
             'token' => $token,
         ], 200);
     }
 
     /**
-     * Logout current user (revoke current token only)
+     * Logout current user (revoke current token only).
      */
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        $token = $request->user()?->currentAccessToken();
+
+        if ($token) {
+            $token->delete();
+        }
 
         return response()->json([
-            'message' => 'Logged out successfully.'
+            'message' => 'Logged out successfully.',
         ], 200);
     }
 
     /**
-     * Get authenticated user
+     * Get authenticated user.
      */
     public function me(Request $request)
     {
+        /** @var User $user */
+        $user = $request->user();
+
         return response()->json([
-            'user' => $request->user()
+            'user' => $this->formatUser($user),
         ], 200);
+    }
+
+    /**
+     * Format user payload returned to frontend.
+     */
+    private function formatUser(User $user): array
+    {
+        return [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $user->role?->value ?? $user->role,
+        ];
     }
 }

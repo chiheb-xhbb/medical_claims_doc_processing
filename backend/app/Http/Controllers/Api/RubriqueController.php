@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Enums\DocumentDecisionStatus;
 use App\Enums\DocumentStatus;
 use App\Enums\DossierStatus;
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\Document;
 use App\Models\Dossier;
 use App\Models\Rubrique;
+use App\Models\User;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,9 +20,10 @@ class RubriqueController extends Controller
 {
     public function store(Request $request, Dossier $dossier): JsonResponse
     {
+        /** @var User $user */
         $user = $request->user();
 
-        if ((int) $dossier->created_by !== (int) $user->id) {
+        if (! $this->canPrepareDossiers($user) || ! $this->canManagePreparationDossier($user, $dossier)) {
             return response()->json([
                 'message' => 'You are not allowed to add rubriques to this dossier.',
             ], 403);
@@ -29,6 +32,12 @@ class RubriqueController extends Controller
         if ($dossier->isFrozen()) {
             return response()->json([
                 'message' => 'This dossier is frozen and cannot be modified.',
+            ], 422);
+        }
+
+        if (! $this->isPreparationPhase($dossier)) {
+            return response()->json([
+                'message' => 'Rubriques can only be created while the dossier is in preparation.',
             ], 422);
         }
 
@@ -43,12 +52,16 @@ class RubriqueController extends Controller
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if ((int) $lockedDossier->created_by !== (int) $user->id) {
+            if (! $this->canPrepareDossiers($user) || ! $this->canManagePreparationDossier($user, $lockedDossier)) {
                 $this->forbidden('You are not allowed to add rubriques to this dossier.');
             }
 
             if ($lockedDossier->isFrozen()) {
                 $this->unprocessable('This dossier is frozen and cannot be modified.');
+            }
+
+            if (! $this->isPreparationPhase($lockedDossier)) {
+                $this->unprocessable('Rubriques can only be created while the dossier is in preparation.');
             }
 
             $rubrique = new Rubrique();
@@ -74,6 +87,7 @@ class RubriqueController extends Controller
 
     public function update(Request $request, Rubrique $rubrique): JsonResponse
     {
+        /** @var User $user */
         $user = $request->user();
         $dossier = $rubrique->dossier;
 
@@ -83,7 +97,7 @@ class RubriqueController extends Controller
             ], 404);
         }
 
-        if ((int) $dossier->created_by !== (int) $user->id) {
+        if (! $this->canPrepareDossiers($user) || ! $this->canManagePreparationDossier($user, $dossier)) {
             return response()->json([
                 'message' => 'You are not allowed to update this rubrique.',
             ], 403);
@@ -92,6 +106,12 @@ class RubriqueController extends Controller
         if ($dossier->isFrozen()) {
             return response()->json([
                 'message' => 'This dossier is frozen and cannot be modified.',
+            ], 422);
+        }
+
+        if (! $this->isPreparationPhase($dossier)) {
+            return response()->json([
+                'message' => 'This rubrique can only be updated while the dossier is in preparation.',
             ], 422);
         }
 
@@ -107,11 +127,12 @@ class RubriqueController extends Controller
         return response()->json([
             'message' => 'Rubrique updated successfully.',
             'rubrique' => $rubrique->fresh(),
-        ]);
+        ], 200);
     }
 
     public function destroy(Request $request, Rubrique $rubrique): JsonResponse
     {
+        /** @var User $user */
         $user = $request->user();
         $dossier = $rubrique->dossier;
 
@@ -121,7 +142,7 @@ class RubriqueController extends Controller
             ], 404);
         }
 
-        if ((int) $dossier->created_by !== (int) $user->id) {
+        if (! $this->canPrepareDossiers($user) || ! $this->canManagePreparationDossier($user, $dossier)) {
             return response()->json([
                 'message' => 'You are not allowed to delete this rubrique.',
             ], 403);
@@ -130,6 +151,12 @@ class RubriqueController extends Controller
         if ($dossier->isFrozen()) {
             return response()->json([
                 'message' => 'This dossier is frozen and cannot be modified.',
+            ], 422);
+        }
+
+        if (! $this->isPreparationPhase($dossier)) {
+            return response()->json([
+                'message' => 'This rubrique can only be deleted while the dossier is in preparation.',
             ], 422);
         }
 
@@ -144,12 +171,16 @@ class RubriqueController extends Controller
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if ((int) $lockedDossier->created_by !== (int) $user->id) {
+            if (! $this->canPrepareDossiers($user) || ! $this->canManagePreparationDossier($user, $lockedDossier)) {
                 $this->forbidden('You are not allowed to delete this rubrique.');
             }
 
             if ($lockedDossier->isFrozen()) {
                 $this->unprocessable('This dossier is frozen and cannot be modified.');
+            }
+
+            if (! $this->isPreparationPhase($lockedDossier)) {
+                $this->unprocessable('This rubrique can only be deleted while the dossier is in preparation.');
             }
 
             if ($lockedRubrique->documents()->exists()) {
@@ -161,11 +192,12 @@ class RubriqueController extends Controller
 
         return response()->json([
             'message' => 'Rubrique deleted successfully.',
-        ]);
+        ], 200);
     }
 
     public function attachDocuments(Request $request, Rubrique $rubrique): JsonResponse
     {
+        /** @var User $user */
         $user = $request->user();
         $dossier = $rubrique->dossier;
 
@@ -175,7 +207,7 @@ class RubriqueController extends Controller
             ], 404);
         }
 
-        if ((int) $dossier->created_by !== (int) $user->id) {
+        if (! $this->canPrepareDossiers($user) || ! $this->canManagePreparationDossier($user, $dossier)) {
             return response()->json([
                 'message' => 'You are not allowed to attach documents to this rubrique.',
             ], 403);
@@ -184,6 +216,12 @@ class RubriqueController extends Controller
         if ($dossier->isFrozen()) {
             return response()->json([
                 'message' => 'This dossier is frozen and cannot be modified.',
+            ], 422);
+        }
+
+        if (! $this->isPreparationPhase($dossier)) {
+            return response()->json([
+                'message' => 'Documents can only be attached while the dossier is in preparation.',
             ], 422);
         }
 
@@ -207,12 +245,16 @@ class RubriqueController extends Controller
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if ((int) $lockedDossier->created_by !== (int) $user->id) {
+            if (! $this->canPrepareDossiers($user) || ! $this->canManagePreparationDossier($user, $lockedDossier)) {
                 $this->forbidden('You are not allowed to attach documents to this rubrique.');
             }
 
             if ($lockedDossier->isFrozen()) {
                 $this->unprocessable('This dossier is frozen and cannot be modified.');
+            }
+
+            if (! $this->isPreparationPhase($lockedDossier)) {
+                $this->unprocessable('Documents can only be attached while the dossier is in preparation.');
             }
 
             $documents = Document::query()
@@ -228,7 +270,7 @@ class RubriqueController extends Controller
             foreach ($documentIds as $documentId) {
                 $document = $documents->get($documentId);
 
-                if ((int) $document->user_id !== (int) $user->id) {
+                if ((int) $document->user_id !== (int) $user->id && ! $this->hasRole($user, UserRole::ADMIN)) {
                     $this->forbidden('One or more selected documents do not belong to you.');
                 }
 
@@ -260,11 +302,12 @@ class RubriqueController extends Controller
         return response()->json([
             'message' => 'Document(s) attached successfully.',
             'rubrique' => $rubrique->fresh(['documents']),
-        ]);
+        ], 200);
     }
 
     public function detachDocument(Request $request, Rubrique $rubrique, Document $document): JsonResponse
     {
+        /** @var User $user */
         $user = $request->user();
         $dossier = $rubrique->dossier;
 
@@ -274,7 +317,7 @@ class RubriqueController extends Controller
             ], 404);
         }
 
-        if ((int) $dossier->created_by !== (int) $user->id) {
+        if (! $this->canPrepareDossiers($user) || ! $this->canManagePreparationDossier($user, $dossier)) {
             return response()->json([
                 'message' => 'You are not allowed to detach documents from this rubrique.',
             ], 403);
@@ -283,6 +326,12 @@ class RubriqueController extends Controller
         if ($dossier->isFrozen()) {
             return response()->json([
                 'message' => 'This dossier is frozen and cannot be modified.',
+            ], 422);
+        }
+
+        if (! $this->isPreparationPhase($dossier)) {
+            return response()->json([
+                'message' => 'Documents can only be detached while the dossier is in preparation.',
             ], 422);
         }
 
@@ -308,12 +357,16 @@ class RubriqueController extends Controller
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if ((int) $lockedDossier->created_by !== (int) $user->id) {
+            if (! $this->canPrepareDossiers($user) || ! $this->canManagePreparationDossier($user, $lockedDossier)) {
                 $this->forbidden('You are not allowed to detach documents from this rubrique.');
             }
 
             if ($lockedDossier->isFrozen()) {
                 $this->unprocessable('This dossier is frozen and cannot be modified.');
+            }
+
+            if (! $this->isPreparationPhase($lockedDossier)) {
+                $this->unprocessable('Documents can only be detached while the dossier is in preparation.');
             }
 
             if ((int) $lockedDocument->rubrique_id !== (int) $lockedRubrique->id) {
@@ -335,11 +388,12 @@ class RubriqueController extends Controller
         return response()->json([
             'message' => 'Document detached successfully.',
             'rubrique' => $rubrique->fresh(['documents']),
-        ]);
+        ], 200);
     }
 
     public function rejectAll(Request $request, Rubrique $rubrique): JsonResponse
     {
+        /** @var User $user */
         $user = $request->user();
         $dossier = $rubrique->dossier;
 
@@ -349,7 +403,7 @@ class RubriqueController extends Controller
             ], 404);
         }
 
-        if ((int) $dossier->created_by !== (int) $user->id) {
+        if (! $this->canReviewDossiers($user)) {
             return response()->json([
                 'message' => 'You are not allowed to reject this rubrique.',
             ], 403);
@@ -358,6 +412,12 @@ class RubriqueController extends Controller
         if ($dossier->isFrozen()) {
             return response()->json([
                 'message' => 'This dossier is frozen and cannot be modified.',
+            ], 422);
+        }
+
+        if ($dossier->status !== DossierStatus::TO_VALIDATE) {
+            return response()->json([
+                'message' => 'A rubrique can only be rejected while the dossier is under review.',
             ], 422);
         }
 
@@ -376,12 +436,16 @@ class RubriqueController extends Controller
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if ((int) $lockedDossier->created_by !== (int) $user->id) {
+            if (! $this->canReviewDossiers($user)) {
                 $this->forbidden('You are not allowed to reject this rubrique.');
             }
 
             if ($lockedDossier->isFrozen()) {
                 $this->unprocessable('This dossier is frozen and cannot be modified.');
+            }
+
+            if ($lockedDossier->status !== DossierStatus::TO_VALIDATE) {
+                $this->unprocessable('A rubrique can only be rejected while the dossier is under review.');
             }
 
             $documents = Document::query()
@@ -403,7 +467,48 @@ class RubriqueController extends Controller
         return response()->json([
             'message' => 'Entire rubrique has been rejected.',
             'rubrique' => $rubrique->fresh(['documents']),
-        ]);
+        ], 200);
+    }
+
+    private function canPrepareDossiers(User $user): bool
+    {
+        return $this->hasRole($user, UserRole::AGENT, UserRole::ADMIN);
+    }
+
+    private function canReviewDossiers(User $user): bool
+    {
+        return $this->hasRole($user, UserRole::GESTIONNAIRE, UserRole::ADMIN);
+    }
+
+    private function canManagePreparationDossier(User $user, Dossier $dossier): bool
+    {
+        if ($this->hasRole($user, UserRole::ADMIN)) {
+            return true;
+        }
+
+        return $this->hasRole($user, UserRole::AGENT)
+            && (int) $dossier->created_by === (int) $user->id;
+    }
+
+    private function isPreparationPhase(Dossier $dossier): bool
+    {
+        return in_array($dossier->status, [
+            DossierStatus::RECEIVED,
+            DossierStatus::IN_PROGRESS,
+        ], true);
+    }
+
+    private function hasRole(User $user, UserRole ...$roles): bool
+    {
+        $currentRole = $user->role instanceof UserRole
+            ? $user->role
+            : UserRole::tryFrom((string) $user->role);
+
+        if (! $currentRole) {
+            return false;
+        }
+
+        return in_array($currentRole, $roles, true);
     }
 
     private function forbidden(string $message): void

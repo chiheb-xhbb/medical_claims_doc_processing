@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\UserRole;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -21,6 +22,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
     ];
 
     /**
@@ -40,27 +42,22 @@ class User extends Authenticatable
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'role' => UserRole::class,
     ];
-    
-    /**
-     * Get all documents uploaded by this user.
-     */
+
+
     public function documents()
     {
         return $this->hasMany(Document::class, 'user_id');
     }
 
-    /**
-     * Get all documents validated by this user.
-     */
+
     public function validatedDocuments()
     {
         return $this->hasMany(Document::class, 'validated_by');
     }
 
-    /**
-     * Get all field corrections made by this user.
-     */
+
     public function fieldCorrections()
     {
         return $this->hasMany(FieldCorrection::class, 'user_id');
