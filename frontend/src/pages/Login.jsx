@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { login } from '../services/auth';
+import { login, getDefaultLandingPath } from '../services/auth';
 import { ErrorAlert } from '../ui';
 
 function Login() {
@@ -52,8 +52,8 @@ function Login() {
     setLoading(true);
 
     try {
-      await login(email, password);
-      navigate('/documents', { replace: true });
+      const { user } = await login(email, password);
+      navigate(getDefaultLandingPath(user?.role), { replace: true });
     } catch (err) {
       if (err.response?.status === 401) {
         setError('Invalid credentials. Please check your email and password.');

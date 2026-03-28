@@ -1,10 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { getStoredRole, getStoredUser } from '../services/auth';
 import { StatusBadge, Loader, ErrorAlert, EmptyState } from '../ui';
 
 function DocumentsList() {
   const navigate = useNavigate();
+  const currentRole = getStoredRole();
+  const currentUser = getStoredUser();
+  const canUpload = currentRole === 'AGENT' || currentRole === 'ADMIN';
 
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -127,6 +131,7 @@ function DocumentsList() {
 
   const renderActionButton = (doc) => {
     const isRetrying = retryingIds.includes(doc.id);
+    const canRetry = Number(doc.user_id) === Number(currentUser?.id);
 
     switch (doc.status) {
       case 'PROCESSED':
@@ -150,6 +155,10 @@ function DocumentsList() {
         );
 
       case 'FAILED':
+        if (!canRetry) {
+          return <span className="text-muted small">-</span>;
+        }
+
         return (
           <button
             className="btn btn-warning btn-sm"
@@ -207,8 +216,12 @@ function DocumentsList() {
                 <EmptyState
                   icon="folder2-open"
                   title="No Documents Found"
-                  description="Upload your first document to get started."
-                  action={
+                  description={
+                    canUpload
+                      ? 'Upload your first document to get started.'
+                      : 'No documents are available for your role right now.'
+                  }
+                  action={canUpload ? (
                     <button
                       className="btn btn-primary"
                       onClick={() => navigate('/documents/upload')}
@@ -216,7 +229,7 @@ function DocumentsList() {
                       <i className="bi bi-cloud-upload me-2"></i>
                       Upload Document
                     </button>
-                  }
+                  ) : null}
                 />
               </div>
             </div>
@@ -234,13 +247,15 @@ function DocumentsList() {
           Documents
         </h2>
 
-        <button
-          className="btn btn-primary"
-          onClick={() => navigate('/documents/upload')}
-        >
-          <i className="bi bi-cloud-upload me-2"></i>
-          Upload
-        </button>
+        {canUpload && (
+          <button
+            className="btn btn-primary"
+            onClick={() => navigate('/documents/upload')}
+          >
+            <i className="bi bi-cloud-upload me-2"></i>
+            Upload
+          </button>
+        )}
       </div>
 
       {error && (

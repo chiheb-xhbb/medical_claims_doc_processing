@@ -2,13 +2,24 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\UserRole;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreDocumentRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true; // MVP
+        $user = $this->user();
+
+        if (! $user) {
+            return false;
+        }
+
+        $currentRole = $user->role instanceof UserRole
+            ? $user->role
+            : UserRole::tryFrom((string) $user->role);
+
+        return in_array($currentRole, [UserRole::AGENT, UserRole::ADMIN], true);
     }
 
     public function rules(): array

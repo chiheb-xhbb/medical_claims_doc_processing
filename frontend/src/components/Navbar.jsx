@@ -1,13 +1,49 @@
+import { useEffect, useMemo, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { logout } from '../services/auth';
+import { AUTH_CHANGED_EVENT, getStoredRole, isAuthenticated, logout } from '../services/auth';
+
+const getDossiersNavLabel = (role) => {
+  if (role === 'AGENT') {
+    return 'My Dossiers';
+  }
+
+  if (role === 'GESTIONNAIRE') {
+    return 'Dossiers to Review';
+  }
+
+  if (role === 'ADMIN') {
+    return 'All Dossiers';
+  }
+
+  return 'Dossiers';
+};
 
 function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [authSnapshot, setAuthSnapshot] = useState(() => ({
+    authenticated: isAuthenticated(),
+    role: getStoredRole()
+  }));
 
-  // Read authentication directly from localStorage.
-  // The component re-renders on route changes, so this is enough here.
-  const isAuthenticated = !!localStorage.getItem('auth_token');
+  useEffect(() => {
+    const syncAuth = () => {
+      setAuthSnapshot({
+        authenticated: isAuthenticated(),
+        role: getStoredRole()
+      });
+    };
+
+    window.addEventListener(AUTH_CHANGED_EVENT, syncAuth);
+    window.addEventListener('storage', syncAuth);
+
+    return () => {
+      window.removeEventListener(AUTH_CHANGED_EVENT, syncAuth);
+      window.removeEventListener('storage', syncAuth);
+    };
+  }, []);
+
+  const dossiersNavLabel = useMemo(() => getDossiersNavLabel(authSnapshot.role), [authSnapshot.role]);
 
   // Check if a path is active (for highlighting)
   const isActive = (path) => {
@@ -49,7 +85,7 @@ function Navbar() {
       <div className="container">
         <NavLink
           className="navbar-brand d-flex align-items-center"
-          to={isAuthenticated ? '/documents' : '/login'}
+          to={authSnapshot.authenticated ? '/documents' : '/login'}
         >
           <i className="bi bi-file-medical me-2"></i>
           MedDocs
@@ -69,7 +105,7 @@ function Navbar() {
 
         <div className="collapse navbar-collapse" id="navbarNav">
           <ul className="navbar-nav ms-auto">
-            {isAuthenticated ? (
+            {authSnapshot.authenticated ? (
               <>
                 <li className="nav-item">
                   <NavLink
@@ -82,15 +118,17 @@ function Navbar() {
                   </NavLink>
                 </li>
 
-                <li className="nav-item">
-                  <NavLink
-                    className={`nav-link ${location.pathname === '/documents/upload' ? 'active' : ''}`}
-                    to="/documents/upload"
-                  >
-                    <i className="bi bi-cloud-upload me-1"></i>
-                    Upload
-                  </NavLink>
-                </li>
+                {authSnapshot.role !== 'GESTIONNAIRE' && (
+                  <li className="nav-item">
+                    <NavLink
+                      className={`nav-link ${location.pathname === '/documents/upload' ? 'active' : ''}`}
+                      to="/documents/upload"
+                    >
+                      <i className="bi bi-cloud-upload me-1"></i>
+                      Upload
+                    </NavLink>
+                  </li>
+                )}
 
                 <li className="nav-item">
                   <NavLink
@@ -98,7 +136,7 @@ function Navbar() {
                     to="/dossiers"
                   >
                     <i className="bi bi-briefcase me-1"></i>
-                    Dossiers
+                    {dossiersNavLabel}
                   </NavLink>
                 </li>
 

@@ -10,6 +10,7 @@ import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import { MainLayout } from './layout';
 import { setAuthToken } from './utils/setAuthToken';
+import { getCurrentUser, getDefaultLandingPath } from './services/auth';
 
 // Note: All styles are imported in main.jsx to ensure correct load order
 
@@ -19,6 +20,10 @@ function App() {
     const token = localStorage.getItem('auth_token');
     if (token) {
       setAuthToken(token);
+      // Keep local auth user (including role) aligned with backend /me.
+      getCurrentUser().catch(() => {
+        // 401 is handled by the API interceptor; other failures should not block app render.
+      });
     }
   }, []);
 
@@ -30,7 +35,7 @@ function App() {
             path="/login" 
             element={
               localStorage.getItem('auth_token')
-                ? <Navigate to="/documents" replace />
+                ? <Navigate to={getDefaultLandingPath()} replace />
                 : <Login />
             } 
           />
@@ -45,7 +50,7 @@ function App() {
           <Route 
             path="/documents/upload" 
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={["AGENT", "ADMIN"]}>
                 <DocumentUpload />
               </ProtectedRoute>
             } 
@@ -69,7 +74,7 @@ function App() {
           <Route
             path="/dossiers/create"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={["AGENT", "ADMIN"]}>
                 <DossierCreate />
               </ProtectedRoute>
             }
@@ -82,7 +87,14 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route
+            path="/"
+            element={
+              localStorage.getItem('auth_token')
+                ? <Navigate to={getDefaultLandingPath()} replace />
+                : <Navigate to="/login" replace />
+            }
+          />
         </Routes>
       </MainLayout>
     </BrowserRouter>

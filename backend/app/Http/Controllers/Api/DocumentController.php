@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\DocumentStatus;
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreDocumentRequest;
 use App\Jobs\ProcessDocumentJob;
 use App\Models\Document;
+use App\Models\User;
 use App\Services\DocumentService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -38,10 +41,12 @@ class DocumentController extends Controller
         ], 201);
     }
 
-    public function show(Document $document): JsonResponse
+    public function show(Request $request, Document $document): JsonResponse
     {
-        // For now, a user can only access their own documents.
-        if ($document->user_id !== auth()->id()) {
+        /** @var User $user */
+        $user = $request->user();
+
+        if (! $this->canViewDocument($user, $document)) {
             abort(403, 'Unauthorized access to this document.');
         }
 
@@ -71,9 +76,22 @@ class DocumentController extends Controller
         ]);
     }
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $documents = Document::where('user_id', auth()->id())
+        /** @var User $user */
+        $user = $request->user();
+
+        $query = Document::query();
+
+        if ($this->hasRole($user, UserRole::AGENT)) {
+            $query->where('user_id', $user->id);
+        } elseif (! $this->hasRole($user, UserRole::GESTIONNAIRE, UserRole::ADMIN)) {
+            return response()->json([
+                'message' => 'You are not allowed to view documents.',
+            ], 403);
+        }
+
+        $documents = $query
             ->latest()
             ->paginate(10);
 
@@ -123,5 +141,28 @@ class DocumentController extends Controller
                 ],
             ], 202);
         });
+    }
+
+    private function canViewDocument(User $user, Document $document): bool
+    {
+        if ($this->hasRole($user, UserRole::GESTIONNAIRE, UserRole::ADMIN)) {
+            return true;
+        }
+
+        return $this->hasRole($user, UserRole::AGENT)
+            && (int) $document->user_id === (int) $user->id;
+    }
+
+    private function hasRole(User $user, UserRole ...$roles): bool
+    {
+        $currentRole = $user->role instanceof UserRole
+            ? $user->role
+            : UserRole::tryFrom((string) $user->role);
+
+        if (! $currentRole) {
+            return false;
+        }
+
+        return in_array($currentRole, $roles, true);
     }
 }

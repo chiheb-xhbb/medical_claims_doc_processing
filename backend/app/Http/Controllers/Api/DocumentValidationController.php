@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\DocumentStatus;
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\Document;
 use App\Models\FieldCorrection;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,8 +21,10 @@ class DocumentValidationController extends Controller
      */
     public function validateDocument(Request $request, Document $document)
     {
-        // Only the owner can validate the document for now.
-        if ($document->user_id !== auth()->id()) {
+        /** @var User $user */
+        $user = $request->user();
+
+        if (! $this->canValidateDocument($user, $document)) {
             abort(403, 'Unauthorized validation attempt.');
         }
 
@@ -40,7 +44,7 @@ class DocumentValidationController extends Controller
         ]);
 
         try {
-            return DB::transaction(function () use ($validated, $document) {
+            return DB::transaction(function () use ($validated, $document, $user) {
                 // Lock the document row first to prevent concurrent validation.
                 $document = Document::whereKey($document->id)
                     ->lockForUpdate()
@@ -146,7 +150,7 @@ class DocumentValidationController extends Controller
                             'field_name' => $fieldName,
                             'original_value' => is_null($oldValue) ? null : (string) $oldValue,
                             'corrected_value' => is_null($newValue) ? null : (string) $newValue,
-                            'user_id' => auth()->id(),
+                            'user_id' => $user->id,
                         ]);
                     }
                 }
@@ -161,7 +165,7 @@ class DocumentValidationController extends Controller
                     [
                         'validated' => true,
                         'validated_at' => now()->toISOString(),
-                        'validated_by' => auth()->id(),
+                        'validated_by' => $user->id,
                         'source' => 'human_validation',
                     ]
                 );
@@ -176,7 +180,7 @@ class DocumentValidationController extends Controller
                 $document->update([
                     'status' => DocumentStatus::VALIDATED,
                     'error_message' => null,
-                    'validated_by' => auth()->id(),
+                    'validated_by' => $user->id,
                     'validated_at' => now(),
                 ]);
 
@@ -203,5 +207,28 @@ class DocumentValidationController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    private function canValidateDocument(User $user, Document $document): bool
+    {
+        if ($this->hasRole($user, UserRole::GESTIONNAIRE, UserRole::ADMIN)) {
+            return true;
+        }
+
+        return $this->hasRole($user, UserRole::AGENT)
+            && (int) $document->user_id === (int) $user->id;
+    }
+
+    private function hasRole(User $user, UserRole ...$roles): bool
+    {
+        $currentRole = $user->role instanceof UserRole
+            ? $user->role
+            : UserRole::tryFrom((string) $user->role);
+
+        if (! $currentRole) {
+            return false;
+        }
+
+        return in_array($currentRole, $roles, true);
     }
 }

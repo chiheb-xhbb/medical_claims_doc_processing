@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { getStoredRole, AUTH_CHANGED_EVENT } from '../services/auth';
 import {
   getDossierDetail,
   createRubrique,
@@ -194,21 +195,31 @@ function DossierDetail() {
     refreshDetail();
   }, [refreshDetail]);
 
+  const [role, setRole] = useState(() => getStoredRole());
+
+  useEffect(() => {
+    const syncRole = () => setRole(getStoredRole());
+    window.addEventListener(AUTH_CHANGED_EVENT, syncRole);
+    return () => window.removeEventListener(AUTH_CHANGED_EVENT, syncRole);
+  }, []);
+
   const dossier = dossierData?.dossier;
   const rubriques = useMemo(() => dossierData?.rubriques ?? [], [dossierData]);
   const dossierStatus = (dossier?.status || '').toUpperCase();
 
+  const canPrepare = role === 'AGENT' || role === 'ADMIN';
+  const canReview = role === 'GESTIONNAIRE' || role === 'ADMIN';
+
   const isFrozen = DOSSIER_FROZEN_STATUSES.includes(dossierStatus);
-  const canCreateRubrique = dossierStatus === 'RECEIVED' || dossierStatus === 'IN_PROGRESS';
-  const canAttachDocuments = dossierStatus === 'IN_PROGRESS';
-  const canDetachDocuments = dossierStatus === 'IN_PROGRESS';
-  const canSubmitDossier = dossierStatus === 'IN_PROGRESS';
-  // TODO (role-aware UI): canDecideDocuments and canProcessDossier should also gate on
-  // user.role === 'GESTIONNAIRE' or 'ADMIN'. Deferred: the backend User model does not
-  // currently expose a role field. The backend enforces authorization server-side.
-  const canDecideDocuments = dossierStatus === 'TO_VALIDATE';
-  const canProcessDossier = dossierStatus === 'TO_VALIDATE';
-  const canRejectRubrique = dossierStatus === 'TO_VALIDATE';
+  // Preparation actions: AGENT or ADMIN + correct status
+  const canCreateRubrique = canPrepare && (dossierStatus === 'RECEIVED' || dossierStatus === 'IN_PROGRESS');
+  const canAttachDocuments = canPrepare && dossierStatus === 'IN_PROGRESS';
+  const canDetachDocuments = canPrepare && dossierStatus === 'IN_PROGRESS';
+  const canSubmitDossier = canPrepare && dossierStatus === 'IN_PROGRESS';
+  // Review actions: GESTIONNAIRE or ADMIN + dossier status TO_VALIDATE
+  const canDecideDocuments = canReview && dossierStatus === 'TO_VALIDATE';
+  const canProcessDossier = canReview && dossierStatus === 'TO_VALIDATE';
+  const canRejectRubrique = canReview && dossierStatus === 'TO_VALIDATE';
 
   const allAttachedDocumentIds = useMemo(() => {
     const ids = new Set();
