@@ -62,6 +62,11 @@ export async function rejectRubrique(rubriqueId, note) {
   return response.data || {};
 }
 
+export async function deleteRubrique(rubriqueId) {
+  const response = await api.delete(`/rubriques/${rubriqueId}`);
+  return response.data || {};
+}
+
 export async function getValidatedDocuments() {
   let page = 1;
   let lastPage = 1;

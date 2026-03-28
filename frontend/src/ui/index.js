@@ -24,3 +24,6 @@ export { default as EmptyState } from './EmptyState';
 
 // Layout helpers
 export { default as SectionDivider } from './SectionDivider';
+
+// Modal
+export { default as ConfirmationModal } from './ConfirmationModal';

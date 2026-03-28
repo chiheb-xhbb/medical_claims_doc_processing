@@ -6,6 +6,7 @@ import {
   createRubrique,
   attachDocuments,
   detachDocument,
+  deleteRubrique,
   submitDossier,
   processDossier,
   acceptDocument,
@@ -13,10 +14,28 @@ import {
   rejectRubrique,
   getValidatedDocuments
 } from '../services/dossierWorkflow';
-import { Loader, ErrorAlert, SuccessAlert, EmptyState } from '../ui';
+import { Loader, ErrorAlert, SuccessAlert, EmptyState, ConfirmationModal } from '../ui';
+import DossierSummaryCard from './DossierDetail/components/DossierSummaryCard';
+import WorkflowActionsCard from './DossierDetail/components/WorkflowActionsCard';
+import RubriquesSection from './DossierDetail/components/RubriquesSection';
+import AttachDocumentsModal from './DossierDetail/components/AttachDocumentsModal';
+import RejectDocumentModal from './DossierDetail/components/RejectDocumentModal';
+import RejectRubriqueModal from './DossierDetail/components/RejectRubriqueModal';
 import './DossierDetail/DossierDetail.css';
 
 const DOSSIER_FROZEN_STATUSES = ['PROCESSED', 'EXPORTED'];
+const INITIAL_CONFIRMATION_MODAL = {
+  isOpen: false,
+  action: null,
+  title: '',
+  message: '',
+  confirmLabel: 'Confirm',
+  cancelLabel: 'Cancel',
+  confirmingLabel: 'Processing...',
+  confirmVariant: 'primary',
+  initialFocus: 'confirm',
+  payload: null
+};
 
 const formatAmount = (value) => {
   const amount = Number(value);
@@ -104,24 +123,6 @@ const mapDossierDetailResponse = (apiResponse) => {
   };
 };
 
-const getDocumentExtractionTotal = (document) => {
-  const extractions = Array.isArray(document?.extractions) ? document.extractions : [];
-
-  if (extractions.length === 0) {
-    return null;
-  }
-
-  const latestExtraction = [...extractions].sort((a, b) => Number(b?.version || 0) - Number(a?.version || 0))[0];
-  const total = latestExtraction?.result_json?.fields?.total_ttc;
-
-  if (total === null || total === undefined || total === '') {
-    return null;
-  }
-
-  const numeric = Number(total);
-  return Number.isNaN(numeric) ? null : numeric;
-};
-
 function DossierDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -138,6 +139,7 @@ function DossierDetail() {
   const [isSubmittingDossier, setIsSubmittingDossier] = useState(false);
   const [isProcessingDossier, setIsProcessingDossier] = useState(false);
   const [isAttachingByRubriqueId, setIsAttachingByRubriqueId] = useState({});
+  const [isDeletingRubriqueById, setIsDeletingRubriqueById] = useState({});
   const [isRejectingRubriqueById, setIsRejectingRubriqueById] = useState({});
   const [isDetachingByDocumentId, setIsDetachingByDocumentId] = useState({});
   const [isDecidingByDocumentId, setIsDecidingByDocumentId] = useState({});
@@ -152,10 +154,11 @@ function DossierDetail() {
   const [rejectTargetDocument, setRejectTargetDocument] = useState(null);
   const [rejectNote, setRejectNote] = useState('');
 
-  // Rubrique rejection modal state (replaces window.prompt + window.confirm)
+  // Rubrique rejection modal state
   const [isRejectRubriqueModalOpen, setIsRejectRubriqueModalOpen] = useState(false);
   const [rejectRubriqueTarget, setRejectRubriqueTarget] = useState(null);
   const [rejectRubriqueNote, setRejectRubriqueNote] = useState('');
+  const [confirmationModal, setConfirmationModal] = useState(INITIAL_CONFIRMATION_MODAL);
 
   // Fix: auto-dismiss successMessage after 4 seconds
   const successDismissTimer = useRef(null);
@@ -213,6 +216,7 @@ function DossierDetail() {
   const isFrozen = DOSSIER_FROZEN_STATUSES.includes(dossierStatus);
   // Preparation actions: AGENT or ADMIN + correct status
   const canCreateRubrique = canPrepare && (dossierStatus === 'RECEIVED' || dossierStatus === 'IN_PROGRESS');
+  const canDeleteRubrique = canPrepare && (dossierStatus === 'RECEIVED' || dossierStatus === 'IN_PROGRESS');
   const canAttachDocuments = canPrepare && dossierStatus === 'IN_PROGRESS';
   const canDetachDocuments = canPrepare && dossierStatus === 'IN_PROGRESS';
   const canSubmitDossier = canPrepare && dossierStatus === 'IN_PROGRESS';
@@ -220,6 +224,12 @@ function DossierDetail() {
   const canDecideDocuments = canReview && dossierStatus === 'TO_VALIDATE';
   const canProcessDossier = canReview && dossierStatus === 'TO_VALIDATE';
   const canRejectRubrique = canReview && dossierStatus === 'TO_VALIDATE';
+  const showWorkflowActions = !isFrozen && (canCreateRubrique || canSubmitDossier || canProcessDossier);
+  const isConfirmingAction =
+    (confirmationModal.action === 'submit' && isSubmittingDossier) ||
+    (confirmationModal.action === 'process' && isProcessingDossier) ||
+    (confirmationModal.action === 'detach' && Boolean(isDetachingByDocumentId[confirmationModal.payload?.documentId])) ||
+    (confirmationModal.action === 'delete_rubrique' && Boolean(isDeletingRubriqueById[confirmationModal.payload?.rubriqueId]));
 
   const allAttachedDocumentIds = useMemo(() => {
     const ids = new Set();
@@ -303,6 +313,22 @@ function DossierDetail() {
     setRejectNote('');
   };
 
+  const openConfirmationModal = (configuration) => {
+    setConfirmationModal({
+      ...INITIAL_CONFIRMATION_MODAL,
+      isOpen: true,
+      ...configuration
+    });
+  };
+
+  const closeConfirmationModal = () => {
+    if (isConfirmingAction) {
+      return;
+    }
+
+    setConfirmationModal(INITIAL_CONFIRMATION_MODAL);
+  };
+
   const withMapPending = (setter, key, value) => {
     setter((previous) => ({
       ...previous,
@@ -366,8 +392,8 @@ function DossierDetail() {
     }
   };
 
-  const handleDetachDocument = async (rubriqueId, documentId) => {
-    if (!window.confirm('Detach this document from the rubrique?')) {
+  const executeDetachDocument = async (rubriqueId, documentId) => {
+    if (!rubriqueId || !documentId) {
       return;
     }
 
@@ -386,11 +412,27 @@ function DossierDetail() {
     }
   };
 
-  const handleSubmitDossier = async () => {
-    if (!window.confirm('Submit dossier for validation?')) {
+  const executeDeleteRubrique = async (rubriqueId) => {
+    if (!rubriqueId) {
       return;
     }
 
+    try {
+      withMapPending(setIsDeletingRubriqueById, rubriqueId, true);
+      setDetailError(null);
+      setSuccessMessage(null);
+
+      const response = await deleteRubrique(rubriqueId);
+      setSuccessMessage(response?.message || 'Rubrique deleted successfully.');
+      await refreshDetail();
+    } catch (error) {
+      setDetailError(formatApiError(error, 'Failed to delete rubrique.'));
+    } finally {
+      withMapPending(setIsDeletingRubriqueById, rubriqueId, false);
+    }
+  };
+
+  const executeSubmitDossier = async () => {
     try {
       setIsSubmittingDossier(true);
       setDetailError(null);
@@ -406,11 +448,7 @@ function DossierDetail() {
     }
   };
 
-  const handleProcessDossier = async () => {
-    if (!window.confirm('Process dossier now? This will freeze modifications.')) {
-      return;
-    }
-
+  const executeProcessDossier = async () => {
     try {
       setIsProcessingDossier(true);
       setDetailError(null);
@@ -424,6 +462,83 @@ function DossierDetail() {
     } finally {
       setIsProcessingDossier(false);
     }
+  };
+
+  const requestDetachDocument = (rubriqueId, documentId) => {
+    openConfirmationModal({
+      action: 'detach',
+      title: 'Remove Document from Rubrique',
+      message: 'This will remove the document from the selected rubrique.',
+      confirmLabel: 'Remove Document',
+      cancelLabel: 'Cancel',
+      confirmingLabel: 'Removing...',
+      confirmVariant: 'danger',
+      initialFocus: 'cancel',
+      payload: { rubriqueId, documentId }
+    });
+  };
+
+  const requestSubmitDossier = () => {
+    openConfirmationModal({
+      action: 'submit',
+      title: 'Submit Dossier',
+      message: 'Submit this dossier for validation? Editing rubriques will be disabled after submission.',
+      confirmLabel: 'Submit Dossier',
+      cancelLabel: 'Cancel',
+      confirmingLabel: 'Submitting...',
+      confirmVariant: 'primary'
+    });
+  };
+
+  const requestProcessDossier = () => {
+    openConfirmationModal({
+      action: 'process',
+      title: 'Process Dossier',
+      message: 'Process this dossier now? This action freezes all dossier modifications.',
+      confirmLabel: 'Process Dossier',
+      cancelLabel: 'Cancel',
+      confirmingLabel: 'Processing...',
+      confirmVariant: 'success',
+      initialFocus: 'cancel'
+    });
+  };
+
+  const requestDeleteRubrique = (rubrique) => {
+    if (!rubrique?.id) {
+      return;
+    }
+
+    openConfirmationModal({
+      action: 'delete_rubrique',
+      title: 'Delete Rubrique',
+      message: 'This will permanently remove the empty rubrique. This action cannot be undone.',
+      confirmLabel: 'Delete Rubrique',
+      cancelLabel: 'Cancel',
+      confirmingLabel: 'Deleting...',
+      confirmVariant: 'danger',
+      initialFocus: 'cancel',
+      payload: { rubriqueId: rubrique.id }
+    });
+  };
+
+  const handleConfirmationAction = async () => {
+    if (confirmationModal.action === 'detach') {
+      await executeDetachDocument(confirmationModal.payload?.rubriqueId, confirmationModal.payload?.documentId);
+    }
+
+    if (confirmationModal.action === 'submit') {
+      await executeSubmitDossier();
+    }
+
+    if (confirmationModal.action === 'process') {
+      await executeProcessDossier();
+    }
+
+    if (confirmationModal.action === 'delete_rubrique') {
+      await executeDeleteRubrique(confirmationModal.payload?.rubriqueId);
+    }
+
+    setConfirmationModal(INITIAL_CONFIRMATION_MODAL);
   };
 
   const handleAcceptDocument = async (documentId) => {
@@ -582,427 +697,103 @@ function DossierDetail() {
         </div>
       )}
 
-      <div className="card mb-4">
-        <div className="card-header bg-primary text-white">
-          <h5 className="mb-0 d-flex align-items-center">
-            <i className="bi bi-briefcase me-2"></i>
-            {dossier.numero_dossier || 'Dossier'}
-          </h5>
-        </div>
-        <div className="card-body">
-          <div className="row g-4">
-            <div className="col-md-6 col-lg-4">
-              <div className="detail-item">
-                <p className="detail-label mb-1">Assured Identifier</p>
-                <p className="detail-value mb-0">{dossier.assured_identifier || '-'}</p>
-              </div>
-            </div>
-            <div className="col-md-6 col-lg-4">
-              <div className="detail-item">
-                <p className="detail-label mb-1">Status</p>
-                <p className="detail-value mb-0">
-                  <span className="badge bg-primary-subtle text-primary-emphasis dossier-status">{dossier.status || '-'}</span>
-                </p>
-              </div>
-            </div>
-            <div className="col-md-6 col-lg-4">
-              <div className="detail-item">
-                <p className="detail-label mb-1">Stored Total</p>
-                <p className="detail-value mb-0">{formatAmount(dossier.montant_total)}</p>
-              </div>
-            </div>
-            <div className="col-md-6">
-              <div className="detail-item">
-                <p className="detail-label mb-1">Episode Description</p>
-                <p className="detail-value mb-0">{dossier.episode_description || '-'}</p>
-              </div>
-            </div>
-            <div className="col-md-6">
-              <div className="detail-item">
-                <p className="detail-label mb-1">Notes</p>
-                <p className="detail-value mb-0">{dossier.notes || '-'}</p>
-              </div>
-            </div>
-            <div className="col-md-6 col-lg-4">
-              <div className="detail-item">
-                <p className="detail-label mb-1">Created At</p>
-                <p className="detail-value mb-0">{formatDateTime(dossier.created_at)}</p>
-              </div>
-            </div>
-            <div className="col-md-6 col-lg-4">
-              <div className="detail-item">
-                <p className="detail-label mb-1">Updated At</p>
-                <p className="detail-value mb-0">{formatDateTime(dossier.updated_at)}</p>
-              </div>
-            </div>
-            <div className="col-md-4">
-              <div className="detail-item">
-                <p className="detail-label mb-1">Requested Total</p>
-                <p className="detail-value mb-0">{formatAmount(dossierData?.requested_total)}</p>
-              </div>
-            </div>
-            <div className="col-md-4">
-              <div className="detail-item">
-                <p className="detail-label mb-1">Current Total</p>
-                <p className="detail-value mb-0">{formatAmount(dossierData?.current_total)}</p>
-              </div>
-            </div>
-            <div className="col-md-4">
-              <div className="detail-item">
-                <p className="detail-label mb-1">Display Total</p>
-                <p className="detail-value mb-0">{formatDisplayTotal(dossierData?.display_total)}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <DossierSummaryCard
+        dossier={dossier}
+        dossierData={dossierData}
+        formatAmount={formatAmount}
+        formatDateTime={formatDateTime}
+        formatDisplayTotal={formatDisplayTotal}
+      />
 
-      <div className="card mb-4">
-        <div className="card-header d-flex justify-content-between align-items-center">
-          <h6 className="mb-0 d-flex align-items-center">
-            <i className="bi bi-gear me-2"></i>
-            Workflow Actions
-          </h6>
-        </div>
-        <div className="card-body">
-          {(canCreateRubrique && !isFrozen) && (
-            <form className="mb-4" onSubmit={handleCreateRubrique}>
-              <div className="row g-2 align-items-end">
-                <div className="col-lg-4">
-                  <label htmlFor="rubriqueTitle" className="form-label mb-1">Rubrique Title</label>
-                  <input
-                    id="rubriqueTitle"
-                    type="text"
-                    className="form-control"
-                    value={rubriqueTitle}
-                    onChange={(event) => setRubriqueTitle(event.target.value)}
-                    disabled={isCreatingRubrique}
-                    placeholder="Ex: Pharmacy invoices"
-                  />
-                </div>
-                <div className="col-lg-5">
-                  <label htmlFor="rubriqueNotes" className="form-label mb-1">Notes (optional)</label>
-                  <input
-                    id="rubriqueNotes"
-                    type="text"
-                    className="form-control"
-                    value={rubriqueNotes}
-                    onChange={(event) => setRubriqueNotes(event.target.value)}
-                    disabled={isCreatingRubrique}
-                    placeholder="Short internal note"
-                  />
-                </div>
-                <div className="col-lg-3">
-                  <button type="submit" className="btn btn-primary w-100" disabled={isCreatingRubrique || !rubriqueTitle.trim()}>
-                    {isCreatingRubrique ? 'Creating...' : 'Create Rubrique'}
-                  </button>
-                </div>
-              </div>
-            </form>
-          )}
-
-          <div className="d-flex flex-wrap gap-2">
-            {canSubmitDossier && !isFrozen && (
-              <button
-                className="btn btn-outline-primary"
-                onClick={handleSubmitDossier}
-                disabled={isSubmittingDossier}
-              >
-                {isSubmittingDossier ? 'Submitting...' : 'Submit Dossier'}
-              </button>
-            )}
-
-            {canProcessDossier && !isFrozen && (
-              <button
-                className="btn btn-outline-success"
-                onClick={handleProcessDossier}
-                disabled={isProcessingDossier}
-              >
-                {isProcessingDossier ? 'Processing...' : 'Process Dossier'}
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="card">
-        <div className="card-header d-flex justify-content-between align-items-center">
-          <h6 className="mb-0 d-flex align-items-center">
-            <i className="bi bi-diagram-3 me-2"></i>
-            Rubriques
-          </h6>
-          <span className="text-muted small">{rubriques.length} rubrique(s)</span>
-        </div>
-        <div className="card-body">
-          {rubriques.length === 0 ? (
-            <EmptyState
-              icon="folder2-open"
-              title="No Rubriques"
-              description="Create a rubrique to start attaching validated documents."
-            />
-          ) : (
-            <div className="rubrique-list">
-              {rubriques.map((rubrique) => {
-                const rubriqueDocuments = rubrique.documents || [];
-
-                return (
-                  <div className="card mb-3" key={rubrique.id}>
-                    <div className="card-header d-flex justify-content-between align-items-center">
-                      <div>
-                        <h6 className="mb-0">{rubrique.title || `Rubrique #${rubrique.id}`}</h6>
-                        <small className="text-muted">
-                          Status: <span className="fw-semibold">{rubrique.status || 'PENDING'}</span>
-                          {' · '}
-                          {rubriqueDocuments.length} document(s)
-                        </small>
-                      </div>
-
-                      <div className="d-flex flex-wrap gap-2">
-                        {canAttachDocuments && !isFrozen && (
-                          <button
-                            className="btn btn-sm btn-outline-primary"
-                            onClick={() => openAttachModal(rubrique)}
-                            disabled={Boolean(isAttachingByRubriqueId[rubrique.id])}
-                          >
-                            Attach Documents
-                          </button>
-                        )}
-
-                        {canRejectRubrique && !isFrozen && (
-                          <button
-                            className="btn btn-sm btn-outline-danger"
-                            onClick={() => openRejectRubriqueModal(rubrique)}
-                            disabled={Boolean(isRejectingRubriqueById[rubrique.id]) || rubriqueDocuments.length === 0}
-                          >
-                            {isRejectingRubriqueById[rubrique.id] ? 'Rejecting...' : 'Reject Rubrique'}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="card-body">
-                      <p className="mb-3 text-muted">{rubrique.notes || 'No notes for this rubrique.'}</p>
-
-                      {rubriqueDocuments.length === 0 ? (
-                        <EmptyState
-                          icon="file-earmark"
-                          title="No Documents in this Rubrique"
-                          description="Attach validated documents to this rubrique."
-                        />
-                      ) : (
-                        <div className="table-responsive">
-                          <table className="table table-striped align-middle mb-0">
-                            <thead>
-                              <tr>
-                                <th>ID</th>
-                                <th>Filename</th>
-                                <th>Technical Status</th>
-                                <th>Decision Status</th>
-                                <th>Total TTC</th>
-                                <th>Decision Note</th>
-                                <th>Actions</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {rubriqueDocuments.map((document) => {
-                                const extractionTotal = getDocumentExtractionTotal(document);
-                                const decisionStatus = document.decision_status || 'PENDING';
-                                const documentId = document.id;
-                                const isBusy = Boolean(isDecidingByDocumentId[documentId] || isDetachingByDocumentId[documentId]);
-
-                                return (
-                                  <tr key={documentId}>
-                                    <td>{documentId}</td>
-                                    <td>{document.original_filename || `Document #${documentId}`}</td>
-                                    <td>
-                                      <span className="badge bg-secondary">{document.status || '-'}</span>
-                                    </td>
-                                    <td>
-                                      <span className="badge bg-primary-subtle text-primary-emphasis">{decisionStatus}</span>
-                                    </td>
-                                    <td>{extractionTotal === null ? '-' : formatAmount(extractionTotal)}</td>
-                                    <td>{document.decision_note || '-'}</td>
-                                    <td>
-                                      <div className="d-flex flex-wrap gap-1">
-                                        {canDecideDocuments && !isFrozen && decisionStatus === 'PENDING' && (
-                                          <>
-                                            <button
-                                              className="btn btn-sm btn-outline-success"
-                                              onClick={() => handleAcceptDocument(documentId)}
-                                              disabled={isBusy}
-                                            >
-                                              Accept
-                                            </button>
-                                            <button
-                                              className="btn btn-sm btn-outline-danger"
-                                              onClick={() => openRejectDocumentModal(document)}
-                                              disabled={isBusy}
-                                            >
-                                              Reject
-                                            </button>
-                                          </>
-                                        )}
-
-                                        {canDetachDocuments && !isFrozen && (
-                                          <button
-                                            className="btn btn-sm btn-outline-secondary"
-                                            onClick={() => handleDetachDocument(rubrique.id, documentId)}
-                                            disabled={isBusy}
-                                          >
-                                            {isDetachingByDocumentId[documentId] ? 'Detaching...' : 'Detach'}
-                                          </button>
-                                        )}
-                                      </div>
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {isAttachModalOpen && (
-        <div className="dossier-modal-backdrop">
-          <div className="dossier-modal-card">
-            <h5 className="mb-3">Attach Validated Documents</h5>
-            <p className="text-muted">
-              Target rubrique: <strong>{attachTargetRubrique?.title || '-'}</strong>
-            </p>
-
-            {isLoadingValidatedDocuments ? (
-              <Loader message="Loading validated documents..." size="sm" />
-            ) : attachableDocuments.length === 0 ? (
-              <EmptyState
-                icon="check2-square"
-                title="No Attachable Documents"
-                description="There are no validated and unassigned documents available."
-              />
-            ) : (
-              <div className="attach-docs-list">
-                {attachableDocuments.map((doc) => (
-                  <label key={doc.id} className="attach-doc-item">
-                    <input
-                      type="checkbox"
-                      className="form-check-input me-3"
-                      checked={selectedDocumentIds.includes(doc.id)}
-                      onChange={() => handleToggleDocument(doc.id)}
-                      disabled={isAttachingByRubriqueId[attachTargetRubrique?.id] || false}
-                    />
-                    <span className="fw-medium">{doc.original_filename || `Document #${doc.id}`}</span>
-                    <span className="text-muted small ms-2">#{doc.id}</span>
-                  </label>
-                ))}
-              </div>
-            )}
-
-            <div className="d-flex justify-content-end gap-2 mt-4">
-              <button className="btn btn-outline-secondary" onClick={closeAttachModal}>
-                Cancel
-              </button>
-                <button
-                  className="btn btn-primary"
-                  onClick={handleAttachDocuments}
-                  disabled={
-                    !attachTargetRubrique?.id ||
-                    (isAttachingByRubriqueId[attachTargetRubrique?.id] || false) ||
-                    selectedDocumentIds.length === 0
-                  }
-                >
-                  {(isAttachingByRubriqueId[attachTargetRubrique?.id] || false)
-                    ? 'Attaching...'
-                    : `Attach Selected (${selectedDocumentIds.length})`}
-                </button>
-              </div>
-            </div>
-        </div>
+      {showWorkflowActions && (
+        <WorkflowActionsCard
+          canCreateRubrique={canCreateRubrique}
+          isFrozen={isFrozen}
+          handleCreateRubrique={handleCreateRubrique}
+          rubriqueTitle={rubriqueTitle}
+          rubriqueNotes={rubriqueNotes}
+          setRubriqueTitle={setRubriqueTitle}
+          setRubriqueNotes={setRubriqueNotes}
+          isCreatingRubrique={isCreatingRubrique}
+          canSubmitDossier={canSubmitDossier}
+          isSubmittingDossier={isSubmittingDossier}
+          requestSubmitDossier={requestSubmitDossier}
+          canProcessDossier={canProcessDossier}
+          isProcessingDossier={isProcessingDossier}
+          requestProcessDossier={requestProcessDossier}
+        />
       )}
 
-      {isRejectModalOpen && (
-        <div className="dossier-modal-backdrop">
-          <div className="dossier-modal-card">
-            <h5 className="mb-2">Reject Document</h5>
-            <p className="text-muted mb-3">
-              Document: <strong>{rejectTargetDocument?.original_filename || `#${rejectTargetDocument?.id || ''}`}</strong>
-            </p>
+      <RubriquesSection
+        rubriques={rubriques}
+        canAttachDocuments={canAttachDocuments}
+        canDeleteRubrique={canDeleteRubrique}
+        canRejectRubrique={canRejectRubrique}
+        canDecideDocuments={canDecideDocuments}
+        canDetachDocuments={canDetachDocuments}
+        isFrozen={isFrozen}
+        isAttachingByRubriqueId={isAttachingByRubriqueId}
+        isDeletingRubriqueById={isDeletingRubriqueById}
+        isRejectingRubriqueById={isRejectingRubriqueById}
+        isDecidingByDocumentId={isDecidingByDocumentId}
+        isDetachingByDocumentId={isDetachingByDocumentId}
+        openAttachModal={openAttachModal}
+        requestDeleteRubrique={requestDeleteRubrique}
+        openRejectRubriqueModal={openRejectRubriqueModal}
+        handleAcceptDocument={handleAcceptDocument}
+        openRejectDocumentModal={openRejectDocumentModal}
+        requestDetachDocument={requestDetachDocument}
+        formatAmount={formatAmount}
+      />
 
-            <label htmlFor="rejectNote" className="form-label">Decision Note (required)</label>
-            <textarea
-              id="rejectNote"
-              className="form-control"
-              rows={4}
-              value={rejectNote}
-              onChange={(event) => setRejectNote(event.target.value)}
-              placeholder="Explain why this document is rejected"
-            />
+      <AttachDocumentsModal
+        isOpen={isAttachModalOpen}
+        attachTargetRubrique={attachTargetRubrique}
+        isLoadingValidatedDocuments={isLoadingValidatedDocuments}
+        attachableDocuments={attachableDocuments}
+        selectedDocumentIds={selectedDocumentIds}
+        handleToggleDocument={handleToggleDocument}
+        isAttachingByRubriqueId={isAttachingByRubriqueId}
+        handleAttachDocuments={handleAttachDocuments}
+        closeAttachModal={closeAttachModal}
+      />
 
-            <div className="d-flex justify-content-end gap-2 mt-4">
-              <button className="btn btn-outline-secondary" onClick={closeRejectDocumentModal}>
-                Cancel
-              </button>
-              <button
-                className="btn btn-danger"
-                onClick={handleRejectDocument}
-                disabled={isDecidingByDocumentId[rejectTargetDocument?.id] || false}
-              >
-                {(isDecidingByDocumentId[rejectTargetDocument?.id] || false) ? 'Rejecting...' : 'Reject Document'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <RejectDocumentModal
+        isOpen={isRejectModalOpen}
+        rejectTargetDocument={rejectTargetDocument}
+        rejectNote={rejectNote}
+        setRejectNote={setRejectNote}
+        closeRejectDocumentModal={closeRejectDocumentModal}
+        handleRejectDocument={handleRejectDocument}
+        isDecidingByDocumentId={isDecidingByDocumentId}
+      />
 
-      {isRejectRubriqueModalOpen && (
-        <div className="dossier-modal-backdrop">
-          <div className="dossier-modal-card">
-            <h5 className="mb-2">Reject Entire Rubrique</h5>
-            <p className="text-muted mb-3">
-              Rubrique: <strong>{rejectRubriqueTarget?.title || `#${rejectRubriqueTarget?.id || ''}`}</strong>
-            </p>
-            <p className="text-muted small mb-3">
-              All documents in this rubrique will be marked as <strong>REJECTED</strong>.
-            </p>
+      <RejectRubriqueModal
+        isOpen={isRejectRubriqueModalOpen}
+        rejectRubriqueTarget={rejectRubriqueTarget}
+        rejectRubriqueNote={rejectRubriqueNote}
+        setRejectRubriqueNote={setRejectRubriqueNote}
+        closeRejectRubriqueModal={closeRejectRubriqueModal}
+        handleRejectRubriqueConfirm={handleRejectRubriqueConfirm}
+        isRejectingRubriqueById={isRejectingRubriqueById}
+      />
 
-            <label htmlFor="rejectRubriqueNote" className="form-label">Decision Note (optional)</label>
-            <textarea
-              id="rejectRubriqueNote"
-              className="form-control"
-              rows={3}
-              value={rejectRubriqueNote}
-              onChange={(event) => setRejectRubriqueNote(event.target.value)}
-              placeholder="Optional: explain why this rubrique is rejected"
-              disabled={Boolean(isRejectingRubriqueById[rejectRubriqueTarget?.id])}
-            />
-
-            <div className="d-flex justify-content-end gap-2 mt-4">
-              <button
-                className="btn btn-outline-secondary"
-                onClick={closeRejectRubriqueModal}
-                disabled={Boolean(isRejectingRubriqueById[rejectRubriqueTarget?.id])}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn btn-danger"
-                onClick={handleRejectRubriqueConfirm}
-                disabled={Boolean(isRejectingRubriqueById[rejectRubriqueTarget?.id])}
-              >
-                {Boolean(isRejectingRubriqueById[rejectRubriqueTarget?.id]) ? 'Rejecting...' : 'Reject All Documents'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        title={confirmationModal.title}
+        message={confirmationModal.message}
+        confirmLabel={confirmationModal.confirmLabel}
+        cancelLabel={confirmationModal.cancelLabel}
+        confirmingLabel={confirmationModal.confirmingLabel}
+        confirmVariant={confirmationModal.confirmVariant}
+        initialFocus={confirmationModal.initialFocus}
+        isConfirming={isConfirmingAction}
+        onCancel={closeConfirmationModal}
+        onConfirm={handleConfirmationAction}
+      />
     </div>
   );
 }
 
 export default DossierDetail;
+

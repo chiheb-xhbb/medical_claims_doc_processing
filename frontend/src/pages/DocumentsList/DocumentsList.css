@@ -75,10 +75,15 @@
 .documents-list .pagination-info {
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
 }
 
 /* File icon in table */
 .documents-list .file-icon {
   color: var(--color-text-muted);
   margin-right: var(--spacing-2);
+}
+
+.documents-list .pagination-controls .btn {
+  min-width: 110px;
 }

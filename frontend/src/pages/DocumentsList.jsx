@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { getStoredRole, getStoredUser } from '../services/auth';
 import { StatusBadge, Loader, ErrorAlert, EmptyState } from '../ui';
+import './DocumentsList/DocumentsList.css';
 
 function DocumentsList() {
   const navigate = useNavigate();
@@ -218,7 +219,7 @@ function DocumentsList() {
                   title="No Documents Found"
                   description={
                     canUpload
-                      ? 'Upload your first document to get started.'
+                      ? 'Upload documents to get started.'
                       : 'No documents are available for your role right now.'
                   }
                   action={canUpload ? (
@@ -227,7 +228,7 @@ function DocumentsList() {
                       onClick={() => navigate('/documents/upload')}
                     >
                       <i className="bi bi-cloud-upload me-2"></i>
-                      Upload Document
+                      Upload Documents
                     </button>
                   ) : null}
                 />
@@ -240,7 +241,7 @@ function DocumentsList() {
   }
 
   return (
-    <div className="container py-4">
+    <div className="container py-4 documents-list">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2 className="mb-0 page-title">
           <i className="bi bi-files me-2 opacity-75"></i>
@@ -253,7 +254,7 @@ function DocumentsList() {
             onClick={() => navigate('/documents/upload')}
           >
             <i className="bi bi-cloud-upload me-2"></i>
-            Upload
+            Upload Documents
           </button>
         )}
       </div>
@@ -314,12 +315,13 @@ function DocumentsList() {
           </table>
         </div>
 
-        <div className="card-footer bg-white d-flex justify-content-between align-items-center">
-          <span className="text-muted">
+        <div className="card-footer bg-white d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+          <span className="pagination-info d-inline-flex align-items-center gap-2">
+            <i className="bi bi-grid-3x3-gap"></i>
             Page {currentPage} of {lastPage} ({total} total documents)
           </span>
 
-          <div className="btn-group">
+          <div className="btn-group pagination-controls">
             <button
               className="btn btn-outline-primary btn-sm"
               onClick={() => handlePageChange(currentPage - 1)}

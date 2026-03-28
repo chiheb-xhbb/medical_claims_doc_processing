@@ -285,12 +285,13 @@ function DossiersList() {
           </table>
         </div>
 
-        <div className="card-footer bg-white d-flex justify-content-between align-items-center">
-          <span className="text-muted pagination-info">
+        <div className="card-footer bg-white d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+          <span className="pagination-info d-inline-flex align-items-center gap-2">
+            <i className="bi bi-grid-3x3-gap"></i>
             Page {currentPage} of {lastPage} ({total} total dossiers)
           </span>
 
-          <div className="btn-group">
+          <div className="btn-group pagination-controls">
             <button
               className="btn btn-outline-primary btn-sm"
               onClick={() => handlePageChange(currentPage - 1)}

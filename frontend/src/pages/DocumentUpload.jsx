@@ -2,12 +2,26 @@ import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { SuccessAlert, ErrorAlert } from '../ui';
+import './DocumentUpload/DocumentUpload.css';
 
 // Allowed file types
 const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'application/pdf'];
 
 // Maximum file size (10MB)
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const FILE_STATUS = {
+  READY: 'READY',
+  UPLOADING: 'UPLOADING',
+  SUCCESS: 'SUCCESS',
+  ERROR: 'ERROR',
+  INVALID: 'INVALID'
+};
+const FILE_PICKER_MODE = {
+  REPLACE: 'replace',
+  APPEND: 'append'
+};
+
+const formatCountLabel = (count, singular, plural) => `${count} ${count === 1 ? singular : plural}`;
 
 // Format file size for display
 const formatFileSize = (bytes) => {
@@ -21,17 +35,18 @@ const formatFileSize = (bytes) => {
 function DocumentUpload() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
+  const pickerModeRef = useRef(FILE_PICKER_MODE.REPLACE);
 
   // State management
-  const [file, setFile] = useState(null);
+  const [selectedFiles, setSelectedFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(false);
+  const [batchSummary, setBatchSummary] = useState(null);
 
   // Validate file before upload
   const validateFile = (selectedFile) => {
     if (!ALLOWED_TYPES.includes(selectedFile.type)) {
-      return 'Invalid file type. Please select a PNG, JPEG, or PDF file.';
+      return 'Invalid file type. Please select PNG, JPEG, or PDF files.';
     }
     if (selectedFile.size > MAX_FILE_SIZE) {
       return 'File is too large. Maximum size is 10MB.';
@@ -39,200 +54,338 @@ function DocumentUpload() {
     return null;
   };
 
-  // Handle file selection
-  const handleFileSelect = (event) => {
-    const selectedFile = event.target.files[0];
-    setError(null);
-    setSuccess(false);
-
-    if (!selectedFile) {
-      setFile(null);
-      return;
-    }
-
-    const validationError = validateFile(selectedFile);
-    if (validationError) {
-      setError(validationError);
-      setFile(null);
-      // Reset file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+  const extractUploadError = (err) => {
+    if (err.response?.status === 422) {
+      const validationErrors = err.response.data.errors;
+      if (validationErrors) {
+        const firstError = Object.values(validationErrors)[0];
+        return Array.isArray(firstError) ? firstError[0] : firstError;
       }
-      return;
+
+      return err.response.data.message || 'Validation failed. Please check your file.';
     }
 
-    setFile(selectedFile);
+    return err.response?.data?.message || 'Failed to upload one or more documents. Please try again.';
   };
 
-  // Handle file upload
-  const handleUpload = async () => {
-    if (!file) return;
+  const toFileEntry = (selectedFile) => {
+    const validationError = validateFile(selectedFile);
 
-    // Double-check validation before upload
-    const validationError = validateFile(file);
-    if (validationError) {
-      setError(validationError);
+    return {
+      id: `${selectedFile.name}-${selectedFile.size}-${selectedFile.lastModified}-${selectedFile.type}`,
+      file: selectedFile,
+      status: validationError ? FILE_STATUS.INVALID : FILE_STATUS.READY,
+      error: validationError
+    };
+  };
+
+  // Handle file selection
+  const handleFileSelect = (event) => {
+    const files = Array.from(event.target.files || []);
+    const pickerMode = pickerModeRef.current;
+    pickerModeRef.current = FILE_PICKER_MODE.REPLACE;
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+
+    if (files.length === 0) {
       return;
     }
+
+    setError(null);
+    setBatchSummary(null);
+
+    const baseSelection = pickerMode === FILE_PICKER_MODE.APPEND ? selectedFiles : [];
+    const existingIds = new Set(baseSelection.map((item) => item.id));
+    const incomingEntries = files
+      .map((selectedFile) => toFileEntry(selectedFile))
+      .filter((entry) => {
+        if (existingIds.has(entry.id)) {
+          return false;
+        }
+
+        existingIds.add(entry.id);
+        return true;
+      });
+
+    const hasInvalidSelection = incomingEntries.some((item) => item.status === FILE_STATUS.INVALID);
+    if (hasInvalidSelection) {
+      setError('Some selected files are invalid. Upload will continue only for valid files.');
+    }
+
+    setSelectedFiles([...baseSelection, ...incomingEntries]);
+  };
+
+  const uploadSingleFile = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    await api.post('/documents', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  };
+
+  // Handle sequential batch upload
+  const handleUpload = async () => {
+    const uploadQueue = selectedFiles.filter(
+      (item) => item.status === FILE_STATUS.READY || item.status === FILE_STATUS.ERROR
+    );
+
+    if (uploadQueue.length === 0) {
+      setError('No valid files are ready for upload.');
+      return;
+    }
+
+    let successCount = 0;
+    let failedCount = 0;
 
     try {
       setUploading(true);
       setError(null);
+      setBatchSummary(null);
 
-      const formData = new FormData();
-      formData.append('file', file);
+      for (const item of uploadQueue) {
+        setSelectedFiles((previous) =>
+          previous.map((entry) =>
+            entry.id === item.id
+              ? { ...entry, status: FILE_STATUS.UPLOADING, error: null }
+              : entry
+          )
+        );
 
-      await api.post('/documents', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
+        try {
+          await uploadSingleFile(item.file);
+          successCount += 1;
+
+          setSelectedFiles((previous) =>
+            previous.map((entry) =>
+              entry.id === item.id
+                ? { ...entry, status: FILE_STATUS.SUCCESS, error: null }
+                : entry
+            )
+          );
+        } catch (err) {
+          failedCount += 1;
+          const uploadError = extractUploadError(err);
+
+          setSelectedFiles((previous) =>
+            previous.map((entry) =>
+              entry.id === item.id
+                ? { ...entry, status: FILE_STATUS.ERROR, error: uploadError }
+                : entry
+            )
+          );
         }
+      }
+
+      setBatchSummary({
+        successCount,
+        failedCount
       });
 
-      setSuccess(true);
-
-      // Redirect after 2 seconds
-      setTimeout(() => {
-        navigate('/documents');
-      }, 2000);
+      if (successCount > 0 && failedCount === 0) {
+        setTimeout(() => {
+          navigate('/documents');
+        }, 2000);
+      }
 
     } catch (err) {
-      // Handle Laravel 422 validation errors
-      if (err.response?.status === 422) {
-        const validationErrors = err.response.data.errors;
-        if (validationErrors) {
-          // Get first error message
-          const firstError = Object.values(validationErrors)[0];
-          setError(Array.isArray(firstError) ? firstError[0] : firstError);
-        } else {
-          setError(err.response.data.message || 'Validation failed. Please check your file.');
-        }
-      } else {
-        setError(err.response?.data?.message || 'Failed to upload document. Please try again.');
-      }
+      setError(extractUploadError(err));
     } finally {
       setUploading(false);
     }
   };
 
-  // Handle choose file button click
-  const handleChooseFile = () => {
+  const openFilePicker = (mode = FILE_PICKER_MODE.REPLACE) => {
+    if (uploading) {
+      return;
+    }
+
+    pickerModeRef.current = mode;
     fileInputRef.current?.click();
   };
 
+  const handleRemoveSelectedFile = (fileId) => {
+    setBatchSummary(null);
+    setError(null);
+    setSelectedFiles((previous) => previous.filter((item) => item.id !== fileId));
+  };
+
+  const getFileStatusLabel = (status) => {
+    if (status === FILE_STATUS.UPLOADING) return 'Uploading';
+    if (status === FILE_STATUS.SUCCESS) return 'Uploaded';
+    if (status === FILE_STATUS.ERROR) return 'Failed';
+    if (status === FILE_STATUS.INVALID) return 'Invalid';
+    return 'Ready';
+  };
+
+  const getFileStatusClass = (status) => {
+    if (status === FILE_STATUS.UPLOADING) return 'bg-primary-subtle text-primary-emphasis';
+    if (status === FILE_STATUS.SUCCESS) return 'bg-success-subtle text-success-emphasis';
+    if (status === FILE_STATUS.ERROR || status === FILE_STATUS.INVALID) return 'bg-danger-subtle text-danger-emphasis';
+    return 'bg-secondary-subtle text-secondary-emphasis';
+  };
+
   // Check if upload button should be disabled
-  const isUploadDisabled = !file || uploading || error;
+  const isUploadDisabled = uploading || !selectedFiles.some((item) =>
+    item.status === FILE_STATUS.READY || item.status === FILE_STATUS.ERROR
+  );
 
   return (
-    <div className="container py-5">
+    <div className="container py-5 document-upload">
       <div className="row justify-content-center">
         <div className="col-lg-6 col-md-8">
           <div className="card shadow-lg">
             <div className="card-header bg-primary text-white">
               <h5 className="mb-0 d-flex align-items-center">
                 <i className="bi bi-cloud-upload me-2"></i>
-                Upload Document
+                Upload Documents
               </h5>
             </div>
             <div className="card-body p-4">
-              {/* Success Alert */}
-              {success && (
+              {batchSummary && batchSummary.failedCount === 0 && batchSummary.successCount > 0 && (
                 <div className="mb-3">
-                  <SuccessAlert 
-                    message="Document uploaded successfully! Redirecting..." 
+                  <SuccessAlert
+                    message={`Upload completed: ${formatCountLabel(batchSummary.successCount, 'document', 'documents')} uploaded successfully. Redirecting...`}
                     title=""
                   />
                 </div>
               )}
 
-              {/* Error Alert */}
+              {batchSummary && batchSummary.failedCount > 0 && (
+                <div className="mb-3">
+                  <ErrorAlert
+                    message={`Upload completed with issues: ${batchSummary.successCount} succeeded, ${batchSummary.failedCount} failed. Remove failed files and retry.`}
+                    title=""
+                  />
+                </div>
+              )}
+
               {error && (
                 <div className="mb-3">
                   <ErrorAlert message={error} title="" />
                 </div>
               )}
 
-              {/* File Input Area */}
               <div className="mb-4">
                 <input
                   type="file"
                   ref={fileInputRef}
                   onChange={handleFileSelect}
                   accept=".png,.jpg,.jpeg,.pdf"
+                  multiple
                   className="d-none"
                 />
 
-                <div 
-                  className="border rounded p-4 text-center"
-                  style={{ 
-                    borderStyle: 'dashed',
-                    backgroundColor: '#f8f9fa',
-                    cursor: 'pointer'
-                  }}
-                  onClick={handleChooseFile}
+                <div
+                  className={`drop-zone ${selectedFiles.length > 0 ? 'has-file' : ''} ${uploading ? 'is-disabled' : ''}`}
+                  onClick={() => openFilePicker(FILE_PICKER_MODE.REPLACE)}
                 >
-                  {file ? (
+                  {selectedFiles.length > 0 ? (
                     <div>
-                      <i className="bi bi-file-earmark-check text-success" style={{ fontSize: '3rem' }}></i>
-                      <p className="mt-2 mb-1 fw-semibold">{file.name}</p>
-                      <p className="text-muted mb-0">{formatFileSize(file.size)}</p>
+                      <i className="bi bi-files upload-icon"></i>
+                      <p className="mt-2 mb-1 fw-semibold">{formatCountLabel(selectedFiles.length, 'file', 'files')} selected</p>
+                      <p className="text-muted mb-0 small">Use the actions below to replace or add more files.</p>
                     </div>
                   ) : (
                     <div>
-                      <i className="bi bi-cloud-arrow-up text-muted" style={{ fontSize: '3rem' }}></i>
-                      <p className="mt-2 mb-1">Click to select a file</p>
-                      <p className="text-muted mb-0 small">PNG, JPEG, or PDF (max 10MB)</p>
+                      <i className="bi bi-cloud-arrow-up upload-icon"></i>
+                      <p className="mt-2 mb-1">Click to select files</p>
+                      <p className="text-muted mb-0 small">PNG, JPEG, or PDF (max 10MB each)</p>
                     </div>
                   )}
                 </div>
 
-                <button
-                  type="button"
-                  className="btn btn-outline-secondary w-100 mt-3"
-                  onClick={handleChooseFile}
-                  disabled={uploading}
-                >
-                  <i className="bi bi-folder2-open me-2"></i>
-                  Choose File
-                </button>
+                <div className="d-flex flex-wrap gap-2 mt-3 choose-files-actions">
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary flex-grow-1 choose-file-btn"
+                    onClick={() => openFilePicker(FILE_PICKER_MODE.REPLACE)}
+                    disabled={uploading}
+                  >
+                    <i className="bi bi-folder2-open me-2"></i>
+                    {selectedFiles.length > 0 ? 'Replace Selection' : 'Choose Files'}
+                  </button>
+
+                  {selectedFiles.length > 0 && (
+                    <button
+                      type="button"
+                      className="btn btn-outline-primary add-files-btn"
+                      onClick={() => openFilePicker(FILE_PICKER_MODE.APPEND)}
+                      disabled={uploading}
+                    >
+                      <i className="bi bi-plus-circle me-2"></i>
+                      Add Files
+                    </button>
+                  )}
+                </div>
+
+                {selectedFiles.length > 0 && (
+                  <div className="upload-selection-list mt-3">
+                    {selectedFiles.map((item) => (
+                      <div key={item.id} className="upload-selection-item">
+                        <div className="upload-selection-item-info">
+                          <p className="mb-1 fw-semibold">{item.file.name}</p>
+                          <p className="mb-0 text-muted small">{formatFileSize(item.file.size)}</p>
+                          {item.error && <p className="mb-0 text-danger small mt-1">{item.error}</p>}
+                        </div>
+                        <div className="upload-selection-item-actions">
+                          <span className={`badge ${getFileStatusClass(item.status)}`}>
+                            {getFileStatusLabel(item.status)}
+                          </span>
+                          {!uploading && item.status !== FILE_STATUS.SUCCESS && (
+                            <button
+                              type="button"
+                              className="btn btn-link btn-sm text-muted p-0 remove-file-btn"
+                              onClick={() => handleRemoveSelectedFile(item.id)}
+                              aria-label={`Remove ${item.file.name}`}
+                            >
+                              <i className="bi bi-x-lg"></i>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {/* Upload Button */}
               <button
                 type="button"
-                className="btn btn-primary w-100 py-2"
+                className="btn btn-primary w-100 py-2 upload-btn"
                 onClick={handleUpload}
                 disabled={isUploadDisabled}
               >
                 {uploading ? (
                   <>
-                    <span 
-                      className="spinner-border spinner-border-sm me-2" 
-                      role="status" 
+                    <span
+                      className="spinner-border spinner-border-sm me-2"
+                      role="status"
                       aria-hidden="true"
                     ></span>
-                    Uploading...
+                    Uploading batch...
                   </>
                 ) : (
                   <>
                     <i className="bi bi-upload me-2"></i>
-                    Upload Document
+                    Upload Selected Files
                   </>
                 )}
               </button>
 
-              {/* Help Text */}
-              <div className="mt-4 text-center">
+              <div className="mt-4 text-center help-text">
                 <small className="text-muted">
                   Supported formats: PNG, JPEG, PDF
                   <br />
-                  Maximum file size: 10MB
+                  Maximum file size: 10MB per file
                 </small>
               </div>
             </div>
           </div>
 
-          {/* Back Link */}
-          <div className="text-center mt-3">
+          <div className="text-center mt-3 back-link">
             <button
               className="btn btn-link text-decoration-none"
               onClick={() => navigate('/documents')}

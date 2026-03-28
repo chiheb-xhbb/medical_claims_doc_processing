@@ -125,7 +125,7 @@ function Navbar() {
                       to="/documents/upload"
                     >
                       <i className="bi bi-cloud-upload me-1"></i>
-                      Upload
+                      Upload Documents
                     </NavLink>
                   </li>
                 )}

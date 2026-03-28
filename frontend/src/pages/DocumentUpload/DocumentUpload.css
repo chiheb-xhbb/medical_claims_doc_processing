@@ -50,6 +50,44 @@
   border-style: solid;
 }
 
+.document-upload .drop-zone.is-disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.document-upload .upload-selection-list {
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+}
+
+.document-upload .upload-selection-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3) var(--spacing-4);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.document-upload .upload-selection-item:last-child {
+  border-bottom: none;
+}
+
+.document-upload .upload-selection-item-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.document-upload .upload-selection-item-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  margin-left: auto;
+}
+
 /* Upload icon */
 .document-upload .upload-icon {
   font-size: 3rem;
@@ -72,10 +110,22 @@
   font-size: var(--font-size-sm);
 }
 
-/* Choose file button */
+/* Choose files actions */
 .document-upload .choose-file-btn {
-  margin-top: var(--spacing-4);
-  width: 100%;
+  margin-top: 0;
+  width: auto;
+}
+
+.document-upload .choose-files-actions .btn {
+  white-space: nowrap;
+}
+
+.document-upload .add-files-btn {
+  min-width: 130px;
+}
+
+.document-upload .remove-file-btn {
+  line-height: 1;
 }
 
 /* Upload button */

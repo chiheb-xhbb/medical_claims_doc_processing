@@ -61,6 +61,59 @@
   margin-bottom: 0 !important;
 }
 
+.dossier-detail-page .rubrique-empty-compact {
+  padding: 0.75rem 1rem;
+  border: 1px dashed var(--color-border-light);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+}
+
+.dossier-detail-page .rubrique-empty-text {
+  line-height: var(--line-height-normal);
+}
+
+.dossier-detail-page .documents-table tbody tr.document-row-accepted > * {
+  background-color: rgba(5, 150, 105, 0.06);
+}
+
+.dossier-detail-page .documents-table tbody tr.document-row-rejected > * {
+  background-color: rgba(220, 38, 38, 0.06);
+}
+
+.dossier-detail-page .documents-table tbody tr.document-row-accepted td:first-child {
+  box-shadow: inset 3px 0 0 rgba(5, 150, 105, 0.35);
+}
+
+.dossier-detail-page .documents-table tbody tr.document-row-rejected td:first-child {
+  box-shadow: inset 3px 0 0 rgba(220, 38, 38, 0.35);
+}
+
+.dossier-detail-page .documents-table tbody tr.document-row-accepted:hover > * {
+  background-color: rgba(5, 150, 105, 0.09);
+}
+
+.dossier-detail-page .documents-table tbody tr.document-row-rejected:hover > * {
+  background-color: rgba(220, 38, 38, 0.09);
+}
+
+.dossier-detail-page .decision-status-badge {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.dossier-detail-page .document-actions-cell {
+  min-width: 180px;
+}
+
+.dossier-detail-page .document-actions-wrap {
+  min-height: 32px;
+}
+
+.dossier-detail-page .document-action-placeholder {
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
 .dossier-modal-backdrop {
   position: fixed;
   inset: 0;
@@ -81,4 +134,40 @@
   border: 1px solid var(--color-border-light);
   box-shadow: 0 20px 45px rgba(15, 23, 42, 0.2);
   padding: 1.25rem;
+}
+
+.dossier-detail-page .dossier-modal-shell-header {
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-border-light);
+  margin-bottom: 1rem;
+}
+
+.dossier-detail-page .dossier-modal-shell-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.dossier-detail-page .dossier-modal-shell-footer {
+  border-top: 1px solid var(--color-border-light);
+  padding-top: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.dossier-detail-page .dossier-confirmation-modal {
+  width: min(520px, 100%);
+}
+
+.dossier-detail-page .dossier-confirmation-modal .confirmation-modal-header {
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.dossier-detail-page .dossier-confirmation-modal .confirmation-modal-body {
+  padding-top: 0.25rem;
+}
+
+.dossier-detail-page .dossier-confirmation-modal .confirmation-modal-footer {
+  border-top: 1px solid var(--color-border-light);
+  padding-top: 0.75rem;
 }
