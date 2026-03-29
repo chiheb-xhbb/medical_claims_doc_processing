@@ -14,6 +14,10 @@ class AuthController extends Controller
 {
     /**
      * Register a new user.
+     *
+     * Note:
+     * The public register route can remain disabled in routes/api.php
+     * if you are now moving to an admin-created closed platform model.
      */
     public function register(Request $request)
     {
@@ -28,6 +32,7 @@ class AuthController extends Controller
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
             'role' => UserRole::AGENT,
+            'is_active' => true,
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;
@@ -49,7 +54,7 @@ class AuthController extends Controller
             'password' => ['required'],
         ]);
 
-        if (!Auth::attempt($validated)) {
+        if (! Auth::attempt($validated)) {
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.'],
             ]);
@@ -57,6 +62,14 @@ class AuthController extends Controller
 
         /** @var User $user */
         $user = Auth::user();
+
+        if (! $user->is_active) {
+            Auth::logout();
+
+            return response()->json([
+                'message' => 'Your account has been deactivated. Please contact an administrator.',
+            ], 403);
+        }
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -106,6 +119,7 @@ class AuthController extends Controller
             'name' => $user->name,
             'email' => $user->email,
             'role' => $user->role?->value ?? $user->role,
+            'is_active' => (bool) $user->is_active,
         ];
     }
 }

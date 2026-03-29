@@ -23,6 +23,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'is_active',
     ];
 
     /**
@@ -42,21 +43,20 @@ class User extends Authenticatable
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'password' => 'hashed',
         'role' => UserRole::class,
+        'is_active' => 'boolean',
     ];
-
 
     public function documents()
     {
         return $this->hasMany(Document::class, 'user_id');
     }
 
-
     public function validatedDocuments()
     {
         return $this->hasMany(Document::class, 'validated_by');
     }
-
 
     public function fieldCorrections()
     {
