@@ -2,7 +2,9 @@ import axios from 'axios';
 
 const AUTH_TOKEN_KEY = 'auth_token';
 const AUTH_USER_KEY = 'auth_user';
-const AUTH_CHANGED_EVENT = 'auth:changed';
+export const AUTH_CHANGED_EVENT = 'auth:changed';
+export const AUTH_FEEDBACK_KEY = 'auth_feedback_message';
+export const DEACTIVATED_ACCOUNT_MESSAGE = 'Your account has been deactivated. Please contact an administrator.';
 
 export function getApiErrorMessage(error, fallbackMessage) {
   if (!error?.response) {
@@ -47,20 +49,41 @@ const api = axios.create({
   }
 });
 
+const clearClientAuthSession = () => {
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+  localStorage.removeItem(AUTH_USER_KEY);
+  delete api.defaults.headers.common['Authorization'];
+  window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
+};
+
+const redirectToLoginWithFeedback = (message = null) => {
+  if (message) {
+    sessionStorage.setItem(AUTH_FEEDBACK_KEY, message);
+  }
+
+  if (window.location.pathname !== '/login') {
+    window.location.href = '/login';
+  }
+};
+
 // Response interceptor for handling 401 errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Remove token from localStorage
-      localStorage.removeItem(AUTH_TOKEN_KEY);
-      localStorage.removeItem(AUTH_USER_KEY);
-      // Remove Authorization header
-      delete api.defaults.headers.common['Authorization'];
-      window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
-      // Redirect to login page
-      window.location.href = '/login';
+    const status = error.response?.status;
+    const backendMessage = error.response?.data?.message;
+    const hasSession = Boolean(localStorage.getItem(AUTH_TOKEN_KEY));
+
+    if (status === 401 && hasSession) {
+      clearClientAuthSession();
+      redirectToLoginWithFeedback('Your session has expired. Please log in again.');
     }
+
+    if (status === 403 && hasSession && backendMessage === DEACTIVATED_ACCOUNT_MESSAGE) {
+      clearClientAuthSession();
+      redirectToLoginWithFeedback(DEACTIVATED_ACCOUNT_MESSAGE);
+    }
+
     return Promise.reject(error);
   }
 );

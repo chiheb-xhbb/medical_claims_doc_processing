@@ -155,6 +155,12 @@ function DossiersList() {
   if (loading) {
     return (
       <div className="container py-5">
+        {accessDeniedMessage && (
+          <div className="alert alert-warning d-flex align-items-center mb-3" role="alert">
+            <i className="bi bi-shield-lock me-2"></i>
+            <span>{accessDeniedMessage}</span>
+          </div>
+        )}
         <Loader message="Loading dossiers..." size="md" />
       </div>
     );
@@ -163,6 +169,12 @@ function DossiersList() {
   if (error && dossiers.length === 0) {
     return (
       <div className="container py-5">
+        {accessDeniedMessage && (
+          <div className="alert alert-warning d-flex align-items-center mb-3" role="alert">
+            <i className="bi bi-shield-lock me-2"></i>
+            <span>{accessDeniedMessage}</span>
+          </div>
+        )}
         <div className="row justify-content-center">
           <div className="col-lg-8">
             <ErrorAlert message={error} title="" showIcon={true} />
@@ -175,6 +187,12 @@ function DossiersList() {
   if (dossiers.length === 0) {
     return (
       <div className="container py-5">
+        {accessDeniedMessage && (
+          <div className="alert alert-warning d-flex align-items-center mb-3" role="alert">
+            <i className="bi bi-shield-lock me-2"></i>
+            <span>{accessDeniedMessage}</span>
+          </div>
+        )}
         <div className="row justify-content-center">
           <div className="col-lg-8">
             <div className="card shadow-sm">
@@ -226,7 +244,7 @@ function DossiersList() {
       </div>
 
       {accessDeniedMessage && (
-        <div className="alert alert-warning d-flex align-items-center" role="alert">
+        <div className="alert alert-warning d-flex align-items-center mb-3" role="alert">
           <i className="bi bi-shield-lock me-2"></i>
           <span>{accessDeniedMessage}</span>
         </div>

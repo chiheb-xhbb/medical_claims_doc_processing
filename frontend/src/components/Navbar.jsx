@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { AUTH_CHANGED_EVENT, getStoredRole, isAuthenticated, logout } from '../services/auth';
+import { AUTH_CHANGED_EVENT, getDefaultLandingPath, getStoredRole, isAuthenticated, logout } from '../services/auth';
 
 const getDossiersNavLabel = (role) => {
   if (role === 'AGENT') {
@@ -62,6 +62,10 @@ function Navbar() {
       );
     }
 
+    if (path === '/admin/users') {
+      return location.pathname === '/admin/users';
+    }
+
     return location.pathname === path;
   };
 
@@ -85,7 +89,7 @@ function Navbar() {
       <div className="container">
         <NavLink
           className="navbar-brand d-flex align-items-center"
-          to={authSnapshot.authenticated ? '/documents' : '/login'}
+          to={authSnapshot.authenticated ? getDefaultLandingPath(authSnapshot.role) : '/login'}
         >
           <i className="bi bi-file-medical me-2"></i>
           MedDocs
@@ -139,6 +143,18 @@ function Navbar() {
                     {dossiersNavLabel}
                   </NavLink>
                 </li>
+
+                {authSnapshot.role === 'ADMIN' && (
+                  <li className="nav-item">
+                    <NavLink
+                      className={`nav-link ${isActive('/admin/users') ? 'active' : ''}`}
+                      to="/admin/users"
+                    >
+                      <i className="bi bi-people me-1"></i>
+                      User Management
+                    </NavLink>
+                  </li>
+                )}
 
                 <li className="nav-item">
                   <button

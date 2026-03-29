@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { login, getDefaultLandingPath } from '../services/auth';
+import { login, getDefaultLandingPath, consumeAuthFeedback } from '../services/auth';
 import { ErrorAlert } from '../ui';
 
 function Login() {
@@ -14,6 +14,13 @@ function Login() {
 
   // Validation state
   const [validationErrors, setValidationErrors] = useState({});
+
+  useEffect(() => {
+    const authFeedback = consumeAuthFeedback();
+    if (authFeedback) {
+      setError(authFeedback);
+    }
+  }, []);
 
   // Validate email format
   const isValidEmail = (email) => {

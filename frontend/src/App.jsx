@@ -6,6 +6,7 @@ import DocumentUpload from './pages/DocumentUpload';
 import DossiersList from './pages/DossiersList';
 import DossierCreate from './pages/DossierCreate';
 import DossierDetail from './pages/DossierDetail';
+import AdminUsers from './pages/AdminUsers';
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import { MainLayout } from './layout';
@@ -84,6 +85,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <DossierDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <AdminUsers />
               </ProtectedRoute>
             }
           />

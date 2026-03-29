@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { getStoredRole, getStoredUser } from '../services/auth';
 import { StatusBadge, Loader, ErrorAlert, EmptyState } from '../ui';
@@ -7,6 +7,7 @@ import './DocumentsList/DocumentsList.css';
 
 function DocumentsList() {
   const navigate = useNavigate();
+  const location = useLocation();
   const currentRole = getStoredRole();
   const currentUser = getStoredUser();
   const canUpload = currentRole === 'AGENT' || currentRole === 'ADMIN';
@@ -18,6 +19,7 @@ function DocumentsList() {
   const [lastPage, setLastPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [retryingIds, setRetryingIds] = useState([]);
+  const [accessDeniedMessage, setAccessDeniedMessage] = useState(null);
 
   const currentPageRef = useRef(currentPage);
   const pollingIntervalRef = useRef(null);
@@ -103,6 +105,16 @@ function DocumentsList() {
       }
     };
   }, [fetchDocuments, setupPolling]);
+
+  useEffect(() => {
+    const redirectedMessage = location.state?.accessDeniedMessage;
+    if (!redirectedMessage) {
+      return;
+    }
+
+    setAccessDeniedMessage(redirectedMessage);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.pathname, location.state, navigate]);
 
   const handlePageChange = async (page) => {
     if (page < 1 || page > lastPage) return;
@@ -190,6 +202,12 @@ function DocumentsList() {
   if (loading) {
     return (
       <div className="container py-5">
+        {accessDeniedMessage && (
+          <div className="alert alert-warning d-flex align-items-center mb-3" role="alert">
+            <i className="bi bi-shield-lock me-2"></i>
+            <span>{accessDeniedMessage}</span>
+          </div>
+        )}
         <Loader message="Loading documents..." size="md" />
       </div>
     );
@@ -198,6 +216,12 @@ function DocumentsList() {
   if (error && documents.length === 0) {
     return (
       <div className="container py-5">
+        {accessDeniedMessage && (
+          <div className="alert alert-warning d-flex align-items-center mb-3" role="alert">
+            <i className="bi bi-shield-lock me-2"></i>
+            <span>{accessDeniedMessage}</span>
+          </div>
+        )}
         <div className="row justify-content-center">
           <div className="col-lg-8">
             <ErrorAlert message={error} title="" showIcon={true} />
@@ -210,6 +234,12 @@ function DocumentsList() {
   if (documents.length === 0) {
     return (
       <div className="container py-5">
+        {accessDeniedMessage && (
+          <div className="alert alert-warning d-flex align-items-center mb-3" role="alert">
+            <i className="bi bi-shield-lock me-2"></i>
+            <span>{accessDeniedMessage}</span>
+          </div>
+        )}
         <div className="row justify-content-center">
           <div className="col-lg-8">
             <div className="card shadow-sm">
@@ -242,6 +272,13 @@ function DocumentsList() {
 
   return (
     <div className="container py-4 documents-list">
+      {accessDeniedMessage && (
+        <div className="alert alert-warning d-flex align-items-center mb-3" role="alert">
+          <i className="bi bi-shield-lock me-2"></i>
+          <span>{accessDeniedMessage}</span>
+        </div>
+      )}
+
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2 className="mb-0 page-title">
           <i className="bi bi-files me-2 opacity-75"></i>

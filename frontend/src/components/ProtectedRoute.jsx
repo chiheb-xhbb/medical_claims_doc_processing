@@ -1,5 +1,5 @@
 import { Navigate, useLocation } from 'react-router-dom';
-import { isAuthenticated, getStoredRole } from '../services/auth';
+import { isAuthenticated, getStoredRole, getDefaultLandingPath } from '../services/auth';
 
 /**
  * Protected route wrapper component
@@ -16,14 +16,20 @@ function ProtectedRoute({ children, allowedRoles }) {
   if (allowedRoles && allowedRoles.length > 0) {
     const role = getStoredRole();
     if (!role || !allowedRoles.includes(role)) {
+      const redirectPath = role ? getDefaultLandingPath(role) : '/login';
+
       return (
         <Navigate
-          to="/dossiers"
+          to={redirectPath}
           replace
-          state={{
-            accessDeniedMessage: 'Access denied for your role on this page.',
-            deniedPath: location.pathname
-          }}
+          state={
+            redirectPath !== '/login'
+              ? {
+                  accessDeniedMessage: 'Access denied for your role on this page.',
+                  deniedPath: location.pathname
+                }
+              : null
+          }
         />
       );
     }
