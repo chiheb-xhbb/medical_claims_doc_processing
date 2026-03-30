@@ -70,10 +70,7 @@ class Dossier extends Model
 
     public function canBeDeleted(): bool
     {
-        return ! in_array($this->status, [
-            DossierStatus::PROCESSED,
-            DossierStatus::EXPORTED,
-        ], true);
+        return $this->status === DossierStatus::RECEIVED;
     }
 
     public function canBeSubmitted(): bool

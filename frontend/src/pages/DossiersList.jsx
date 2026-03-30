@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import api, { getApiErrorMessage } from '../services/api';
-import { AUTH_CHANGED_EVENT, getStoredRole } from '../services/auth';
-import { Loader, ErrorAlert, EmptyState } from '../ui';
+import { AUTH_CHANGED_EVENT, getStoredRole, getStoredUser } from '../services/auth';
+import { Loader, ErrorAlert, EmptyState, SuccessAlert, ConfirmationModal } from '../ui';
 import './DossiersList/DossiersList.css';
 
 const getRolePageConfig = (role) => {
@@ -82,11 +82,18 @@ function DossiersList() {
   const [lastPage, setLastPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [role, setRole] = useState(() => getStoredRole());
+  const [currentUserId, setCurrentUserId] = useState(() => Number(getStoredUser()?.id || 0));
   const [accessDeniedMessage, setAccessDeniedMessage] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
+  const [actionError, setActionError] = useState(null);
+  const [deleteTargetDossier, setDeleteTargetDossier] = useState(null);
+  const [isDeleteConfirming, setIsDeleteConfirming] = useState(false);
+  const [deletingDossierId, setDeletingDossierId] = useState(null);
 
   useEffect(() => {
     const syncRole = () => {
       setRole(getStoredRole());
+      setCurrentUserId(Number(getStoredUser()?.id || 0));
     };
 
     window.addEventListener(AUTH_CHANGED_EVENT, syncRole);
@@ -152,6 +159,69 @@ function DossiersList() {
     await fetchDossiers(page);
   };
 
+  const canDeleteDossier = (dossier) => {
+    if (dossier.status !== 'RECEIVED') {
+      return false;
+    }
+
+    if (role === 'ADMIN') {
+      return true;
+    }
+
+    if (role === 'AGENT') {
+      return Number(dossier.created_by) === Number(currentUserId);
+    }
+
+    return false;
+  };
+
+  const requestDeleteDossier = (dossier) => {
+    if (!canDeleteDossier(dossier) || isDeleteConfirming) {
+      return;
+    }
+
+    setDeleteTargetDossier(dossier);
+  };
+
+  const closeDeleteModal = () => {
+    if (isDeleteConfirming) {
+      return;
+    }
+
+    setDeleteTargetDossier(null);
+  };
+
+  const handleConfirmDeleteDossier = async () => {
+    if (!deleteTargetDossier) {
+      return;
+    }
+
+    const targetId = deleteTargetDossier.id;
+
+    setActionError(null);
+    setSuccessMessage(null);
+    setIsDeleteConfirming(true);
+    setDeletingDossierId(targetId);
+
+    try {
+      const response = await api.delete(`/dossiers/${targetId}`);
+      setSuccessMessage(response.data?.message || 'Dossier deleted successfully.');
+      setDeleteTargetDossier(null);
+
+      const nextPage = dossiers.length === 1 && currentPage > 1
+        ? currentPage - 1
+        : currentPage;
+
+      setLoading(true);
+      await fetchDossiers(nextPage);
+    } catch (err) {
+      setActionError(getApiErrorMessage(err, 'Failed to delete dossier.'));
+    } finally {
+      setIsDeleteConfirming(false);
+      setDeletingDossierId(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="container py-5">
@@ -159,6 +229,16 @@ function DossiersList() {
           <div className="alert alert-warning d-flex align-items-center mb-3" role="alert">
             <i className="bi bi-shield-lock me-2"></i>
             <span>{accessDeniedMessage}</span>
+          </div>
+        )}
+        {successMessage && (
+          <div className="mb-3">
+            <SuccessAlert message={successMessage} title="" />
+          </div>
+        )}
+        {actionError && (
+          <div className="mb-3">
+            <ErrorAlert message={actionError} title="" showIcon={true} />
           </div>
         )}
         <Loader message="Loading dossiers..." size="md" />
@@ -173,6 +253,16 @@ function DossiersList() {
           <div className="alert alert-warning d-flex align-items-center mb-3" role="alert">
             <i className="bi bi-shield-lock me-2"></i>
             <span>{accessDeniedMessage}</span>
+          </div>
+        )}
+        {successMessage && (
+          <div className="mb-3">
+            <SuccessAlert message={successMessage} title="" />
+          </div>
+        )}
+        {actionError && (
+          <div className="mb-3">
+            <ErrorAlert message={actionError} title="" showIcon={true} />
           </div>
         )}
         <div className="row justify-content-center">
@@ -191,6 +281,16 @@ function DossiersList() {
           <div className="alert alert-warning d-flex align-items-center mb-3" role="alert">
             <i className="bi bi-shield-lock me-2"></i>
             <span>{accessDeniedMessage}</span>
+          </div>
+        )}
+        {successMessage && (
+          <div className="mb-3">
+            <SuccessAlert message={successMessage} title="" />
+          </div>
+        )}
+        {actionError && (
+          <div className="mb-3">
+            <ErrorAlert message={actionError} title="" showIcon={true} />
           </div>
         )}
         <div className="row justify-content-center">
@@ -249,6 +349,16 @@ function DossiersList() {
           <span>{accessDeniedMessage}</span>
         </div>
       )}
+      {successMessage && (
+        <div className="mb-3">
+          <SuccessAlert message={successMessage} title="" />
+        </div>
+      )}
+      {actionError && (
+        <div className="mb-3">
+          <ErrorAlert message={actionError} title="" showIcon={true} />
+        </div>
+      )}
 
       {error && (
         <div className="mb-3">
@@ -288,13 +398,26 @@ function DossiersList() {
                     <td>{documentsCount}</td>
                     <td>{formatDate(dossier.created_at)}</td>
                     <td>
-                      <button
-                        className="btn btn-outline-primary btn-sm"
-                        onClick={() => navigate(`/dossiers/${dossier.id}`)}
-                      >
-                        <i className="bi bi-eye me-1"></i>
-                        Details
-                      </button>
+                      <div className="d-flex gap-2 align-items-center">
+                        <button
+                          className="btn btn-outline-primary btn-sm"
+                          onClick={() => navigate(`/dossiers/${dossier.id}`)}
+                        >
+                          <i className="bi bi-eye me-1"></i>
+                          Details
+                        </button>
+
+                        {canDeleteDossier(dossier) && (
+                          <button
+                            type="button"
+                            className="btn btn-outline-danger btn-sm"
+                            onClick={() => requestDeleteDossier(dossier)}
+                            disabled={isDeleteConfirming || deletingDossierId === dossier.id}
+                          >
+                            {deletingDossierId === dossier.id ? 'Deleting...' : 'Delete'}
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -330,6 +453,22 @@ function DossiersList() {
           </div>
         </div>
       </div>
+
+      <ConfirmationModal
+        isOpen={Boolean(deleteTargetDossier)}
+        title="Delete Dossier"
+        message={
+          deleteTargetDossier
+            ? `Delete dossier "${deleteTargetDossier.numero_dossier}"? This action cannot be undone.`
+            : ''
+        }
+        confirmLabel="Delete"
+        confirmingLabel="Deleting..."
+        confirmVariant="danger"
+        isConfirming={isDeleteConfirming}
+        onCancel={closeDeleteModal}
+        onConfirm={handleConfirmDeleteDossier}
+      />
     </div>
   );
 }

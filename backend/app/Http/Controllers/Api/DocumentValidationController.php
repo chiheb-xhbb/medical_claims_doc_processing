@@ -24,7 +24,7 @@ class DocumentValidationController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        if (! $this->canValidateDocument($user, $document)) {
+        if (!$this->canValidateDocument($user, $document)) {
             abort(403, 'Unauthorized validation attempt.');
         }
 
@@ -225,7 +225,7 @@ class DocumentValidationController extends Controller
             ? $user->role
             : UserRole::tryFrom((string) $user->role);
 
-        if (! $currentRole) {
+        if (!$currentRole) {
             return false;
         }
 

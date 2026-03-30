@@ -33,6 +33,7 @@ Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
         Route::post('/', [DocumentController::class, 'store']);
         Route::get('/', [DocumentController::class, 'index']);
         Route::get('/{document}', [DocumentController::class, 'show']);
+        Route::delete('/{document}', [DocumentController::class, 'destroy']);
         Route::post('/{document}/validate', [DocumentValidationController::class, 'validateDocument']);
         Route::post('/{document}/retry', [DocumentController::class, 'retry']);
         Route::post('/{document}/accept', [DocumentDecisionController::class, 'accept']);

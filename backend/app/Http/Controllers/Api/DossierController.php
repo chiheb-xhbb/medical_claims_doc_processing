@@ -159,7 +159,7 @@ class DossierController extends Controller
 
         if (! $dossier->canBeDeleted()) {
             return response()->json([
-                'message' => 'Cannot delete this dossier in its current status.',
+                'message' => 'Only dossiers in RECEIVED status can be deleted.',
                 'current_status' => $dossier->status->value,
             ], 422);
         }

@@ -98,6 +98,64 @@ class DocumentController extends Controller
         return response()->json($documents);
     }
 
+    public function destroy(Request $request, Document $document): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $result = DB::transaction(function () use ($document, $user) {
+            /** @var Document $lockedDocument */
+            $lockedDocument = Document::query()
+                ->whereKey($document->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if (! $this->canDeleteDocument($user, $lockedDocument)) {
+                return response()->json([
+                    'message' => 'You are not allowed to delete this document.',
+                ], 403);
+            }
+
+            $currentStatus = $lockedDocument->status instanceof DocumentStatus
+                ? $lockedDocument->status->value
+                : (string) $lockedDocument->status;
+
+            if (! in_array($currentStatus, [
+                DocumentStatus::UPLOADED->value,
+                DocumentStatus::FAILED->value,
+                DocumentStatus::PROCESSED->value,
+            ], true)) {
+                return response()->json([
+                    'message' => 'Only UPLOADED, FAILED, or PROCESSED documents can be deleted.',
+                    'current_status' => $currentStatus,
+                ], 422);
+            }
+
+            if ($lockedDocument->rubrique_id !== null || $lockedDocument->dossier_id !== null) {
+                return response()->json([
+                    'message' => 'You cannot delete a document that is already attached to a dossier/rubrique.',
+                ], 422);
+            }
+
+            $filePath = $lockedDocument->file_path;
+            $lockedDocument->delete();
+
+            return $filePath;
+        });
+
+        if ($result instanceof JsonResponse) {
+            return $result;
+        }
+
+        if (is_string($result) && $result !== '') {
+            Storage::disk('local')->delete($result);
+        }
+
+        return response()->json([
+            'message' => 'Document deleted successfully.',
+        ], 200);
+    }
+
     public function retry(Document $document): JsonResponse
     {
         // For now, a user can only retry their own failed documents.
@@ -146,6 +204,16 @@ class DocumentController extends Controller
     private function canViewDocument(User $user, Document $document): bool
     {
         if ($this->hasRole($user, UserRole::GESTIONNAIRE, UserRole::ADMIN)) {
+            return true;
+        }
+
+        return $this->hasRole($user, UserRole::AGENT)
+            && (int) $document->user_id === (int) $user->id;
+    }
+
+    private function canDeleteDocument(User $user, Document $document): bool
+    {
+        if ($this->hasRole($user, UserRole::ADMIN)) {
             return true;
         }
 

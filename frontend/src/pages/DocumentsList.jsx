@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import api from '../services/api';
+import api, { getApiErrorMessage } from '../services/api';
 import { getStoredRole, getStoredUser } from '../services/auth';
-import { StatusBadge, Loader, ErrorAlert, EmptyState } from '../ui';
+import { StatusBadge, Loader, ErrorAlert, EmptyState, SuccessAlert, ConfirmationModal } from '../ui';
 import './DocumentsList/DocumentsList.css';
 
 function DocumentsList() {
@@ -20,6 +20,10 @@ function DocumentsList() {
   const [total, setTotal] = useState(0);
   const [retryingIds, setRetryingIds] = useState([]);
   const [accessDeniedMessage, setAccessDeniedMessage] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
+  const [deleteTargetDocument, setDeleteTargetDocument] = useState(null);
+  const [isDeleteConfirming, setIsDeleteConfirming] = useState(false);
+  const [deletingDocumentId, setDeletingDocumentId] = useState(null);
 
   const currentPageRef = useRef(currentPage);
   const pollingIntervalRef = useRef(null);
@@ -127,6 +131,7 @@ function DocumentsList() {
   const handleRetry = async (documentId) => {
     try {
       setError(null);
+      setSuccessMessage(null);
       setRetryingIds((prev) => [...prev, documentId]);
 
       await api.post(`/documents/${documentId}/retry`);
@@ -140,15 +145,85 @@ function DocumentsList() {
     }
   };
 
+  const canDeleteDocument = (doc) => {
+    const canDeleteByStatus = ['UPLOADED', 'FAILED', 'PROCESSED'].includes(doc.status);
+    const isAttached = doc.rubrique_id != null || doc.dossier_id != null;
+
+    if (!canDeleteByStatus || isAttached) {
+      return false;
+    }
+
+    if (currentRole === 'ADMIN') {
+      return true;
+    }
+
+    if (currentRole === 'AGENT') {
+      return Number(doc.user_id) === Number(currentUser?.id);
+    }
+
+    return false;
+  };
+
+  const requestDeleteDocument = (doc) => {
+    if (!canDeleteDocument(doc) || isDeleteConfirming) {
+      return;
+    }
+
+    setDeleteTargetDocument(doc);
+  };
+
+  const closeDeleteModal = () => {
+    if (isDeleteConfirming) {
+      return;
+    }
+
+    setDeleteTargetDocument(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTargetDocument) {
+      return;
+    }
+
+    const targetId = deleteTargetDocument.id;
+
+    setError(null);
+    setSuccessMessage(null);
+    setIsDeleteConfirming(true);
+    setDeletingDocumentId(targetId);
+
+    try {
+      const response = await api.delete(`/documents/${targetId}`);
+      setSuccessMessage(response.data?.message || 'Document deleted successfully.');
+      setDeleteTargetDocument(null);
+
+      const nextPage = documents.length === 1 && currentPageRef.current > 1
+        ? currentPageRef.current - 1
+        : currentPageRef.current;
+
+      setLoading(true);
+      const docs = await fetchDocuments(nextPage);
+      setupPolling(docs);
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Failed to delete document.'));
+    } finally {
+      setIsDeleteConfirming(false);
+      setDeletingDocumentId(null);
+    }
+  };
+
   const renderStatusBadge = (status) => <StatusBadge status={status} />;
 
   const renderActionButton = (doc) => {
     const isRetrying = retryingIds.includes(doc.id);
     const canRetry = Number(doc.user_id) === Number(currentUser?.id);
+    const canDelete = canDeleteDocument(doc);
+    const isDeleting = deletingDocumentId === doc.id;
+    let primaryAction;
 
     switch (doc.status) {
       case 'PROCESSED':
-        return (
+        primaryAction = (
           <button
             className="btn btn-primary btn-sm"
             onClick={() => navigate(`/documents/${doc.id}/validate`)}
@@ -156,9 +231,10 @@ function DocumentsList() {
             Validate
           </button>
         );
+        break;
 
       case 'VALIDATED':
-        return (
+        primaryAction = (
           <button
             className="btn btn-success btn-sm"
             onClick={() => navigate(`/documents/${doc.id}/validate`)}
@@ -166,13 +242,15 @@ function DocumentsList() {
             View
           </button>
         );
+        break;
 
       case 'FAILED':
         if (!canRetry) {
-          return <span className="text-muted small">-</span>;
+          primaryAction = <span className="text-muted small">-</span>;
+          break;
         }
 
-        return (
+        primaryAction = (
           <button
             className="btn btn-warning btn-sm"
             onClick={() => handleRetry(doc.id)}
@@ -181,22 +259,43 @@ function DocumentsList() {
             {isRetrying ? 'Retrying...' : 'Retry'}
           </button>
         );
+        break;
 
       case 'PROCESSING':
-        return (
+        primaryAction = (
           <button className="btn btn-secondary btn-sm" disabled>
             Processing...
           </button>
         );
+        break;
 
       case 'UPLOADED':
       default:
-        return (
+        primaryAction = (
           <button className="btn btn-secondary btn-sm" disabled>
             Pending...
           </button>
         );
+        break;
     }
+
+    if (!canDelete) {
+      return primaryAction;
+    }
+
+    return (
+      <div className="d-flex flex-wrap gap-2 align-items-center">
+        {primaryAction}
+        <button
+          type="button"
+          className="btn btn-outline-danger btn-sm"
+          onClick={() => requestDeleteDocument(doc)}
+          disabled={isDeleting || isDeleteConfirming}
+        >
+          {isDeleting ? 'Deleting...' : 'Delete'}
+        </button>
+      </div>
+    );
   };
 
   if (loading) {
@@ -206,6 +305,11 @@ function DocumentsList() {
           <div className="alert alert-warning d-flex align-items-center mb-3" role="alert">
             <i className="bi bi-shield-lock me-2"></i>
             <span>{accessDeniedMessage}</span>
+          </div>
+        )}
+        {successMessage && (
+          <div className="mb-3">
+            <SuccessAlert message={successMessage} title="" />
           </div>
         )}
         <Loader message="Loading documents..." size="md" />
@@ -220,6 +324,11 @@ function DocumentsList() {
           <div className="alert alert-warning d-flex align-items-center mb-3" role="alert">
             <i className="bi bi-shield-lock me-2"></i>
             <span>{accessDeniedMessage}</span>
+          </div>
+        )}
+        {successMessage && (
+          <div className="mb-3">
+            <SuccessAlert message={successMessage} title="" />
           </div>
         )}
         <div className="row justify-content-center">
@@ -238,6 +347,11 @@ function DocumentsList() {
           <div className="alert alert-warning d-flex align-items-center mb-3" role="alert">
             <i className="bi bi-shield-lock me-2"></i>
             <span>{accessDeniedMessage}</span>
+          </div>
+        )}
+        {successMessage && (
+          <div className="mb-3">
+            <SuccessAlert message={successMessage} title="" />
           </div>
         )}
         <div className="row justify-content-center">
@@ -276,6 +390,11 @@ function DocumentsList() {
         <div className="alert alert-warning d-flex align-items-center mb-3" role="alert">
           <i className="bi bi-shield-lock me-2"></i>
           <span>{accessDeniedMessage}</span>
+        </div>
+      )}
+      {successMessage && (
+        <div className="mb-3">
+          <SuccessAlert message={successMessage} title="" />
         </div>
       )}
 
@@ -379,6 +498,22 @@ function DocumentsList() {
           </div>
         </div>
       </div>
+
+      <ConfirmationModal
+        isOpen={Boolean(deleteTargetDocument)}
+        title="Delete Document"
+        message={
+          deleteTargetDocument
+            ? `Delete "${deleteTargetDocument.original_filename}"? This action cannot be undone.`
+            : ''
+        }
+        confirmLabel="Delete"
+        confirmingLabel="Deleting..."
+        confirmVariant="danger"
+        isConfirming={isDeleteConfirming}
+        onCancel={closeDeleteModal}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 }
