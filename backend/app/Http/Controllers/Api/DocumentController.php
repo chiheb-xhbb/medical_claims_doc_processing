@@ -56,6 +56,13 @@ class DocumentController extends Controller
 
         return response()->json([
             'id' => $document->id,
+            'user_id' => $document->user_id,
+            'dossier_id' => $document->dossier_id,
+            'rubrique_id' => $document->rubrique_id,
+            'decision_status' => $document->decision_status?->value ?? $document->decision_status,
+            'decision_by' => $document->decision_by,
+            'decision_at' => $document->decision_at,
+            'decision_note' => $document->decision_note,
             'original_filename' => $document->original_filename,
             'doc_type' => $document->doc_type,
             'status' => $document->status->value,
@@ -81,6 +88,18 @@ class DocumentController extends Controller
         /** @var User $user */
         $user = $request->user();
 
+        $search = trim((string) $request->query('search', ''));
+        $status = trim((string) $request->query('status', ''));
+        $docType = trim((string) $request->query('doc_type', ''));
+        $fromDate = trim((string) $request->query('from_date', ''));
+        $toDate = trim((string) $request->query('to_date', ''));
+        $perPage = max(1, min((int) $request->query('per_page', 10), 50));
+
+        $allowedStatuses = array_map(
+            fn (DocumentStatus $case) => $case->value,
+            DocumentStatus::cases()
+        );
+
         $query = Document::query();
 
         if ($this->hasRole($user, UserRole::AGENT)) {
@@ -91,9 +110,33 @@ class DocumentController extends Controller
             ], 403);
         }
 
+        $query
+            ->when($search !== '', function ($q) use ($search) {
+                $q->where(function ($subQuery) use ($search) {
+                    $subQuery->where('original_filename', 'like', "%{$search}%");
+
+                    if (ctype_digit($search)) {
+                        $subQuery->orWhere('id', (int) $search);
+                    }
+                });
+            })
+            ->when(in_array($status, $allowedStatuses, true), function ($q) use ($status) {
+                $q->where('status', $status);
+            })
+            ->when($docType !== '', function ($q) use ($docType) {
+                $q->where('doc_type', $docType);
+            })
+            ->when($fromDate !== '', function ($q) use ($fromDate) {
+                $q->whereDate('created_at', '>=', $fromDate);
+            })
+            ->when($toDate !== '', function ($q) use ($toDate) {
+                $q->whereDate('created_at', '<=', $toDate);
+            });
+
         $documents = $query
             ->latest()
-            ->paginate(10);
+            ->paginate($perPage)
+            ->appends($request->query());
 
         return response()->json($documents);
     }
@@ -158,13 +201,11 @@ class DocumentController extends Controller
 
     public function retry(Document $document): JsonResponse
     {
-        // For now, a user can only retry their own failed documents.
         if ($document->user_id !== auth()->id()) {
             abort(403, 'Unauthorized retry attempt.');
         }
 
         return DB::transaction(function () use ($document) {
-            // Lock the row to avoid duplicate retry actions at the same time.
             $document = Document::whereKey($document->id)
                 ->lockForUpdate()
                 ->firstOrFail();
@@ -176,8 +217,7 @@ class DocumentController extends Controller
                 ], 400);
             }
 
-            // Retry only makes sense if the original file is still present.
-            if (!Storage::disk('local')->exists($document->file_path)) {
+            if (! Storage::disk('local')->exists($document->file_path)) {
                 return response()->json([
                     'message' => 'Cannot retry this document because the source file is missing.',
                 ], 422);
@@ -188,7 +228,6 @@ class DocumentController extends Controller
                 'error_message' => null,
             ]);
 
-            // Re-dispatch OCR/extraction only after the status update is committed.
             ProcessDocumentJob::dispatch($document->id)->afterCommit();
 
             return response()->json([

@@ -19,18 +19,26 @@ class DossierController extends Controller
         /** @var User $user */
         $user = $request->user();
 
+        $search = trim((string) $request->query('search', ''));
+        $status = trim((string) $request->query('status', ''));
+        $fromDate = trim((string) $request->query('from_date', ''));
+        $toDate = trim((string) $request->query('to_date', ''));
+        $perPage = max(1, min((int) $request->query('per_page', 10), 50));
+
+        $allowedStatuses = array_map(
+            fn (DossierStatus $case) => $case->value,
+            DossierStatus::cases()
+        );
+
         $query = Dossier::query()
             ->withCount(['rubriques', 'documents']);
 
         if ($this->hasRole($user, UserRole::AGENT)) {
-            // Agent sees all dossiers created by themselves, whatever the status.
             $query->where('created_by', $user->id);
         } elseif ($this->hasRole($user, UserRole::GESTIONNAIRE)) {
-            // Gestionnaire sees dossiers relevant for review/history.
             $query->whereIn('status', [
                 DossierStatus::TO_VALIDATE->value,
                 DossierStatus::PROCESSED->value,
-                DossierStatus::EXPORTED->value,
             ]);
         } elseif (! $this->hasRole($user, UserRole::ADMIN)) {
             return response()->json([
@@ -38,9 +46,27 @@ class DossierController extends Controller
             ], 403);
         }
 
+        $query
+            ->when($search !== '', function ($q) use ($search) {
+                $q->where(function ($subQuery) use ($search) {
+                    $subQuery->where('numero_dossier', 'like', "%{$search}%")
+                        ->orWhere('assured_identifier', 'like', "%{$search}%");
+                });
+            })
+            ->when(in_array($status, $allowedStatuses, true), function ($q) use ($status) {
+                $q->where('status', $status);
+            })
+            ->when($fromDate !== '', function ($q) use ($fromDate) {
+                $q->whereDate('created_at', '>=', $fromDate);
+            })
+            ->when($toDate !== '', function ($q) use ($toDate) {
+                $q->whereDate('created_at', '<=', $toDate);
+            });
+
         $dossiers = $query
             ->latest()
-            ->paginate(10);
+            ->paginate($perPage)
+            ->appends($request->query());
 
         $dossiers->getCollection()->transform(function (Dossier $dossier) {
             return $this->formatDossierSummary($dossier);
@@ -68,11 +94,11 @@ class DossierController extends Controller
             'notes' => $validated['notes'] ?? null,
             'created_by' => $user->id,
             'status' => DossierStatus::RECEIVED,
-        ]);
+        ])->fresh(['creator', 'submitter', 'processor']);
 
         return response()->json([
             'message' => 'Dossier created successfully.',
-            'dossier' => $this->formatDossierDetail($dossier->fresh()),
+            'dossier' => $this->formatDossierDetail($dossier),
             'requested_total' => $dossier->getRequestedTotal(),
             'current_total' => $dossier->getCurrentTotal(),
             'display_total' => $dossier->getDisplayTotal(),
@@ -92,14 +118,20 @@ class DossierController extends Controller
 
         $dossier->load([
             'creator',
+            'submitter',
+            'processor',
             'rubriques.creator',
+            'rubriques.rejector',
             'rubriques.documents.extractions',
+            'rubriques.documents.validator',
             'rubriques.documents.decisionMaker',
         ]);
 
         return response()->json([
             'dossier' => $this->formatDossierDetail($dossier),
-            'rubriques' => $dossier->rubriques,
+            'rubriques' => $dossier->rubriques
+                ->map(fn ($rubrique) => $this->formatRubriqueDetail($rubrique))
+                ->values(),
             'requested_total' => $dossier->getRequestedTotal(),
             'current_total' => $dossier->getCurrentTotal(),
             'display_total' => $dossier->getDisplayTotal(),
@@ -135,7 +167,7 @@ class DossierController extends Controller
                 : $dossier->notes,
         ]);
 
-        $dossier->refresh();
+        $dossier = $dossier->fresh(['creator', 'submitter', 'processor']);
 
         return response()->json([
             'message' => 'Dossier updated successfully.',
@@ -196,9 +228,10 @@ class DossierController extends Controller
 
         $dossier->status = DossierStatus::TO_VALIDATE;
         $dossier->submitted_at = now();
+        $dossier->submitted_by = $user->id;
         $dossier->save();
 
-        $dossier->refresh();
+        $dossier = $dossier->fresh(['creator', 'submitter', 'processor']);
 
         return response()->json([
             'message' => 'Dossier submitted successfully.',
@@ -234,9 +267,11 @@ class DossierController extends Controller
 
         $dossier->status = DossierStatus::PROCESSED;
         $dossier->montant_total = $dossier->getCurrentTotal();
+        $dossier->processed_by = $user->id;
+        $dossier->processed_at = now();
         $dossier->save();
 
-        $dossier->refresh();
+        $dossier = $dossier->fresh(['creator', 'submitter', 'processor']);
 
         return response()->json([
             'message' => 'Dossier processed successfully.',
@@ -259,6 +294,10 @@ class DossierController extends Controller
             'rubriques_count' => $dossier->rubriques_count ?? 0,
             'documents_count' => $dossier->documents_count ?? 0,
             'created_by' => $dossier->created_by,
+            'submitted_by' => $dossier->submitted_by,
+            'submitted_at' => $dossier->submitted_at,
+            'processed_by' => $dossier->processed_by,
+            'processed_at' => $dossier->processed_at,
             'created_at' => $dossier->created_at,
             'updated_at' => $dossier->updated_at,
         ];
@@ -274,10 +313,64 @@ class DossierController extends Controller
             'montant_total' => $dossier->montant_total,
             'episode_description' => $dossier->episode_description,
             'notes' => $dossier->notes,
+
             'created_by' => $dossier->created_by,
+            'submitted_by' => $dossier->submitted_by,
+            'processed_by' => $dossier->processed_by,
+
             'submitted_at' => $dossier->submitted_at,
+            'processed_at' => $dossier->processed_at,
+
+            'creator' => $dossier->creator ? [
+                'id' => $dossier->creator->id,
+                'name' => $dossier->creator->name,
+                'email' => $dossier->creator->email,
+            ] : null,
+
+            'submitter' => $dossier->submitter ? [
+                'id' => $dossier->submitter->id,
+                'name' => $dossier->submitter->name,
+                'email' => $dossier->submitter->email,
+            ] : null,
+
+            'processor' => $dossier->processor ? [
+                'id' => $dossier->processor->id,
+                'name' => $dossier->processor->name,
+                'email' => $dossier->processor->email,
+            ] : null,
+
             'created_at' => $dossier->created_at,
             'updated_at' => $dossier->updated_at,
+        ];
+    }
+
+    private function formatRubriqueDetail($rubrique): array
+    {
+        return [
+            'id' => $rubrique->id,
+            'title' => $rubrique->title,
+            'status' => $rubrique->status?->value ?? $rubrique->status,
+            'notes' => $rubrique->notes,
+
+            'created_by' => $rubrique->created_by,
+            'rejected_by' => $rubrique->rejected_by,
+            'rejected_at' => $rubrique->rejected_at,
+
+            'creator' => $rubrique->creator ? [
+                'id' => $rubrique->creator->id,
+                'name' => $rubrique->creator->name,
+                'email' => $rubrique->creator->email,
+            ] : null,
+
+            'rejector' => $rubrique->rejector ? [
+                'id' => $rubrique->rejector->id,
+                'name' => $rubrique->rejector->name,
+                'email' => $rubrique->rejector->email,
+            ] : null,
+
+            'documents' => $rubrique->documents,
+            'created_at' => $rubrique->created_at,
+            'updated_at' => $rubrique->updated_at,
         ];
     }
 
@@ -315,7 +408,6 @@ class DossierController extends Controller
             return in_array($dossier->status->value, [
                 DossierStatus::TO_VALIDATE->value,
                 DossierStatus::PROCESSED->value,
-                DossierStatus::EXPORTED->value,
             ], true);
         }
 

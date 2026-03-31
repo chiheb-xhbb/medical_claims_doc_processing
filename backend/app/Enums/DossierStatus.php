@@ -8,5 +8,4 @@ enum DossierStatus: string
     case IN_PROGRESS = 'IN_PROGRESS';
     case TO_VALIDATE = 'TO_VALIDATE';
     case PROCESSED = 'PROCESSED';
-    case EXPORTED = 'EXPORTED';
 }

@@ -29,6 +29,7 @@ class Dossier extends Model
         'status' => DossierStatus::class,
         'montant_total' => 'decimal:3',
         'submitted_at' => 'datetime',
+        'processed_at' => 'datetime',
     ];
 
     protected static function boot(): void
@@ -59,13 +60,9 @@ class Dossier extends Model
     }
 
     // Business rules
-
     public function isFrozen(): bool
     {
-        return in_array($this->status, [
-            DossierStatus::PROCESSED,
-            DossierStatus::EXPORTED,
-        ], true);
+        return $this->status === DossierStatus::PROCESSED;
     }
 
     public function canBeDeleted(): bool
@@ -149,5 +146,15 @@ class Dossier extends Model
             $this->montant_total = $this->getCurrentTotal();
             $this->saveQuietly();
         }
+    }
+
+    public function submitter(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'submitted_by');
+    }
+
+    public function processor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'processed_by');
     }
 }

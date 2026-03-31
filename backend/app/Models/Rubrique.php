@@ -23,6 +23,7 @@ class Rubrique extends Model
 
     protected $casts = [
         'status' => RubriqueStatus::class,
+        'rejected_at' => 'datetime',
     ];
 
     public function dossier(): BelongsTo
@@ -87,9 +88,16 @@ class Rubrique extends Model
             $document->save();
         }
 
+        $this->rejected_by = $decisionBy;
+        $this->rejected_at = now();
         $this->status = RubriqueStatus::REJECTED;
         $this->saveQuietly();
 
         $this->dossier?->updateTotal();
+    }
+
+    public function rejector(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'rejected_by');
     }
 }
