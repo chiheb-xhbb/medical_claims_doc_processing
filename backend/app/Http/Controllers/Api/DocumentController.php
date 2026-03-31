@@ -93,12 +93,24 @@ class DocumentController extends Controller
         $docType = trim((string) $request->query('doc_type', ''));
         $fromDate = trim((string) $request->query('from_date', ''));
         $toDate = trim((string) $request->query('to_date', ''));
+        $sortBy = trim((string) $request->query('sort_by', 'created_at'));
+        $sortDirection = strtolower(trim((string) $request->query('sort_direction', 'desc')));
         $perPage = max(1, min((int) $request->query('per_page', 10), 50));
 
         $allowedStatuses = array_map(
             fn (DocumentStatus $case) => $case->value,
             DocumentStatus::cases()
         );
+        $allowedSortFields = ['id', 'status', 'created_at'];
+        $allowedSortDirections = ['asc', 'desc'];
+
+        if (! in_array($sortBy, $allowedSortFields, true)) {
+            $sortBy = 'created_at';
+        }
+
+        if (! in_array($sortDirection, $allowedSortDirections, true)) {
+            $sortDirection = 'desc';
+        }
 
         $query = Document::query();
 
@@ -133,8 +145,13 @@ class DocumentController extends Controller
                 $q->whereDate('created_at', '<=', $toDate);
             });
 
+        $query->orderBy($sortBy, $sortDirection);
+
+        if ($sortBy !== 'id') {
+            $query->orderBy('id', $sortDirection);
+        }
+
         $documents = $query
-            ->latest()
             ->paginate($perPage)
             ->appends($request->query());
 

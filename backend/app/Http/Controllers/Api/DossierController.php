@@ -23,12 +23,24 @@ class DossierController extends Controller
         $status = trim((string) $request->query('status', ''));
         $fromDate = trim((string) $request->query('from_date', ''));
         $toDate = trim((string) $request->query('to_date', ''));
+        $sortBy = trim((string) $request->query('sort_by', 'created_at'));
+        $sortDirection = strtolower(trim((string) $request->query('sort_direction', 'desc')));
         $perPage = max(1, min((int) $request->query('per_page', 10), 50));
 
         $allowedStatuses = array_map(
             fn (DossierStatus $case) => $case->value,
             DossierStatus::cases()
         );
+        $allowedSortFields = ['numero_dossier', 'status', 'montant_total', 'created_at'];
+        $allowedSortDirections = ['asc', 'desc'];
+
+        if (! in_array($sortBy, $allowedSortFields, true)) {
+            $sortBy = 'created_at';
+        }
+
+        if (! in_array($sortDirection, $allowedSortDirections, true)) {
+            $sortDirection = 'desc';
+        }
 
         $query = Dossier::query()
             ->withCount(['rubriques', 'documents']);
@@ -63,8 +75,11 @@ class DossierController extends Controller
                 $q->whereDate('created_at', '<=', $toDate);
             });
 
+        $query
+            ->orderBy($sortBy, $sortDirection)
+            ->orderBy('id', $sortDirection);
+
         $dossiers = $query
-            ->latest()
             ->paginate($perPage)
             ->appends($request->query());
 
@@ -368,10 +383,24 @@ class DossierController extends Controller
                 'email' => $rubrique->rejector->email,
             ] : null,
 
-            'documents' => $rubrique->documents,
+            'documents' => $this->formatRubriqueDocuments($rubrique->documents),
             'created_at' => $rubrique->created_at,
             'updated_at' => $rubrique->updated_at,
         ];
+    }
+
+    private function formatRubriqueDocuments($documents): array
+    {
+        return collect($documents)
+            ->map(function ($document) {
+                $payload = $document->toArray();
+                $payload['status'] = $document->status?->value ?? $document->status;
+                $payload['decision_status'] = $document->decision_status?->value ?? $document->decision_status;
+
+                return $payload;
+            })
+            ->values()
+            ->all();
     }
 
     private function canPrepareDossiers(User $user): bool

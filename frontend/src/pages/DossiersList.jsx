@@ -1,9 +1,34 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import api, { getApiErrorMessage } from '../services/api';
 import { AUTH_CHANGED_EVENT, getStoredRole, getStoredUser } from '../services/auth';
-import { Loader, ErrorAlert, EmptyState, SuccessAlert, ConfirmationModal } from '../ui';
+import { ErrorAlert, EmptyState, SuccessAlert, ConfirmationModal, SortableHeader } from '../ui';
+import {
+  normalizeListFilters,
+  buildListQueryParams,
+  getNextSortState,
+  hasAnyListFilter,
+  isDefaultSort
+} from '../utils/listQueryUtils';
 import './DossiersList/DossiersList.css';
+
+const DOSSIER_STATUS_OPTIONS = {
+  AGENT: ['RECEIVED', 'IN_PROGRESS', 'TO_VALIDATE', 'PROCESSED'],
+  GESTIONNAIRE: ['TO_VALIDATE', 'PROCESSED'],
+  ADMIN: ['RECEIVED', 'IN_PROGRESS', 'TO_VALIDATE', 'PROCESSED']
+};
+
+const DEFAULT_DOSSIER_FILTERS = {
+  search: '',
+  status: '',
+  fromDate: '',
+  toDate: ''
+};
+
+const DEFAULT_DOSSIER_SORT = {
+  sortBy: 'created_at',
+  sortDirection: 'desc'
+};
 
 const getRolePageConfig = (role) => {
   if (role === 'AGENT') {
@@ -89,6 +114,11 @@ function DossiersList() {
   const [deleteTargetDossier, setDeleteTargetDossier] = useState(null);
   const [isDeleteConfirming, setIsDeleteConfirming] = useState(false);
   const [deletingDossierId, setDeletingDossierId] = useState(null);
+  const [filtersDraft, setFiltersDraft] = useState(DEFAULT_DOSSIER_FILTERS);
+  const [appliedFilters, setAppliedFilters] = useState(DEFAULT_DOSSIER_FILTERS);
+  const [sortState, setSortState] = useState(DEFAULT_DOSSIER_SORT);
+  const appliedFiltersRef = useRef(DEFAULT_DOSSIER_FILTERS);
+  const appliedSortRef = useRef(DEFAULT_DOSSIER_SORT);
 
   useEffect(() => {
     const syncRole = () => {
@@ -104,40 +134,57 @@ function DossiersList() {
   }, []);
 
   const pageConfig = useMemo(() => getRolePageConfig(role), [role]);
-
-  const fetchDossiers = useCallback(async (page = 1) => {
-    try {
-      setError(null);
-
-      const response = await api.get(`/dossiers?page=${page}`);
-      const payload = response.data || {};
-
-      if (Array.isArray(payload)) {
-        setDossiers(payload);
-        setCurrentPage(1);
-        setLastPage(1);
-        setTotal(payload.length);
-        return;
-      }
-
-      const list = Array.isArray(payload.data)
-        ? payload.data
-        : Array.isArray(payload.dossiers)
-          ? payload.dossiers
-          : [];
-      setDossiers(list);
-      setCurrentPage(payload?.current_page ?? 1);
-      setLastPage(payload?.last_page ?? 1);
-      setTotal(payload?.total ?? list.length);
-    } catch (err) {
-      setError(getApiErrorMessage(err, 'Failed to load dossiers. Please try again.'));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const dossierStatusOptions = useMemo(
+    () => DOSSIER_STATUS_OPTIONS[role] || DOSSIER_STATUS_OPTIONS.ADMIN,
+    [role]
+  );
 
   useEffect(() => {
-    fetchDossiers(1);
+    appliedFiltersRef.current = appliedFilters;
+  }, [appliedFilters]);
+
+  useEffect(() => {
+    appliedSortRef.current = sortState;
+  }, [sortState]);
+
+  const fetchDossiers = useCallback(
+    async (page = 1, filters = appliedFiltersRef.current, sort = appliedSortRef.current) => {
+      try {
+        setError(null);
+
+        const response = await api.get('/dossiers', {
+          params: buildListQueryParams(page, filters, sort)
+        });
+        const payload = response.data || {};
+
+        if (Array.isArray(payload)) {
+          setDossiers(payload);
+          setCurrentPage(1);
+          setLastPage(1);
+          setTotal(payload.length);
+          return;
+        }
+
+        const list = Array.isArray(payload.data)
+          ? payload.data
+          : Array.isArray(payload.dossiers)
+            ? payload.dossiers
+            : [];
+        setDossiers(list);
+        setCurrentPage(payload?.current_page ?? 1);
+        setLastPage(payload?.last_page ?? 1);
+        setTotal(payload?.total ?? list.length);
+      } catch (err) {
+        setError(getApiErrorMessage(err, 'Failed to load dossiers. Please try again.'));
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    fetchDossiers(1, appliedFiltersRef.current, appliedSortRef.current);
   }, [fetchDossiers]);
 
   useEffect(() => {
@@ -156,7 +203,54 @@ function DossiersList() {
     }
 
     setLoading(true);
-    await fetchDossiers(page);
+    await fetchDossiers(page, appliedFiltersRef.current, appliedSortRef.current);
+  };
+
+  const handleFiltersDraftChange = (field, value) => {
+    setFiltersDraft((prev) => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleApplyFilters = async (event) => {
+    event.preventDefault();
+
+    const normalizedFilters = normalizeListFilters(filtersDraft);
+
+    setFiltersDraft((prev) => ({
+      ...prev,
+      search: normalizedFilters.search
+    }));
+    setAppliedFilters(normalizedFilters);
+    appliedFiltersRef.current = normalizedFilters;
+    setLoading(true);
+
+    await fetchDossiers(1, normalizedFilters, appliedSortRef.current);
+  };
+
+  const handleResetFilters = async () => {
+    const resetFilters = { ...DEFAULT_DOSSIER_FILTERS };
+    const resetSort = { ...DEFAULT_DOSSIER_SORT };
+
+    setFiltersDraft(resetFilters);
+    setAppliedFilters(resetFilters);
+    setSortState(resetSort);
+    appliedFiltersRef.current = resetFilters;
+    appliedSortRef.current = resetSort;
+    setLoading(true);
+
+    await fetchDossiers(1, resetFilters, resetSort);
+  };
+
+  const handleSortChange = async (sortBy) => {
+    const nextSort = getNextSortState(sortState, sortBy);
+
+    setSortState(nextSort);
+    appliedSortRef.current = nextSort;
+    setLoading(true);
+
+    await fetchDossiers(1, appliedFiltersRef.current, nextSort);
   };
 
   const canDeleteDossier = (dossier) => {
@@ -213,7 +307,7 @@ function DossiersList() {
         : currentPage;
 
       setLoading(true);
-      await fetchDossiers(nextPage);
+      await fetchDossiers(nextPage, appliedFiltersRef.current, appliedSortRef.current);
     } catch (err) {
       setActionError(getApiErrorMessage(err, 'Failed to delete dossier.'));
     } finally {
@@ -222,104 +316,14 @@ function DossiersList() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="container py-5">
-        {accessDeniedMessage && (
-          <div className="alert alert-warning d-flex align-items-center mb-3" role="alert">
-            <i className="bi bi-shield-lock me-2"></i>
-            <span>{accessDeniedMessage}</span>
-          </div>
-        )}
-        {successMessage && (
-          <div className="mb-3">
-            <SuccessAlert message={successMessage} title="" />
-          </div>
-        )}
-        {actionError && (
-          <div className="mb-3">
-            <ErrorAlert message={actionError} title="" showIcon={true} />
-          </div>
-        )}
-        <Loader message="Loading dossiers..." size="md" />
-      </div>
-    );
-  }
+  const hasActiveFilters = hasAnyListFilter(appliedFilters);
+  const hasDraftFilters = hasAnyListFilter(filtersDraft);
+  const hasSortOverride = !isDefaultSort(sortState, DEFAULT_DOSSIER_SORT);
 
-  if (error && dossiers.length === 0) {
-    return (
-      <div className="container py-5">
-        {accessDeniedMessage && (
-          <div className="alert alert-warning d-flex align-items-center mb-3" role="alert">
-            <i className="bi bi-shield-lock me-2"></i>
-            <span>{accessDeniedMessage}</span>
-          </div>
-        )}
-        {successMessage && (
-          <div className="mb-3">
-            <SuccessAlert message={successMessage} title="" />
-          </div>
-        )}
-        {actionError && (
-          <div className="mb-3">
-            <ErrorAlert message={actionError} title="" showIcon={true} />
-          </div>
-        )}
-        <div className="row justify-content-center">
-          <div className="col-lg-8">
-            <ErrorAlert message={error} title="" showIcon={true} />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (dossiers.length === 0) {
-    return (
-      <div className="container py-5">
-        {accessDeniedMessage && (
-          <div className="alert alert-warning d-flex align-items-center mb-3" role="alert">
-            <i className="bi bi-shield-lock me-2"></i>
-            <span>{accessDeniedMessage}</span>
-          </div>
-        )}
-        {successMessage && (
-          <div className="mb-3">
-            <SuccessAlert message={successMessage} title="" />
-          </div>
-        )}
-        {actionError && (
-          <div className="mb-3">
-            <ErrorAlert message={actionError} title="" showIcon={true} />
-          </div>
-        )}
-        <div className="row justify-content-center">
-          <div className="col-lg-8">
-            <div className="card shadow-sm">
-              <div className="card-body">
-                <EmptyState
-                  icon="briefcase"
-                  title={pageConfig.emptyTitle}
-                  description={pageConfig.emptyDescription}
-                  action={
-                    pageConfig.canCreateDossier ? (
-                      <button
-                        className="btn btn-primary"
-                        onClick={() => navigate('/dossiers/create')}
-                      >
-                        <i className="bi bi-plus-circle me-2"></i>
-                        Create Dossier
-                      </button>
-                    ) : null
-                  }
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const emptyTitle = hasActiveFilters ? 'No Dossiers Match Your Filters' : pageConfig.emptyTitle;
+  const emptyDescription = hasActiveFilters
+    ? 'Try adjusting your search, status, or date range and apply again.'
+    : pageConfig.emptyDescription;
 
   return (
     <div className="container py-4 dossiers-list">
@@ -360,70 +364,231 @@ function DossiersList() {
         </div>
       )}
 
-      {error && (
+      {error && dossiers.length > 0 && (
         <div className="mb-3">
           <ErrorAlert message={error} title="" showIcon={true} />
         </div>
       )}
 
+      <div className="card dossiers-filters-card mb-4">
+        <div className="card-body">
+          <form className="row g-3 align-items-end dossiers-filters-form" onSubmit={handleApplyFilters}>
+            <div className="col-12 col-lg-4">
+              <label htmlFor="dossiersSearch" className="form-label mb-1">Search</label>
+              <input
+                id="dossiersSearch"
+                type="text"
+                className="form-control"
+                placeholder="Search by dossier number or assured identifier"
+                value={filtersDraft.search}
+                onChange={(event) => handleFiltersDraftChange('search', event.target.value)}
+                disabled={loading}
+              />
+            </div>
+
+            <div className="col-12 col-md-6 col-lg-2">
+              <label htmlFor="dossiersStatusFilter" className="form-label mb-1">Status</label>
+              <select
+                id="dossiersStatusFilter"
+                className="form-select"
+                value={filtersDraft.status}
+                onChange={(event) => handleFiltersDraftChange('status', event.target.value)}
+                disabled={loading}
+              >
+                <option value="">All Statuses</option>
+                {dossierStatusOptions.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="col-12 col-md-6 col-lg-2">
+              <label htmlFor="dossiersFromDate" className="form-label mb-1">From Date</label>
+              <input
+                id="dossiersFromDate"
+                type="date"
+                className="form-control"
+                value={filtersDraft.fromDate}
+                onChange={(event) => handleFiltersDraftChange('fromDate', event.target.value)}
+                disabled={loading}
+              />
+            </div>
+
+            <div className="col-12 col-md-6 col-lg-2">
+              <label htmlFor="dossiersToDate" className="form-label mb-1">To Date</label>
+              <input
+                id="dossiersToDate"
+                type="date"
+                className="form-control"
+                value={filtersDraft.toDate}
+                onChange={(event) => handleFiltersDraftChange('toDate', event.target.value)}
+                disabled={loading}
+              />
+            </div>
+
+            <div className="col-12 col-md-6 col-lg-2 d-flex gap-2 dossiers-filters-actions">
+              <button type="submit" className="btn btn-primary flex-grow-1" disabled={loading}>
+                <i className="bi bi-funnel"></i>
+                Apply
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline-secondary"
+                onClick={handleResetFilters}
+                disabled={loading || (!hasActiveFilters && !hasDraftFilters && !hasSortOverride)}
+              >
+                Reset
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
       <div className="card">
-        <div className="table-responsive">
-          <table className="table table-hover table-striped mb-0 align-middle">
-            <thead className="table-light">
-              <tr>
-                <th scope="col">Dossier #</th>
-                <th scope="col">Assured Identifier</th>
-                <th scope="col">Status</th>
-                <th scope="col">Total</th>
-                <th scope="col">Documents</th>
-                <th scope="col">Created</th>
-                <th scope="col">Actions</th>
-              </tr>
-            </thead>
+        <div className="table-section-shell">
+          {loading && dossiers.length > 0 && (
+            <div className="table-loading-overlay" role="status" aria-live="polite" aria-label="Updating list">
+              <span className="spinner-border spinner-border-sm text-primary" aria-hidden="true"></span>
+              <span>Updating dossiers...</span>
+            </div>
+          )}
 
-            <tbody>
-              {dossiers.map((dossier) => {
-                const documentsCount = dossier.documents_count ?? dossier.documents?.length ?? 0;
+          <div className="table-responsive">
+            <table className="table table-hover table-striped mb-0 align-middle">
+              <thead className="table-light">
+                <tr>
+                  <SortableHeader
+                    label="Dossier #"
+                    sortBy="numero_dossier"
+                    sortState={sortState}
+                    onSortChange={handleSortChange}
+                    disabled={loading}
+                  />
+                  <th scope="col">Assured Identifier</th>
+                  <SortableHeader
+                    label="Status"
+                    sortBy="status"
+                    sortState={sortState}
+                    onSortChange={handleSortChange}
+                    disabled={loading}
+                  />
+                  <SortableHeader
+                    label="Total"
+                    sortBy="montant_total"
+                    sortState={sortState}
+                    onSortChange={handleSortChange}
+                    disabled={loading}
+                  />
+                  <th scope="col">Documents</th>
+                  <SortableHeader
+                    label="Created"
+                    sortBy="created_at"
+                    sortState={sortState}
+                    onSortChange={handleSortChange}
+                    disabled={loading}
+                  />
+                  <th scope="col">Actions</th>
+                </tr>
+              </thead>
 
-                return (
-                  <tr key={dossier.id}>
-                    <td className="fw-semibold">{dossier.numero_dossier || '-'}</td>
-                    <td>{dossier.assured_identifier || '-'}</td>
-                    <td>
-                      <span className="badge bg-primary-subtle text-primary-emphasis dossier-status">
-                        {(dossier.status || '-').toString()}
-                      </span>
-                    </td>
-                    <td>{formatAmount(dossier.montant_total)}</td>
-                    <td>{documentsCount}</td>
-                    <td>{formatDate(dossier.created_at)}</td>
-                    <td>
-                      <div className="d-flex gap-2 align-items-center">
-                        <button
-                          className="btn btn-outline-primary btn-sm"
-                          onClick={() => navigate(`/dossiers/${dossier.id}`)}
-                        >
-                          <i className="bi bi-eye me-1"></i>
-                          Details
-                        </button>
+              <tbody>
+                {dossiers.length > 0 ? dossiers.map((dossier) => {
+                  const documentsCount = dossier.documents_count ?? dossier.documents?.length ?? 0;
 
-                        {canDeleteDossier(dossier) && (
+                  return (
+                    <tr key={dossier.id}>
+                      <td className="fw-semibold">{dossier.numero_dossier || '-'}</td>
+                      <td>{dossier.assured_identifier || '-'}</td>
+                      <td>
+                        <span className="badge bg-primary-subtle text-primary-emphasis dossier-status">
+                          {(dossier.status || '-').toString()}
+                        </span>
+                      </td>
+                      <td>{formatAmount(dossier.montant_total)}</td>
+                      <td>{documentsCount}</td>
+                      <td>{formatDate(dossier.created_at)}</td>
+                      <td>
+                        <div className="d-flex gap-2 align-items-center">
                           <button
-                            type="button"
-                            className="btn btn-outline-danger btn-sm"
-                            onClick={() => requestDeleteDossier(dossier)}
-                            disabled={isDeleteConfirming || deletingDossierId === dossier.id}
+                            className="btn btn-outline-primary btn-sm"
+                            onClick={() => navigate(`/dossiers/${dossier.id}`)}
                           >
-                            {deletingDossierId === dossier.id ? 'Deleting...' : 'Delete'}
+                            <i className="bi bi-eye me-1"></i>
+                            Details
                           </button>
-                        )}
+
+                          {canDeleteDossier(dossier) && (
+                            <button
+                              type="button"
+                              className="btn btn-outline-danger btn-sm"
+                              onClick={() => requestDeleteDossier(dossier)}
+                              disabled={isDeleteConfirming || deletingDossierId === dossier.id}
+                            >
+                              {deletingDossierId === dossier.id ? 'Deleting...' : 'Delete'}
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                }) : loading ? (
+                  Array.from({ length: 5 }).map((_, index) => (
+                    <tr key={`dossiers-skeleton-${index}`} className="skeleton-row">
+                      <td><div className="skeleton-line"></div></td>
+                      <td><div className="skeleton-line"></div></td>
+                      <td><div className="skeleton-line skeleton-line-medium"></div></td>
+                      <td><div className="skeleton-line skeleton-line-short"></div></td>
+                      <td><div className="skeleton-line skeleton-line-short"></div></td>
+                      <td><div className="skeleton-line"></div></td>
+                      <td><div className="skeleton-line skeleton-line-medium"></div></td>
+                    </tr>
+                  ))
+                ) : error ? (
+                  <tr>
+                    <td colSpan={7} className="p-0">
+                      <div className="inline-empty-state-wrapper">
+                        <ErrorAlert message={error} title="" showIcon={true} />
                       </div>
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                ) : (
+                  <tr>
+                    <td colSpan={7} className="p-0">
+                      <div className="inline-empty-state-wrapper">
+                        <EmptyState
+                          icon={hasActiveFilters ? 'search' : 'briefcase'}
+                          title={emptyTitle}
+                          description={emptyDescription}
+                          action={
+                            hasActiveFilters || hasSortOverride ? (
+                              <button
+                                type="button"
+                                className="btn btn-outline-secondary"
+                                onClick={handleResetFilters}
+                              >
+                                <i className="bi bi-arrow-counterclockwise me-2"></i>
+                                Reset
+                              </button>
+                            ) : pageConfig.canCreateDossier ? (
+                              <button
+                                className="btn btn-primary"
+                                onClick={() => navigate('/dossiers/create')}
+                              >
+                                <i className="bi bi-plus-circle me-2"></i>
+                                Create Dossier
+                              </button>
+                            ) : null
+                          }
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div className="card-footer bg-white d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
