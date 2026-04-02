@@ -90,7 +90,6 @@ function Navbar() {
     if (path === '/dossiers') {
       return (
         location.pathname === '/dossiers' ||
-        location.pathname === '/dossiers/create' ||
         /^\/dossiers\/\d+$/.test(location.pathname)
       );
     }
@@ -166,18 +165,6 @@ function Navbar() {
                     Documents
                   </NavLink>
                 </li>
-
-                {['AGENT', 'GESTIONNAIRE', 'ADMIN'].includes(authSnapshot.role) && (
-                  <li className="nav-item">
-                    <NavLink
-                      className={() => `nb-nav-link nav-link${location.pathname === '/documents/upload' ? ' active' : ''}`}
-                      to="/documents/upload"
-                    >
-                      <i className="bi bi-cloud-upload" aria-hidden="true"></i>
-                      Upload
-                    </NavLink>
-                  </li>
-                )}
 
                 <li className="nav-item">
                   <NavLink

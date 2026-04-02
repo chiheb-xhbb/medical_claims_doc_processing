@@ -7,6 +7,7 @@ import 'bootstrap-icons/font/bootstrap-icons.css'
 // CSS variables must load before styles that use them
 import './styles/design-tokens.css'
 import './styles/common.css'
+import './styles/workspace-modals.css'
 import './index.css'
 import './App.css'
 

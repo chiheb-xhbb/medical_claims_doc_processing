@@ -1,0 +1,176 @@
+.workspace-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1050;
+  padding: 1rem;
+}
+
+.workspace-modal-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(720px, 100%);
+  max-height: min(90vh, 920px);
+  background: var(--color-bg-card-elevated);
+  border-radius: var(--card-radius-premium);
+  border: none;
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.07),
+    0 28px 64px -12px rgba(15, 23, 42, 0.38),
+    0 12px 24px -8px rgba(15, 23, 42, 0.12);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.workspace-modal-dialog:focus {
+  outline: none;
+}
+
+.workspace-modal-dialog:focus-visible {
+  outline: none;
+}
+
+.workspace-modal-dialog--lg {
+  width: min(880px, 100%);
+}
+
+.workspace-modal-dialog--xl {
+  width: min(960px, 100%);
+}
+
+.workspace-modal-dialog--upload {
+  width: min(680px, 100%);
+}
+
+.workspace-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+  padding: 0.875rem 1.25rem;
+  min-height: 3.25rem;
+  background: var(--navbar-bg);
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.workspace-modal-header h2 {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--heading-letter-spacing);
+  line-height: 1.3;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  color: #ffffff;
+}
+
+.workspace-modal-header h2 .bi {
+  font-size: 1.125rem;
+  color: rgba(255, 255, 255, 0.95);
+  opacity: 1;
+}
+
+.workspace-modal-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.375rem;
+  height: 2.375rem;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.workspace-modal-close:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.workspace-modal-close:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.workspace-modal-body {
+  padding: var(--spacing-6) var(--spacing-6);
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  background: var(--color-bg-card-elevated);
+}
+
+@media (max-width: 575.98px) {
+  .workspace-modal-body {
+    padding: var(--spacing-4) var(--spacing-5);
+  }
+}
+
+.workspace-modal-body--upload {
+  padding: var(--spacing-6);
+}
+
+.workspace-modal-body--upload .document-upload-form {
+  max-width: 34rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.workspace-modal-body--upload .document-upload-form > .mb-4 {
+  margin-bottom: var(--spacing-5);
+}
+
+.workspace-modal-body--upload .document-upload-form .drop-zone {
+  padding: var(--spacing-8) var(--spacing-5);
+}
+
+.workspace-modal-body--upload .document-upload-form .upload-icon {
+  font-size: 2.625rem;
+  margin-bottom: var(--spacing-2);
+}
+
+.workspace-modal-body--upload .document-upload-form .choose-files-actions {
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-3);
+}
+
+.workspace-modal-body--upload .document-upload-form .choose-files-actions .choose-file-btn.flex-grow-1 {
+  flex-grow: 0 !important;
+  flex: 0 1 auto;
+  min-width: 11rem;
+}
+
+.workspace-modal-body--upload .document-upload-form .upload-btn {
+  margin-top: var(--spacing-5);
+}
+
+.workspace-modal-body--upload .document-upload-form .help-text {
+  margin-top: var(--spacing-5);
+}
+
+@media (max-width: 575.98px) {
+  .workspace-modal-body--upload {
+    padding: var(--spacing-4) var(--spacing-5);
+  }
+
+  .workspace-modal-body--upload .document-upload-form {
+    max-width: none;
+  }
+
+  .workspace-modal-body--upload .document-upload-form .choose-files-actions .choose-file-btn.flex-grow-1 {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+}

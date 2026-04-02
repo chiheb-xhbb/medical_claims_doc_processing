@@ -2,9 +2,7 @@ import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import DocumentValidation from './pages/DocumentValidation';
 import DocumentsList from './pages/DocumentsList';
-import DocumentUpload from './pages/DocumentUpload';
 import DossiersList from './pages/DossiersList';
-import DossierCreate from './pages/DossierCreate';
 import DossierDetail from './pages/DossierDetail';
 import AdminUsers from './pages/AdminUsers';
 import Login from './pages/Login';
@@ -49,8 +47,8 @@ function App() {
           <Route
             path="/documents/upload"
             element={
-              <ProtectedRoute allowedRoles={['AGENT', 'GESTIONNAIRE', 'ADMIN']}>
-                <DocumentUpload />
+              <ProtectedRoute>
+                <Navigate to="/documents" replace />
               </ProtectedRoute>
             }
           />
@@ -76,8 +74,8 @@ function App() {
           <Route
             path="/dossiers/create"
             element={
-              <ProtectedRoute allowedRoles={['AGENT', 'GESTIONNAIRE', 'ADMIN']}>
-                <DossierCreate />
+              <ProtectedRoute>
+                <Navigate to="/dossiers" replace />
               </ProtectedRoute>
             }
           />

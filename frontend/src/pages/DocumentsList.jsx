@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import api, { getApiErrorMessage } from '../services/api';
 import { AUTH_CHANGED_EVENT, getStoredRole, getStoredUser } from '../services/auth';
+import DocumentUploadModal from '../components/DocumentUploadModal';
 import { StatusBadge, ErrorAlert, EmptyState, SuccessAlert, ConfirmationModal, SortableHeader } from '../ui';
 import {
   normalizeListFilters,
@@ -48,6 +49,7 @@ function DocumentsList() {
   const [filtersDraft, setFiltersDraft] = useState(DEFAULT_DOCUMENT_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(DEFAULT_DOCUMENT_FILTERS);
   const [sortState, setSortState] = useState(DEFAULT_DOCUMENT_SORT);
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
 
   const currentPageRef = useRef(currentPage);
   const appliedFiltersRef = useRef(DEFAULT_DOCUMENT_FILTERS);
@@ -181,6 +183,17 @@ function DocumentsList() {
 
     setLoading(true);
     const docs = await fetchDocuments(page, appliedFiltersRef.current, appliedSortRef.current);
+    setupPolling(docs);
+  };
+
+  const handleUploadModalFinished = async () => {
+    setSuccessMessage('Document(s) uploaded successfully.');
+    setLoading(true);
+    const docs = await fetchDocuments(
+      currentPageRef.current,
+      appliedFiltersRef.current,
+      appliedSortRef.current
+    );
     setupPolling(docs);
   };
 
@@ -437,8 +450,9 @@ function DocumentsList() {
 
         {canUpload && (
           <button
+            type="button"
             className="btn btn-primary"
-            onClick={() => navigate('/documents/upload')}
+            onClick={() => setUploadModalOpen(true)}
           >
             <i className="bi bi-cloud-upload me-2"></i>
             Upload Documents
@@ -639,8 +653,9 @@ function DocumentsList() {
                             )
                             : canUpload ? (
                               <button
+                                type="button"
                                 className="btn btn-primary"
-                                onClick={() => navigate('/documents/upload')}
+                                onClick={() => setUploadModalOpen(true)}
                               >
                                 <i className="bi bi-cloud-upload me-2"></i>
                                 Upload Documents
@@ -683,6 +698,12 @@ function DocumentsList() {
           </div>
         </div>
       </div>
+
+      <DocumentUploadModal
+        isOpen={uploadModalOpen}
+        onClose={() => setUploadModalOpen(false)}
+        onUploaded={handleUploadModalFinished}
+      />
 
       <ConfirmationModal
         isOpen={Boolean(deleteTargetDocument)}

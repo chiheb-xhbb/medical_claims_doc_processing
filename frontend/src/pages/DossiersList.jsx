@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import api, { getApiErrorMessage } from '../services/api';
 import { AUTH_CHANGED_EVENT, getStoredRole, getStoredUser } from '../services/auth';
+import DossierCreateModal from '../components/DossierCreateModal';
 import { ErrorAlert, EmptyState, SuccessAlert, ConfirmationModal, SortableHeader } from '../ui';
 import {
   normalizeListFilters,
@@ -117,6 +118,7 @@ function DossiersList() {
   const [filtersDraft, setFiltersDraft] = useState(DEFAULT_DOSSIER_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(DEFAULT_DOSSIER_FILTERS);
   const [sortState, setSortState] = useState(DEFAULT_DOSSIER_SORT);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
   const appliedFiltersRef = useRef(DEFAULT_DOSSIER_FILTERS);
   const appliedSortRef = useRef(DEFAULT_DOSSIER_SORT);
 
@@ -338,8 +340,9 @@ function DossiersList() {
 
         {pageConfig.canCreateDossier && (
           <button
+            type="button"
             className="btn btn-primary"
-            onClick={() => navigate('/dossiers/create')}
+            onClick={() => setCreateModalOpen(true)}
           >
             <i className="bi bi-plus-circle me-2"></i>
             {pageConfig.createButtonLabel}
@@ -573,8 +576,9 @@ function DossiersList() {
                               </button>
                             ) : pageConfig.canCreateDossier ? (
                               <button
+                                type="button"
                                 className="btn btn-primary"
-                                onClick={() => navigate('/dossiers/create')}
+                                onClick={() => setCreateModalOpen(true)}
                               >
                                 <i className="bi bi-plus-circle me-2"></i>
                                 Create Dossier
@@ -618,6 +622,11 @@ function DossiersList() {
           </div>
         </div>
       </div>
+
+      <DossierCreateModal
+        isOpen={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+      />
 
       <ConfirmationModal
         isOpen={Boolean(deleteTargetDossier)}
