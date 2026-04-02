@@ -13,17 +13,13 @@ import { MainLayout } from './layout';
 import { setAuthToken } from './utils/setAuthToken';
 import { getCurrentUser, getDefaultLandingPath } from './services/auth';
 
-// Note: All styles are imported in main.jsx to ensure correct load order
-
 function App() {
-  // Initialize auth token on mount
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
     if (token) {
       setAuthToken(token);
-      // Keep local auth user (including role) aligned with backend /me.
       getCurrentUser().catch(() => {
-        // 401 is handled by the API interceptor; other failures should not block app render.
+        // handled by interceptor if token is invalid
       });
     }
   }, []);
@@ -32,38 +28,42 @@ function App() {
     <BrowserRouter>
       <MainLayout>
         <Routes>
-          <Route 
-            path="/login" 
+          <Route
+            path="/login"
             element={
               localStorage.getItem('auth_token')
                 ? <Navigate to={getDefaultLandingPath()} replace />
                 : <Login />
-            } 
+            }
           />
-          <Route 
-            path="/documents" 
+
+          <Route
+            path="/documents"
             element={
               <ProtectedRoute>
                 <DocumentsList />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/documents/upload" 
+
+          <Route
+            path="/documents/upload"
             element={
-              <ProtectedRoute allowedRoles={["AGENT", "GESTIONNAIRE", "ADMIN"]}>
+              <ProtectedRoute allowedRoles={['AGENT', 'GESTIONNAIRE', 'ADMIN']}>
                 <DocumentUpload />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/documents/:id/validate" 
+
+          <Route
+            path="/documents/:id/validate"
             element={
               <ProtectedRoute>
                 <DocumentValidation />
               </ProtectedRoute>
-            } 
+            }
           />
+
           <Route
             path="/dossiers"
             element={
@@ -72,14 +72,16 @@ function App() {
               </ProtectedRoute>
             }
           />
+
           <Route
             path="/dossiers/create"
             element={
-              <ProtectedRoute allowedRoles={["AGENT", "GESTIONNAIRE", "ADMIN"]}>
+              <ProtectedRoute allowedRoles={['AGENT', 'GESTIONNAIRE', 'ADMIN']}>
                 <DossierCreate />
               </ProtectedRoute>
             }
           />
+
           <Route
             path="/dossiers/:id"
             element={
@@ -88,14 +90,16 @@ function App() {
               </ProtectedRoute>
             }
           />
+
           <Route
             path="/admin/users"
             element={
-              <ProtectedRoute allowedRoles={["ADMIN"]}>
+              <ProtectedRoute allowedRoles={['ADMIN']}>
                 <AdminUsers />
               </ProtectedRoute>
             }
           />
+
           <Route
             path="/"
             element={

@@ -1,23 +1,24 @@
-/**
- * Main layout wrapper with navbar
- * @param {React.ReactNode} children - Page content
- */
+import { useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 
 function MainLayout({ children }) {
+  const location = useLocation();
+  const isLoginPage = location.pathname === '/login';
+
   return (
-    <div 
+    <div
       className="d-flex flex-column"
-      style={{ 
+      style={{
         minHeight: '100vh',
-        backgroundColor: 'var(--color-bg-page)'
+        backgroundColor: 'var(--color-bg-page)',
       }}
     >
-      {/* Navigation */}
       <Navbar />
-      
-      {/* Main Content Area */}
-      <main className="flex-grow-1">
+
+      <main
+        className="flex-grow-1"
+        style={{ paddingTop: isLoginPage ? 0 : 'var(--navbar-height)' }}
+      >
         {children}
       </main>
     </div>

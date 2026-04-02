@@ -1,4 +1,4 @@
-/* Dossiers list page styles */
+/* Dossiers list — layout, filters, skeleton, nowrap cells; shared table styles: common.css */
 
 .dossiers-list .card {
   border: none;
@@ -9,76 +9,6 @@
 
 .dossiers-list .table td {
   white-space: nowrap;
-}
-
-.dossiers-list .table thead th {
-  background-color: var(--table-header-bg);
-  color: var(--table-header-color);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-  text-transform: uppercase;
-  letter-spacing: var(--letter-spacing-widest);
-  padding: var(--table-cell-padding-y) var(--table-cell-padding-x);
-  border-bottom: 2px solid var(--color-gray-200);
-  white-space: nowrap;
-}
-
-.dossiers-list .table thead th.sortable-column {
-  padding: 0;
-}
-
-.dossiers-list .sort-header-button {
-  width: 100%;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  display: inline-flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-2);
-  padding: var(--table-cell-padding-y) var(--table-cell-padding-x);
-  font-size: inherit;
-  font-weight: inherit;
-  letter-spacing: inherit;
-  text-transform: inherit;
-  transition: var(--transition-colors);
-  cursor: pointer;
-}
-
-.dossiers-list .sort-header-button:hover:not(:disabled) {
-  color: var(--color-primary);
-}
-
-.dossiers-list .sort-header-button:disabled {
-  cursor: default;
-}
-
-.dossiers-list .sort-indicator {
-  opacity: 0.5;
-  font-size: 0.75rem;
-}
-
-.dossiers-list .table thead th.sort-active .sort-header-button {
-  color: var(--color-primary);
-  background-color: rgba(37, 99, 235, 0.07);
-}
-
-.dossiers-list .table thead th.sort-active .sort-indicator {
-  opacity: 1;
-}
-
-.dossiers-list .table td {
-  padding: var(--spacing-4) var(--spacing-5);
-  vertical-align: middle;
-  border-bottom: 1px solid var(--color-gray-100);
-}
-
-.dossiers-list .table-hover tbody tr {
-  transition: var(--transition-colors);
-}
-
-.dossiers-list .table-hover tbody tr:hover {
-  background-color: var(--color-gray-50);
 }
 
 .dossiers-list .dossier-status {

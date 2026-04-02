@@ -1,20 +1,23 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { AUTH_CHANGED_EVENT, getDefaultLandingPath, getStoredRole, isAuthenticated, logout } from '../services/auth';
+import { AUTH_CHANGED_EVENT, getDefaultLandingPath, getStoredRole, getStoredUser, isAuthenticated, logout } from '../services/auth';
+
+const ROLE_LABELS = {
+  AGENT: 'Agent',
+  GESTIONNAIRE: 'Gestionnaire',
+  ADMIN: 'Admin',
+};
+
+const ROLE_BADGE_CLASS = {
+  AGENT: 'nb-role-badge--agent',
+  GESTIONNAIRE: 'nb-role-badge--gestionnaire',
+  ADMIN: 'nb-role-badge--admin',
+};
 
 const getDossiersNavLabel = (role) => {
-  if (role === 'AGENT') {
-    return 'My Dossiers';
-  }
-
-  if (role === 'GESTIONNAIRE') {
-    return 'Dossiers';
-  }
-
-  if (role === 'ADMIN') {
-    return 'All Dossiers';
-  }
-
+  if (role === 'AGENT') return 'My Dossiers';
+  if (role === 'GESTIONNAIRE') return 'Dossiers';
+  if (role === 'ADMIN') return 'All Dossiers';
   return 'Dossiers';
 };
 
@@ -23,14 +26,19 @@ function Navbar() {
   const navigate = useNavigate();
   const [authSnapshot, setAuthSnapshot] = useState(() => ({
     authenticated: isAuthenticated(),
-    role: getStoredRole()
+    role: getStoredRole(),
+    user: getStoredUser(),
   }));
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const dropdownRef = useRef(null);
 
   useEffect(() => {
     const syncAuth = () => {
       setAuthSnapshot({
         authenticated: isAuthenticated(),
-        role: getStoredRole()
+        role: getStoredRole(),
+        user: getStoredUser(),
       });
     };
 
@@ -42,6 +50,31 @@ function Navbar() {
       window.removeEventListener('storage', syncAuth);
     };
   }, []);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setDropdownOpen(false);
+      }
+    };
+    if (dropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [dropdownOpen]);
+
+  // Close dropdown on route change
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset menu when pathname changes
+    setDropdownOpen(false);
+  }, [location.pathname]);
 
   const dossiersNavLabel = useMemo(() => getDossiersNavLabel(authSnapshot.role), [authSnapshot.role]);
 
@@ -70,6 +103,7 @@ function Navbar() {
   };
 
   const handleLogout = async () => {
+    setDropdownOpen(false);
     try {
       await logout();
     } catch {
@@ -84,19 +118,29 @@ function Navbar() {
     return null;
   }
 
+  const userDisplayName = authSnapshot.user?.name || authSnapshot.user?.email || 'User';
+  const userInitial = userDisplayName.charAt(0).toUpperCase();
+  const roleBadgeClass = ROLE_BADGE_CLASS[authSnapshot.role] || '';
+  const roleLabel = ROLE_LABELS[authSnapshot.role] || authSnapshot.role || '';
+
   return (
-    <nav className="navbar navbar-expand-lg navbar-dark bg-primary">
-      <div className="container">
+    <nav className={`nb-navbar navbar navbar-expand-lg${scrolled ? ' nb-navbar--scrolled' : ''}`} aria-label="Main navigation">
+      <div className="container nb-navbar__inner">
+        {/* Brand */}
         <NavLink
-          className="navbar-brand d-flex align-items-center"
+          className="navbar-brand nb-brand"
           to={authSnapshot.authenticated ? getDefaultLandingPath(authSnapshot.role) : '/login'}
+          aria-label="MedDocs home"
         >
-          <i className="bi bi-file-medical me-2"></i>
-          MedDocs
+          <span className="nb-brand__icon" aria-hidden="true">
+            <i className="bi bi-file-medical"></i>
+          </span>
+          <span className="nb-brand__text">MedDocs</span>
         </NavLink>
 
+        {/* Mobile toggler */}
         <button
-          className="navbar-toggler"
+          className="navbar-toggler nb-toggler"
           type="button"
           data-bs-toggle="collapse"
           data-bs-target="#navbarNav"
@@ -108,16 +152,17 @@ function Navbar() {
         </button>
 
         <div className="collapse navbar-collapse" id="navbarNav">
-          <ul className="navbar-nav ms-auto">
-            {authSnapshot.authenticated ? (
-              <>
+          {authSnapshot.authenticated ? (
+            <>
+              {/* Primary nav links */}
+              <ul className="navbar-nav nb-nav-links mx-auto">
                 <li className="nav-item">
                   <NavLink
-                    className={`nav-link ${isActive('/documents') ? 'active' : ''}`}
-                    end
+                    className={() => `nb-nav-link nav-link${isActive('/documents') ? ' active' : ''}`}
                     to="/documents"
+                    end
                   >
-                    <i className="bi bi-files me-1"></i>
+                    <i className="bi bi-files" aria-hidden="true"></i>
                     Documents
                   </NavLink>
                 </li>
@@ -125,21 +170,21 @@ function Navbar() {
                 {['AGENT', 'GESTIONNAIRE', 'ADMIN'].includes(authSnapshot.role) && (
                   <li className="nav-item">
                     <NavLink
-                      className={`nav-link ${location.pathname === '/documents/upload' ? 'active' : ''}`}
+                      className={() => `nb-nav-link nav-link${location.pathname === '/documents/upload' ? ' active' : ''}`}
                       to="/documents/upload"
                     >
-                      <i className="bi bi-cloud-upload me-1"></i>
-                      Upload Documents
+                      <i className="bi bi-cloud-upload" aria-hidden="true"></i>
+                      Upload
                     </NavLink>
                   </li>
                 )}
 
                 <li className="nav-item">
                   <NavLink
-                    className={`nav-link ${isActive('/dossiers') ? 'active' : ''}`}
+                    className={() => `nb-nav-link nav-link${isActive('/dossiers') ? ' active' : ''}`}
                     to="/dossiers"
                   >
-                    <i className="bi bi-briefcase me-1"></i>
+                    <i className="bi bi-briefcase" aria-hidden="true"></i>
                     {dossiersNavLabel}
                   </NavLink>
                 </li>
@@ -147,37 +192,72 @@ function Navbar() {
                 {authSnapshot.role === 'ADMIN' && (
                   <li className="nav-item">
                     <NavLink
-                      className={`nav-link ${isActive('/admin/users') ? 'active' : ''}`}
+                      className={() => `nb-nav-link nav-link${isActive('/admin/users') ? ' active' : ''}`}
                       to="/admin/users"
                     >
-                      <i className="bi bi-people me-1"></i>
-                      User Management
+                      <i className="bi bi-people" aria-hidden="true"></i>
+                      Users
                     </NavLink>
                   </li>
                 )}
+              </ul>
 
-                <li className="nav-item">
-                  <button
-                    className="nav-link btn btn-link text-white"
-                    onClick={handleLogout}
-                  >
-                    <i className="bi bi-box-arrow-right me-1"></i>
-                    Logout
-                  </button>
-                </li>
-              </>
-            ) : (
+              {/* Divider + User area */}
+              <div className="nb-user-area" ref={dropdownRef}>
+                <div className="nb-user-divider" role="separator" aria-hidden="true"></div>
+
+                <button
+                  className="nb-user-trigger"
+                  onClick={() => setDropdownOpen((prev) => !prev)}
+                  aria-haspopup="true"
+                  aria-expanded={dropdownOpen}
+                  aria-label="User menu"
+                  id="nb-user-menu-btn"
+                >
+                  <span className="nb-user-avatar" aria-hidden="true">{userInitial}</span>
+                  <span className="nb-user-info">
+                    <span className="nb-user-name">{userDisplayName}</span>
+                    {roleLabel && (
+                      <span className={`nb-role-badge ${roleBadgeClass}`}>{roleLabel}</span>
+                    )}
+                  </span>
+                  <i className={`bi bi-chevron-down nb-chevron ${dropdownOpen ? 'nb-chevron--open' : ''}`} aria-hidden="true"></i>
+                </button>
+
+                {dropdownOpen && (
+                  <div className="nb-dropdown" role="menu" aria-labelledby="nb-user-menu-btn">
+                    <div className="nb-dropdown__header">
+                      <span className="nb-dropdown__name">{userDisplayName}</span>
+                      {roleLabel && (
+                        <span className={`nb-role-badge ${roleBadgeClass}`}>{roleLabel}</span>
+                      )}
+                    </div>
+                    <div className="nb-dropdown__divider" role="separator"></div>
+                    <button
+                      className="nb-dropdown__item nb-dropdown__item--danger"
+                      onClick={handleLogout}
+                      role="menuitem"
+                    >
+                      <i className="bi bi-box-arrow-right" aria-hidden="true"></i>
+                      Sign out
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <ul className="navbar-nav ms-auto">
               <li className="nav-item">
                 <NavLink
-                  className={`nav-link ${location.pathname === '/login' ? 'active' : ''}`}
+                  className={`nb-nav-link nav-link ${location.pathname === '/login' ? 'active' : ''}`}
                   to="/login"
                 >
-                  <i className="bi bi-box-arrow-in-right me-1"></i>
+                  <i className="bi bi-box-arrow-in-right" aria-hidden="true"></i>
                   Login
                 </NavLink>
               </li>
-            )}
-          </ul>
+            </ul>
+          )}
         </div>
       </div>
     </nav>
