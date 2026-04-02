@@ -124,8 +124,17 @@ AMOUNT_RE = re.compile(
     r"(?!\d)"
 )
 
+GENERIC_PROVIDER_ONLY_RE = re.compile(
+    r"^(?:pharmacie|laboratoire|labo|clinique|cabinet|centre|polyclinique|hopital|h\u00f4pital)$",
+    re.IGNORECASE,
+)
+
 PROVIDER_KEYWORDS_RE = re.compile(
     r"\b(?:pharmacie|laboratoire|labo|clinique|cabinet|centre|polyclinique|hopital|hôpital|dr|docteur|compagnie|societe|société)\b",
+    re.IGNORECASE,
+)
+PROVIDER_PREFIX_KEYWORD_RE = re.compile(
+    r"^(?:clinique|cabinet|centre|pharmacie|laboratoire|labo|polyclinique|hopital|h\u00f4pital)\b",
     re.IGNORECASE,
 )
 PROVIDER_ORG_TERMS_RE = re.compile(
@@ -142,6 +151,11 @@ PROVIDER_STRONG_NOISE_RE = re.compile(
     r"\b(?:facture|invoice|reçu|n°\s*facture|numero\s*facture)\b",
     re.IGNORECASE,
 )
+
+PROVIDER_GENERIC_SINGLE_TOKEN_PENALTY = float(os.getenv("PROVIDER_GENERIC_SINGLE_TOKEN_PENALTY", "0.35"))
+PROVIDER_LONG_CANDIDATE_BONUS = float(os.getenv("PROVIDER_LONG_CANDIDATE_BONUS", "0.12"))
+PROVIDER_SIMILAR_SCORE_MARGIN = float(os.getenv("PROVIDER_SIMILAR_SCORE_MARGIN", "0.18"))
+PROVIDER_PREFIX_MULTIWORD_BONUS = float(os.getenv("PROVIDER_PREFIX_MULTIWORD_BONUS", "0.20"))
 EMAIL_OR_WEB_RE = re.compile(r"(?:@|www\.|https?://)", re.IGNORECASE)
 
 PATIENT_PATTERNS = [
@@ -1493,28 +1507,29 @@ def extract_provider_name(ocr_lines: list[OCRLine], nlp_doc: Optional[Any]) -> t
         }
 
     candidates: list[dict[str, Any]] = []
+    candidate_indexes: dict[str, int] = {}
 
-    for index, line in enumerate(top_lines):
-        cleaned = clean_provider_candidate(line.text)
+    def evaluate_provider_candidate(candidate_text: str, *, index: int, line_score: float) -> None:
+        cleaned = clean_provider_candidate(candidate_text)
         if not cleaned:
-            continue
+            return
 
         has_keyword = bool(PROVIDER_KEYWORDS_RE.search(cleaned))
         has_org_term = bool(PROVIDER_ORG_TERMS_RE.search(cleaned))
-        has_noise = bool(PROVIDER_NOISE_RE.search(line.text))
-        has_strong_noise = bool(PROVIDER_STRONG_NOISE_RE.search(line.text))
+        has_noise = bool(PROVIDER_NOISE_RE.search(candidate_text))
+        has_strong_noise = bool(PROVIDER_STRONG_NOISE_RE.search(candidate_text))
         has_spacy_support = spacy_supports_text(cleaned, nlp_doc)
         cleanliness = compute_provider_cleanliness(cleaned)
         digit_ratio = compute_digit_ratio(cleaned)
 
         if has_strong_noise and not (has_keyword or has_org_term):
-            continue
+            return
 
         if has_noise and not (has_keyword or has_org_term):
-            continue
+            return
 
         if cleanliness < 0.35:
-            continue
+            return
 
         score = 0.18
 
@@ -1533,35 +1548,54 @@ def extract_provider_name(ocr_lines: list[OCRLine], nlp_doc: Optional[Any]) -> t
             score += 0.22
 
         score += 0.18 * cleanliness
-        score += 0.10 * clamp(line.score)
+        score += 0.10 * clamp(line_score)
 
-        if EMAIL_OR_WEB_RE.search(line.text):
+        if EMAIL_OR_WEB_RE.search(candidate_text):
             score -= 0.18
         if digit_ratio > 0.20:
             score -= 0.18
         if has_strong_noise:
             score -= 0.20
 
-        if re.search(r"(?i)\b(?:avenue|av\.|rue|boulevard|bd|route)\b", line.text):
-            score -= 0.20
-
         word_count = len(cleaned.split())
         if 2 <= word_count <= 6:
             score += 0.10
 
-        candidates.append(
-            {
-                "value": cleaned[:80],
-                "score": score,
-                "source": "spacy+heuristic" if has_spacy_support else "heuristic",
-                "has_keyword": has_keyword or has_org_term,
-                "spacy_support": has_spacy_support,
-                "line_cleanliness": cleanliness,
-                "line_score": clamp(line.score),
-                "raw_value": cleaned,
-                "line_text": line.text,
-            }
-        )
+        if word_count >= 2 and PROVIDER_PREFIX_KEYWORD_RE.search(cleaned):
+            score += PROVIDER_PREFIX_MULTIWORD_BONUS
+
+        normalized_cleaned = normalize_for_compare(cleaned)
+        if not normalized_cleaned:
+            return
+
+        candidate = {
+            "value": cleaned[:80],
+            "score": score,
+            "source": "spacy+heuristic" if has_spacy_support else "heuristic",
+            "has_keyword": has_keyword or has_org_term,
+            "spacy_support": has_spacy_support,
+            "line_cleanliness": cleanliness,
+            "line_score": clamp(line_score),
+            "raw_value": cleaned,
+            "line_text": candidate_text,
+        }
+
+        existing_index = candidate_indexes.get(normalized_cleaned)
+        if existing_index is None:
+            candidate_indexes[normalized_cleaned] = len(candidates)
+            candidates.append(candidate)
+            return
+
+        if candidate["score"] > candidates[existing_index]["score"]:
+            candidates[existing_index] = candidate
+
+    for index, line in enumerate(top_lines):
+        evaluate_provider_candidate(line.text, index=index, line_score=line.score)
+
+        if index + 1 < len(top_lines):
+            merged_text = f"{line.text} {top_lines[index + 1].text}".strip()
+            merged_score = max(line.score, top_lines[index + 1].score)
+            evaluate_provider_candidate(merged_text, index=index, line_score=merged_score)
 
     if not candidates:
         for line in top_lines[:6]:
@@ -1593,6 +1627,8 @@ def extract_provider_name(ocr_lines: list[OCRLine], nlp_doc: Optional[Any]) -> t
             "line_text": None,
         }
 
+    # Apply provider specificity tuning before selecting the top candidate.
+    candidates = apply_provider_specificity_rules(candidates)
     best = max(candidates, key=lambda item: item["score"])
 
     return best["value"], {
@@ -1645,6 +1681,41 @@ def clean_provider_candidate(text: str) -> str:
     candidate = re.sub(r"\s{2,}", " ", candidate).strip(" -_;,.")
 
     return candidate
+
+
+def is_generic_single_provider(candidate: str) -> bool:
+    normalized = normalize_for_compare(candidate)
+    if not normalized:
+        return False
+
+    tokens = normalized.split()
+    if len(tokens) != 1:
+        return False
+
+    return bool(GENERIC_PROVIDER_ONLY_RE.fullmatch(tokens[0]))
+
+
+def apply_provider_specificity_rules(candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    if not candidates:
+        return candidates
+
+    max_score = max(float(item.get("score", 0.0)) for item in candidates)
+
+    for item in candidates:
+        base_score = float(item.get("score", 0.0))
+        candidate_value = str(item.get("raw_value") or item.get("value") or "")
+        word_count = len(normalize_for_compare(candidate_value).split())
+
+        # Penalize generic one-word provider labels when a more specific name may exist.
+        if is_generic_single_provider(candidate_value):
+            item["score"] = base_score - PROVIDER_GENERIC_SINGLE_TOKEN_PENALTY
+            continue
+
+        # Reward richer multi-token provider names when their score is close to the best.
+        if word_count >= 2 and base_score >= (max_score - PROVIDER_SIMILAR_SCORE_MARGIN):
+            item["score"] = base_score + PROVIDER_LONG_CANDIDATE_BONUS
+
+    return candidates
 
 
 def spacy_supports_text(candidate: str, nlp_doc: Optional[Any]) -> bool:
