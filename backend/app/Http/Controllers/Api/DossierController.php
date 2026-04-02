@@ -48,10 +48,13 @@ class DossierController extends Controller
         if ($this->hasRole($user, UserRole::AGENT)) {
             $query->where('created_by', $user->id);
         } elseif ($this->hasRole($user, UserRole::GESTIONNAIRE)) {
-            $query->whereIn('status', [
-                DossierStatus::TO_VALIDATE->value,
-                DossierStatus::PROCESSED->value,
-            ]);
+            $query->where(function ($scope) use ($user) {
+                $scope->where('created_by', $user->id)
+                    ->orWhereIn('status', [
+                        DossierStatus::TO_VALIDATE->value,
+                        DossierStatus::PROCESSED->value,
+                    ]);
+            });
         } elseif (! $this->hasRole($user, UserRole::ADMIN)) {
             return response()->json([
                 'message' => 'You are not allowed to view dossiers.',
@@ -223,7 +226,7 @@ class DossierController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        if (! $this->canPrepareDossiers($user) || ! $this->canManageOwnDossier($user, $dossier)) {
+        if (! $this->canPrepareDossiers($user) || ! $this->canManagePreparationDossier($user, $dossier)) {
             return response()->json([
                 'message' => 'You are not allowed to submit this dossier.',
             ], 403);
@@ -405,7 +408,7 @@ class DossierController extends Controller
 
     private function canPrepareDossiers(User $user): bool
     {
-        return $this->hasRole($user, UserRole::AGENT, UserRole::ADMIN);
+        return $this->hasRole($user, UserRole::AGENT, UserRole::GESTIONNAIRE, UserRole::ADMIN);
     }
 
     private function canReviewDossiers(User $user): bool
@@ -419,7 +422,17 @@ class DossierController extends Controller
             return true;
         }
 
-        return $this->hasRole($user, UserRole::AGENT)
+        return $this->hasRole($user, UserRole::AGENT, UserRole::GESTIONNAIRE)
+            && (int) $dossier->created_by === (int) $user->id;
+    }
+
+    private function canManagePreparationDossier(User $user, Dossier $dossier): bool
+    {
+        if ($this->hasRole($user, UserRole::ADMIN)) {
+            return true;
+        }
+
+        return $this->hasRole($user, UserRole::AGENT, UserRole::GESTIONNAIRE)
             && (int) $dossier->created_by === (int) $user->id;
     }
 
@@ -434,6 +447,10 @@ class DossierController extends Controller
         }
 
         if ($this->hasRole($user, UserRole::GESTIONNAIRE)) {
+            if ((int) $dossier->created_by === (int) $user->id) {
+                return true;
+            }
+
             return in_array($dossier->status->value, [
                 DossierStatus::TO_VALIDATE->value,
                 DossierStatus::PROCESSED->value,

@@ -19,7 +19,7 @@ class StoreDocumentRequest extends FormRequest
             ? $user->role
             : UserRole::tryFrom((string) $user->role);
 
-        return in_array($currentRole, [UserRole::AGENT, UserRole::ADMIN], true);
+        return in_array($currentRole, [UserRole::AGENT, UserRole::GESTIONNAIRE, UserRole::ADMIN], true);
     }
 
     public function rules(): array

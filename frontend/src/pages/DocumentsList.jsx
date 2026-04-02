@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import api, { getApiErrorMessage } from '../services/api';
-import { getStoredRole, getStoredUser } from '../services/auth';
+import { AUTH_CHANGED_EVENT, getStoredRole, getStoredUser } from '../services/auth';
 import { StatusBadge, ErrorAlert, EmptyState, SuccessAlert, ConfirmationModal, SortableHeader } from '../ui';
 import {
   normalizeListFilters,
@@ -29,9 +29,9 @@ const DEFAULT_DOCUMENT_SORT = {
 function DocumentsList() {
   const navigate = useNavigate();
   const location = useLocation();
-  const currentRole = getStoredRole();
-  const currentUser = getStoredUser();
-  const canUpload = currentRole === 'AGENT' || currentRole === 'ADMIN';
+  const [role, setRole] = useState(() => getStoredRole());
+  const [currentUserId, setCurrentUserId] = useState(() => Number(getStoredUser()?.id || 0));
+  const canUpload = role === 'AGENT' || role === 'GESTIONNAIRE' || role === 'ADMIN';
 
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -53,6 +53,19 @@ function DocumentsList() {
   const appliedFiltersRef = useRef(DEFAULT_DOCUMENT_FILTERS);
   const appliedSortRef = useRef(DEFAULT_DOCUMENT_SORT);
   const pollingIntervalRef = useRef(null);
+
+  useEffect(() => {
+    const syncRole = () => {
+      setRole(getStoredRole());
+      setCurrentUserId(Number(getStoredUser()?.id || 0));
+    };
+
+    window.addEventListener(AUTH_CHANGED_EVENT, syncRole);
+
+    return () => {
+      window.removeEventListener(AUTH_CHANGED_EVENT, syncRole);
+    };
+  }, []);
 
   useEffect(() => {
     currentPageRef.current = currentPage;
@@ -246,12 +259,12 @@ function DocumentsList() {
       return false;
     }
 
-    if (currentRole === 'ADMIN') {
+    if (role === 'ADMIN') {
       return true;
     }
 
-    if (currentRole === 'AGENT') {
-      return Number(doc.user_id) === Number(currentUser?.id);
+    if (role === 'AGENT' || role === 'GESTIONNAIRE') {
+      return Number(doc.user_id) === Number(currentUserId);
     }
 
     return false;
@@ -313,7 +326,7 @@ function DocumentsList() {
 
   const renderActionButton = (doc) => {
     const isRetrying = retryingIds.includes(doc.id);
-    const canRetry = Number(doc.user_id) === Number(currentUser?.id);
+    const canRetry = Number(doc.user_id) === Number(currentUserId);
     const canDelete = canDeleteDocument(doc);
     const isDeleting = deletingDocumentId === doc.id;
     let primaryAction;

@@ -14,7 +14,7 @@ import './DossiersList/DossiersList.css';
 
 const DOSSIER_STATUS_OPTIONS = {
   AGENT: ['RECEIVED', 'IN_PROGRESS', 'TO_VALIDATE', 'PROCESSED'],
-  GESTIONNAIRE: ['TO_VALIDATE', 'PROCESSED'],
+  GESTIONNAIRE: ['RECEIVED', 'IN_PROGRESS', 'TO_VALIDATE', 'PROCESSED'],
   ADMIN: ['RECEIVED', 'IN_PROGRESS', 'TO_VALIDATE', 'PROCESSED']
 };
 
@@ -44,12 +44,12 @@ const getRolePageConfig = (role) => {
 
   if (role === 'GESTIONNAIRE') {
     return {
-      title: 'Dossiers to Review',
-      subtitle: 'Review dossiers awaiting business decisions and processing.',
-      emptyTitle: 'No Dossiers to Review',
-      emptyDescription: 'No dossier is currently available for your review scope.',
+      title: 'Dossiers',
+      subtitle: 'Create your dossiers and review dossiers awaiting business decisions.',
+      emptyTitle: 'No Dossiers Found',
+      emptyDescription: 'No dossier is currently available. You can create a new dossier to get started.',
       createButtonLabel: 'New Dossier',
-      canCreateDossier: false
+      canCreateDossier: true
     };
   }
 
@@ -262,7 +262,7 @@ function DossiersList() {
       return true;
     }
 
-    if (role === 'AGENT') {
+    if (role === 'AGENT' || role === 'GESTIONNAIRE') {
       return Number(dossier.created_by) === Number(currentUserId);
     }
 

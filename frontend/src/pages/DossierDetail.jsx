@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getStoredRole, AUTH_CHANGED_EVENT } from '../services/auth';
+import { getStoredRole, getStoredUser, AUTH_CHANGED_EVENT } from '../services/auth';
 import {
   getDossierDetail,
   createRubrique,
@@ -23,7 +23,7 @@ import RejectDocumentModal from './DossierDetail/components/RejectDocumentModal'
 import RejectRubriqueModal from './DossierDetail/components/RejectRubriqueModal';
 import './DossierDetail/DossierDetail.css';
 
-const DOSSIER_FROZEN_STATUSES = ['PROCESSED', 'EXPORTED'];
+const DOSSIER_FROZEN_STATUSES = ['PROCESSED'];
 const INITIAL_CONFIRMATION_MODAL = {
   isOpen: false,
   action: null,
@@ -199,9 +199,13 @@ function DossierDetail() {
   }, [refreshDetail]);
 
   const [role, setRole] = useState(() => getStoredRole());
+  const [currentUserId, setCurrentUserId] = useState(() => Number(getStoredUser()?.id || 0));
 
   useEffect(() => {
-    const syncRole = () => setRole(getStoredRole());
+    const syncRole = () => {
+      setRole(getStoredRole());
+      setCurrentUserId(Number(getStoredUser()?.id || 0));
+    };
     window.addEventListener(AUTH_CHANGED_EVENT, syncRole);
     return () => window.removeEventListener(AUTH_CHANGED_EVENT, syncRole);
   }, []);
@@ -210,11 +214,11 @@ function DossierDetail() {
   const rubriques = useMemo(() => dossierData?.rubriques ?? [], [dossierData]);
   const dossierStatus = (dossier?.status || '').toUpperCase();
 
-  const canPrepare = role === 'AGENT' || role === 'ADMIN';
+  const canPrepare = role === 'AGENT' || role === 'GESTIONNAIRE' || role === 'ADMIN';
   const canReview = role === 'GESTIONNAIRE' || role === 'ADMIN';
 
   const isFrozen = DOSSIER_FROZEN_STATUSES.includes(dossierStatus);
-  // Preparation actions: AGENT or ADMIN + correct status
+  // Preparation actions: AGENT, GESTIONNAIRE, or ADMIN + correct status
   const canCreateRubrique = canPrepare && (dossierStatus === 'RECEIVED' || dossierStatus === 'IN_PROGRESS');
   const canDeleteRubrique = canPrepare && (dossierStatus === 'RECEIVED' || dossierStatus === 'IN_PROGRESS');
   const canAttachDocuments = canPrepare && dossierStatus === 'IN_PROGRESS';
@@ -251,6 +255,10 @@ function DossierDetail() {
         return false;
       }
 
+      if (role !== 'ADMIN' && Number(document.user_id) !== Number(currentUserId)) {
+        return false;
+      }
+
       // Exclude documents already displayed in any rubrique on this page.
       // This covers the case where a doc was just attached in this session
       // and its rubrique_id is not yet null in the server's latest response.
@@ -263,7 +271,7 @@ function DossierDetail() {
       // Both checks together make the duplicate-attachment prevention robust.
       return document.rubrique_id === null || document.rubrique_id === undefined;
     });
-  }, [validatedDocuments, allAttachedDocumentIds]);
+  }, [validatedDocuments, allAttachedDocumentIds, role, currentUserId]);
 
   const handleToggleDocument = (documentId) => {
     setSelectedDocumentIds((prev) => {

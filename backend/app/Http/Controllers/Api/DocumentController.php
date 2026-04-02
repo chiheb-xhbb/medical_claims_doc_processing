@@ -273,7 +273,7 @@ class DocumentController extends Controller
             return true;
         }
 
-        return $this->hasRole($user, UserRole::AGENT)
+        return $this->hasRole($user, UserRole::AGENT, UserRole::GESTIONNAIRE)
             && (int) $document->user_id === (int) $user->id;
     }
 

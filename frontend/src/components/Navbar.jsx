@@ -8,7 +8,7 @@ const getDossiersNavLabel = (role) => {
   }
 
   if (role === 'GESTIONNAIRE') {
-    return 'Dossiers to Review';
+    return 'Dossiers';
   }
 
   if (role === 'ADMIN') {
@@ -122,7 +122,7 @@ function Navbar() {
                   </NavLink>
                 </li>
 
-                {authSnapshot.role !== 'GESTIONNAIRE' && (
+                {['AGENT', 'GESTIONNAIRE', 'ADMIN'].includes(authSnapshot.role) && (
                   <li className="nav-item">
                     <NavLink
                       className={`nav-link ${location.pathname === '/documents/upload' ? 'active' : ''}`}

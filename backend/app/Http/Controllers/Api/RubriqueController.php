@@ -472,7 +472,7 @@ class RubriqueController extends Controller
 
     private function canPrepareDossiers(User $user): bool
     {
-        return $this->hasRole($user, UserRole::AGENT, UserRole::ADMIN);
+        return $this->hasRole($user, UserRole::AGENT, UserRole::GESTIONNAIRE, UserRole::ADMIN);
     }
 
     private function canReviewDossiers(User $user): bool
@@ -486,7 +486,7 @@ class RubriqueController extends Controller
             return true;
         }
 
-        return $this->hasRole($user, UserRole::AGENT)
+        return $this->hasRole($user, UserRole::AGENT, UserRole::GESTIONNAIRE)
             && (int) $dossier->created_by === (int) $user->id;
     }
 

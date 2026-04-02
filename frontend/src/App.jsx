@@ -51,7 +51,7 @@ function App() {
           <Route 
             path="/documents/upload" 
             element={
-              <ProtectedRoute allowedRoles={["AGENT", "ADMIN"]}>
+              <ProtectedRoute allowedRoles={["AGENT", "GESTIONNAIRE", "ADMIN"]}>
                 <DocumentUpload />
               </ProtectedRoute>
             } 
@@ -75,7 +75,7 @@ function App() {
           <Route
             path="/dossiers/create"
             element={
-              <ProtectedRoute allowedRoles={["AGENT", "ADMIN"]}>
+              <ProtectedRoute allowedRoles={["AGENT", "GESTIONNAIRE", "ADMIN"]}>
                 <DossierCreate />
               </ProtectedRoute>
             }
