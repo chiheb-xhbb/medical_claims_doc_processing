@@ -331,7 +331,7 @@ function DocumentsList() {
     }
   };
 
-  const renderStatusBadge = (status) => <StatusBadge status={status} />;
+  const renderStatusBadge = (status) => <StatusBadge status={status} context="table" />;
 
   const hasActiveFilters = hasAnyListFilter(appliedFilters);
   const hasDraftFilters = hasAnyListFilter(filtersDraft);

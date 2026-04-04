@@ -26,12 +26,14 @@ const STATUS_CONFIG = {
   }
 };
 
-function StatusBadge({ status }) {
+function StatusBadge({ status, context = 'default' }) {
   const normalizedStatus = status?.toUpperCase();
   const config = STATUS_CONFIG[normalizedStatus] || STATUS_CONFIG.UPLOADED;
+  const contextClass =
+    context === 'table' ? 'badge--context-table' : context === 'hero' ? 'badge--context-hero' : '';
 
   return (
-    <span className={`badge ${config.className}`}>
+    <span className={['badge', config.className, contextClass].filter(Boolean).join(' ')}>
       {config.spinner ? (
         <span
           className="spinner-border spinner-border-sm status-badge-spinner"

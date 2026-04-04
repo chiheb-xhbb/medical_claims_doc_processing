@@ -55,6 +55,11 @@
   position: relative;
 }
 
+.documents-list .table thead th {
+  color: var(--color-gray-700);
+  letter-spacing: 0.048em;
+}
+
 .documents-list .table-loading-overlay {
   position: absolute;
   inset: 0;
