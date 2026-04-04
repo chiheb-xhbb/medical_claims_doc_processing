@@ -1,16 +1,4 @@
-/**
- * WarningAlert - Reusable warning alert component
- * 
- * Pure presentational component for displaying warning messages.
- * Supports both single message and list of warnings.
- * 
- * @param {string} message - Warning message to display (single)
- * @param {string[]} warnings - Array of warning messages
- * @param {string} title - Optional alert title
- * @param {boolean} showIcon - Whether to show warning icon (default: true)
- */
 function WarningAlert({ message, warnings = [], title, showIcon = true }) {
-  // Return null if no content
   if (!message && warnings.length === 0) return null;
 
   return (
@@ -28,11 +16,9 @@ function WarningAlert({ message, warnings = [], title, showIcon = true }) {
       )}
       <div className="flex-grow-1">
         {title && <h6 className="alert-heading mb-2 fw-semibold">{title}</h6>}
-        
-        {/* Single message */}
+
         {message && <p className="mb-0">{message}</p>}
-        
-        {/* List of warnings */}
+
         {warnings.length > 0 && (
           <ul className="mb-0 ps-3">
             {warnings.map((warning, index) => (

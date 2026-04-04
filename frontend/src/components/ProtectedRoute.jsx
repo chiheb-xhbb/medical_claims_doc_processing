@@ -1,11 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { isAuthenticated, getStoredRole, getDefaultLandingPath } from '../services/auth';
 
-/**
- * Protected route wrapper component
- * Redirects to login if user is not authenticated
- * Optionally checks if the user's role is allowed
- */
 function ProtectedRoute({ children, allowedRoles }) {
   const location = useLocation();
 

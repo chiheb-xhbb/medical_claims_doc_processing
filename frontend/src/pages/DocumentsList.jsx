@@ -442,11 +442,16 @@ function DocumentsList() {
         </div>
       )}
 
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="mb-0 page-title">
-          <i className="bi bi-files me-2 opacity-75"></i>
-          Documents
-        </h2>
+      <div className="d-flex justify-content-between align-items-start gap-3 mb-4">
+        <div className="min-w-0">
+          <h2 className="mb-1 page-title d-flex align-items-center">
+            <i className="bi bi-files me-2 opacity-75"></i>
+            Documents
+          </h2>
+          <p className="text-muted small mb-0 documents-subtitle">
+            Upload documents and review AI-extracted fields before validation.
+          </p>
+        </div>
 
         {canUpload && (
           <button

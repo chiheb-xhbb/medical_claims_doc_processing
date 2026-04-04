@@ -1,180 +1,76 @@
-/* DocumentValidation — hero, fields workspace, supporting blocks */
+/* Page fade: opacity only */
 
-/* ─── Page entry animation ───────────────────────────────────────────────── */
+@keyframes dv-page-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
 
 .document-validation {
-  animation: fadeIn var(--transition-slow);
+  animation: dv-page-fade-in var(--transition-slow) ease-out forwards;
 }
 
-/* ─── Hero header ────────────────────────────────────────────────────────── */
-
-.dv-hero {
-  background: var(--navbar-bg);
-  border-radius: var(--card-radius-premium);
-  box-shadow: var(--card-shadow-elevated);
-  padding: var(--spacing-5) var(--spacing-8) var(--spacing-10);
-  color: #fff;
-  position: relative;
+.dv-document-header-card {
   overflow: hidden;
+  border: 0;
+  box-shadow: var(--card-shadow-elevated);
 }
 
-/* Radial highlight — subtle depth without being decorative */
-.dv-hero::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    ellipse at 88% 35%,
-    rgba(255, 255, 255, 0.08) 0%,
-    transparent 60%
-  );
-  pointer-events: none;
-}
-
-/* Back navigation */
-.dv-hero__nav {
-  margin-bottom: var(--spacing-6);
-}
-
-.dv-hero__back {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  background: transparent;
-  border: none;
-  padding: 0;
-  color: rgba(255, 255, 255, 0.65);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  cursor: pointer;
-  letter-spacing: 0.01em;
-  transition: color var(--transition-fast);
-}
-
-.dv-hero__back:hover {
-  color: rgba(255, 255, 255, 0.95);
-}
-
-.dv-hero__back i {
-  font-size: 0.8rem;
-}
-
-/* Main hero body: icon | content | status */
-.dv-hero__body {
+.dv-document-header-card__header {
   display: flex;
   align-items: flex-start;
+  justify-content: space-between;
   gap: var(--spacing-5);
-  position: relative;
+  padding: var(--spacing-5) var(--spacing-6);
 }
 
-/* Document icon tile */
-.dv-hero__icon-wrap {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 60px;
-  height: 60px;
-  background: rgba(255, 255, 255, 0.14);
-  border: 1.5px solid rgba(255, 255, 255, 0.22);
-  border-radius: var(--radius-xl);
-  box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.06);
-  font-size: 1.75rem;
-  color: rgba(255, 255, 255, 0.9);
-  margin-top: 2px;
-}
-
-/* Content column */
-.dv-hero__content {
+.dv-document-header-card__content {
   flex: 1;
   min-width: 0;
 }
 
-/* Title row: h1 + inline mobile status badge */
-.dv-hero__title-row {
+.dv-document-header-card__title {
+  font-size: 1.1rem;
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-normal);
+}
+
+.dv-document-header-card__title i {
+  font-size: 0.95rem;
+  opacity: 0.85;
+}
+
+.dv-document-header-card__meta {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: var(--spacing-3);
-  margin-bottom: var(--spacing-3);
 }
 
-.dv-hero__title {
-  font-size: 1.75rem;
-  font-weight: var(--font-weight-bold);
-  color: #fff;
-  letter-spacing: var(--heading-letter-spacing);
-  line-height: var(--heading-line-height);
-  margin: 0;
-}
-
-/* Status badge shown inline next to title on mobile only */
-.dv-hero__status-inline {
-  display: none;
-}
-
-/* Metadata row: filename | size | date */
-.dv-hero__meta {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.dv-hero__meta-item {
+.dv-document-header-card__meta-item {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  font-size: 0.8125rem;
-  color: rgba(255, 255, 255, 0.72);
-  font-weight: var(--font-weight-normal);
-}
-
-.dv-hero__meta-item--filename {
+  gap: 0.35rem;
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.78);
 }
 
-.dv-hero__meta-item i {
+.dv-document-header-card__meta-item i {
   font-size: 0.75rem;
-  opacity: 0.7;
+  opacity: 0.75;
 }
 
-/* Pipe separator between meta items */
-.dv-hero__meta-sep {
-  color: rgba(255, 255, 255, 0.25);
-  font-size: var(--font-size-sm);
-  line-height: 1;
-  user-select: none;
-  margin: 0 0.1rem;
-}
-
-/* Status column (desktop) */
-.dv-hero__status {
+.dv-document-header-card__status {
   flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.3rem;
-  padding-top: 2px;
+  align-self: center;
 }
 
-.dv-hero__status-label {
-  font-size: 0.625rem;
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.45);
-  line-height: 1;
+.dv-document-header-card__status .badge {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
 }
-
-.dv-hero__status .badge,
-.dv-hero__status-inline .badge {
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-}
-
-/* ─── AI extraction warnings ─────────────────────────────────────────────── */
 
 .dv-warning-panel {
   display: flex;
@@ -228,8 +124,6 @@
   margin-top: 0.3rem;
 }
 
-/* ─── Extracted fields card ──────────────────────────────────────────────── */
-
 .dv-fields-card {
   overflow: hidden;
 }
@@ -273,7 +167,6 @@
   margin: 0;
 }
 
-/* Extraction version tag */
 .dv-extraction-tag {
   display: inline-flex;
   align-items: center;
@@ -304,8 +197,6 @@
   }
 }
 
-/* ─── Fields table ───────────────────────────────────────────────────────── */
-
 .dv-fields-table {
   border-collapse: separate;
   border-spacing: 0;
@@ -323,7 +214,6 @@
   vertical-align: middle !important;
 }
 
-/* Inner wrapper: label alignment without breaking table-cell layout */
 .dv-field-label {
   font-size: 0.875rem !important;
   font-weight: var(--font-weight-medium) !important;
@@ -360,7 +250,6 @@
   vertical-align: middle !important;
 }
 
-/* Stronger than global .confidence-badge (table-scale tokens) — key review signal */
 .dv-field-confidence .confidence-badge {
   font-size: 0.875rem;
   font-weight: var(--font-weight-semibold);
@@ -388,7 +277,6 @@
   line-height: 1;
 }
 
-/* Low confidence rows — stripe via row background so all cells share one row paint */
 .dv-row--warn {
   background-color: var(--color-warning-subtle) !important;
   background-image: linear-gradient(
@@ -406,7 +294,6 @@
   font-weight: var(--font-weight-semibold) !important;
 }
 
-/* Field inputs */
 .dv-field-input {
   font-size: var(--font-size-sm);
   padding: 0.625rem 0.9375rem;
@@ -425,7 +312,6 @@
   cursor: not-allowed;
 }
 
-/* Status icons — row decision signal; intentionally above default table glyph scale */
 .dv-status-icon {
   font-size: 1.45rem;
   transition: var(--transition-transform);
@@ -443,8 +329,6 @@
 .dv-status-icon:hover {
   transform: scale(1.1);
 }
-
-/* ─── Action bar — the final decision zone ───────────────────────────────── */
 
 .dv-action-bar {
   display: flex;
@@ -490,8 +374,6 @@
   flex-shrink: 0;
 }
 
-/* ─── Timestamps footer ──────────────────────────────────────────────────── */
-
 .dv-timestamps {
   display: flex;
   align-items: center;
@@ -525,7 +407,6 @@
   margin-right: 0.2rem;
 }
 
-/* Vertical pipe divider between timestamp items */
 .dv-timestamps__divider {
   display: inline-block;
   width: 1px;
@@ -534,8 +415,6 @@
   flex-shrink: 0;
   align-self: center;
 }
-
-/* ─── Compliance note ────────────────────────────────────────────────────── */
 
 .dv-compliance-note {
   display: flex;
@@ -554,34 +433,16 @@
   font-size: 0.8rem;
 }
 
-/* ─── Responsive ─────────────────────────────────────────────────────────── */
-
 @media (max-width: 767.98px) {
-  .dv-hero {
-    padding: var(--spacing-5) var(--spacing-5) var(--spacing-7);
+  .dv-document-header-card__header {
+    padding: var(--spacing-5);
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-3);
   }
 
-  .dv-hero__title {
-    font-size: 1.375rem;
-  }
-
-  .dv-hero__icon-wrap {
-    width: 48px;
-    height: 48px;
-    font-size: 1.35rem;
-  }
-
-  .dv-hero__body {
-    gap: var(--spacing-4);
-  }
-
-  /* Show status inline on mobile (next to title), hide the desktop column */
-  .dv-hero__status-inline {
-    display: inline-flex;
-  }
-
-  .dv-hero__status {
-    display: none;
+  .dv-document-header-card__status {
+    align-self: flex-start;
   }
 
   .dv-fields-card__header {
@@ -615,3 +476,5 @@
     display: none;
   }
 }
+
+

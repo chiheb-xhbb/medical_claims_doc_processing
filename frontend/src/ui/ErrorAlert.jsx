@@ -1,9 +1,3 @@
-/**
- * Error alert component
- * @param {string} message - Error message
- * @param {string} title - Optional title (default: 'Error')
- * @param {boolean} showIcon - Show icon (default: true)
- */
 function ErrorAlert({ message, title = 'Error', showIcon = true }) {
   if (!message) return null;
 

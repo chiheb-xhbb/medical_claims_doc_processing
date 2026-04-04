@@ -1,6 +1,4 @@
-/**
- * Shared UI styles using CSS variables
- */
+/* Shared UI styles (uses design-tokens.css variables) */
 
 /* Global styles */
 
@@ -685,6 +683,38 @@ body {
   color: var(--color-gray-700) !important;
 }
 
+/* Page back control: use with .btn; light pages pair with .btn-outline-primary */
+.page-back-btn .bi {
+  font-size: 0.875rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.page-back-btn.page-back-btn--on-dark {
+  border: 1.5px solid rgba(255, 255, 255, 0.4) !important;
+  color: rgba(255, 255, 255, 0.94) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.page-back-btn.page-back-btn--on-dark:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.72) !important;
+  color: var(--color-white) !important;
+  box-shadow: none !important;
+}
+
+.page-back-btn.page-back-btn--on-dark:active:not(:disabled) {
+  background: rgba(255, 255, 255, 0.18) !important;
+  border-color: rgba(255, 255, 255, 0.85) !important;
+  color: var(--color-white) !important;
+}
+
+.page-back-btn.page-back-btn--on-dark:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.92);
+  outline-offset: 2px;
+}
+
 .btn-primary:active:not(:disabled) {
   background-color: var(--color-primary-active) !important;
   border-color: var(--color-primary-active) !important;
@@ -1052,7 +1082,6 @@ small, .small {
 
 /* Animations */
 
-/* Fade in animation */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -1328,3 +1357,42 @@ h2 i {
   font-size: 0.75rem;
   letter-spacing: 0.01em;
 }
+
+
+/* --- Status Badge Shared Styles --- */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 50rem;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  line-height: 1;
+  color: #fff;
+}
+.status-badge i {
+  font-size: 0.85rem;
+}
+.status-badge--received {
+  background-color: #6b7280;
+}
+.status-badge--processing {
+  background-color: #3b82f6; /* or var(--color-primary) */
+}
+.status-badge--processed {
+  background-color: #16a34a;
+}
+.status-badge--validated {
+  background-color: #16a34a;
+}
+.status-badge--failed {
+  background-color: #ef4444; /* or var(--color-danger) */
+}
+.status-badge--to-validate {
+  background-color: #f59e0b;
+}
+
+
+

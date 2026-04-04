@@ -259,16 +259,12 @@ function DossierDetail() {
         return false;
       }
 
-      // Exclude documents already displayed in any rubrique on this page.
-      // This covers the case where a doc was just attached in this session
-      // and its rubrique_id is not yet null in the server's latest response.
+      // Skip docs already shown on a rubrique here (stale list right after attach).
       if (allAttachedDocumentIds.has(document.id)) {
         return false;
       }
 
-      // Primary filter: rubrique_id === null means the document is truly free.
-      // The backend enforces the same rule in RubriqueController::attachDocuments().
-      // Both checks together make the duplicate-attachment prevention robust.
+      // Unattached only (matches RubriqueController::attachDocuments()).
       return document.rubrique_id === null || document.rubrique_id === undefined;
     });
   }, [validatedDocuments, allAttachedDocumentIds, role, currentUserId]);
@@ -681,8 +677,12 @@ function DossierDetail() {
           Dossier Details
         </h2>
 
-        <button className="btn btn-outline-primary" onClick={() => navigate('/dossiers')}>
-          <i className="bi bi-arrow-left me-2"></i>
+        <button
+          type="button"
+          className="btn btn-outline-primary page-back-btn"
+          onClick={() => navigate('/dossiers')}
+        >
+          <i className="bi bi-arrow-left" aria-hidden="true"></i>
           Back to Dossiers
         </button>
       </div>

@@ -1,9 +1,3 @@
-/**
- * Success alert component
- * @param {string} message - Success message
- * @param {string} title - Optional title (default: 'Success')
- * @param {boolean} showIcon - Show icon (default: true)
- */
 function SuccessAlert({ message, title = 'Success', showIcon = true }) {
   if (!message) return null;
 

@@ -1,12 +1,3 @@
-/**
- * SectionDivider - Reusable section divider component
- * 
- * Pure presentational component for visual separation between sections.
- * Displays a horizontal line with optional centered text.
- * 
- * @param {string} label - Optional centered label text
- * @param {string} icon - Optional Bootstrap icon class (without 'bi bi-' prefix)
- */
 function SectionDivider({ label, icon }) {
   if (!label) {
     return (

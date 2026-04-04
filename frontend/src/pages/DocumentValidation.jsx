@@ -209,52 +209,41 @@ function DocumentValidation() {
 
   return (
     <div className="container py-4 document-validation">
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h2 className="mb-0 page-title d-flex align-items-center">
+          <i className="bi bi-file-earmark-medical me-2 opacity-75"></i>
+          Document Validation
+        </h2>
 
-      {/* Blue premium hero header */}
-      <div className="dv-hero mb-5">
-        <div className="dv-hero__nav">
-          <button
-            type="button"
-            className="dv-hero__back"
-            onClick={() => navigate('/documents')}
-          >
-            <i className="bi bi-arrow-left"></i>
-            Back to Documents
-          </button>
-        </div>
+        <button
+          type="button"
+          className="btn btn-outline-primary page-back-btn"
+          onClick={() => navigate('/documents')}
+        >
+          <i className="bi bi-arrow-left" aria-hidden="true"></i>
+          Back to Documents
+        </button>
+      </div>
 
-        <div className="dv-hero__body">
-          <div className="dv-hero__icon-wrap">
-            <i className="bi bi-file-earmark-medical-fill"></i>
-          </div>
+      {document && (
+        <div className="card mb-4 dv-document-header-card">
+          <div className="card-header bg-primary text-white dv-document-header-card__header">
+            <div className="dv-document-header-card__content">
+              <h5 className="mb-1 d-flex align-items-center dv-document-header-card__title">
+                <i className="bi bi-file-earmark me-2" aria-hidden="true"></i>
+                <span className="text-truncate">{document.original_filename || 'Unnamed document'}</span>
+              </h5>
 
-          <div className="dv-hero__content">
-            <div className="dv-hero__title-row">
-              <h1 className="dv-hero__title">Document Validation</h1>
-              {document && (
-                <span className="dv-hero__status-inline">
-                  <StatusBadge status={document.status} context="hero" />
-                </span>
-              )}
-            </div>
-            {document && (
-              <div className="dv-hero__meta">
-                <span className="dv-hero__meta-item dv-hero__meta-item--filename">
-                  <i className="bi bi-file-earmark"></i>
-                  {document.original_filename}
-                </span>
+              <div className="dv-document-header-card__meta">
                 {formatFileSize(document.file_size) && (
-                  <span className="dv-hero__meta-sep">|</span>
-                )}
-                {formatFileSize(document.file_size) && (
-                  <span className="dv-hero__meta-item">
-                    <i className="bi bi-hdd"></i>
+                  <span className="dv-document-header-card__meta-item">
+                    <i className="bi bi-hdd" aria-hidden="true"></i>
                     {formatFileSize(document.file_size)}
                   </span>
                 )}
-                <span className="dv-hero__meta-sep">|</span>
-                <span className="dv-hero__meta-item">
-                  <i className="bi bi-calendar3"></i>
+
+                <span className="dv-document-header-card__meta-item">
+                  <i className="bi bi-calendar3" aria-hidden="true"></i>
                   {document.created_at
                     ? new Date(document.created_at).toLocaleDateString(undefined, {
                         year: 'numeric',
@@ -264,19 +253,15 @@ function DocumentValidation() {
                     : 'N/A'}
                 </span>
               </div>
-            )}
-          </div>
+            </div>
 
-          {document && (
-            <div className="dv-hero__status">
-              <span className="dv-hero__status-label">Status</span>
+            <div className="dv-document-header-card__status">
               <StatusBadge status={document.status} context="hero" />
             </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Feedback alerts */}
       {successMessage && (
         <div className="mb-4">
           <SuccessAlert message={successMessage} title="Validation Successful" />
@@ -295,7 +280,6 @@ function DocumentValidation() {
         </div>
       )}
 
-      {/* AI extraction warnings */}
       {warnings.length > 0 && (
         <div className="dv-warning-panel mb-4" role="alert">
           <div className="dv-warning-panel__icon-wrap">
@@ -315,7 +299,6 @@ function DocumentValidation() {
         </div>
       )}
 
-      {/* No extraction data */}
       {!hasExtraction && (
         <InfoAlert
           message="No extraction data available for this document. Please wait for processing to complete."
@@ -323,11 +306,9 @@ function DocumentValidation() {
         />
       )}
 
-      {/* Extracted fields */}
       {hasExtraction && (
         <div className="card dv-fields-card">
 
-          {/* Card header */}
           <div className="dv-fields-card__header">
             <div className="dv-fields-card__header-left">
               <i className="bi bi-table dv-fields-card__header-icon"></i>
@@ -352,7 +333,6 @@ function DocumentValidation() {
             )}
           </div>
 
-          {/* Fields table */}
           <div className="table-responsive">
             <table className="table table-hover align-middle mb-0 dv-fields-table">
               <thead>
@@ -432,7 +412,6 @@ function DocumentValidation() {
             </table>
           </div>
 
-          {/* Action bar */}
           <div className="dv-action-bar">
             <div className="dv-action-bar__context">
               {isValidated ? (
@@ -479,7 +458,6 @@ function DocumentValidation() {
         </div>
       )}
 
-      {/* Document timestamps footer */}
       {document && (
         <div className="dv-timestamps">
           <span className="dv-timestamps__item">
@@ -512,7 +490,6 @@ function DocumentValidation() {
         </div>
       )}
 
-      {/* Compliance note */}
       <p className="dv-compliance-note">
         <i className="bi bi-shield-lock"></i>
         All data is securely processed and validated in compliance with medical data regulations.

@@ -2,6 +2,15 @@
 
 * {
   box-sizing: border-box;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+  background: transparent;
 }
 
 html, body {
@@ -10,10 +19,6 @@ html, body {
   min-height: 100vh;
   width: 100%;
   overflow-x: hidden;
-}
-
-html {
-  scrollbar-gutter: stable;
 }
 
 body {
@@ -34,25 +39,12 @@ body {
   overflow-x: hidden;
 }
 
-/* Fade-in animation for page loads */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 /* Focus states for accessibility */
 :focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
-/* Smooth scrolling */
 html {
   scroll-behavior: smooth;
 }

@@ -1,9 +1,3 @@
-/**
- * Info alert component
- * @param {string} message - Info message
- * @param {string} title - Optional title
- * @param {boolean} showIcon - Show icon (default: true)
- */
 function InfoAlert({ message, title, showIcon = true }) {
   if (!message) return null;
 

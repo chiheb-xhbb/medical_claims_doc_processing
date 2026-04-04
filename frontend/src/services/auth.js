@@ -71,21 +71,12 @@ export function getDefaultLandingPath(role = getStoredRole()) {
   return '/documents';
 }
 
-/**
- * Login user with email and password
- * @param {string} email 
- * @param {string} password 
- * @returns {Promise<{token: string, user: object}>}
- */
 export async function login(email, password) {
   const response = await api.post('/login', { email, password });
   const { token, user } = response.data;
   sessionStorage.removeItem(AUTH_FEEDBACK_KEY);
-  
-  // Store token in localStorage
+
   localStorage.setItem(AUTH_TOKEN_KEY, token);
-  
-  // Set Authorization header for future requests
   setAuthToken(token);
 
   const normalizedUser = storeUser(user);
@@ -94,14 +85,11 @@ export async function login(email, password) {
   return { token, user: normalizedUser };
 }
 
-/**
- * Logout current user
- */
 export async function logout() {
   try {
     await api.post('/logout');
   } finally {
-    // Always clear token, even if API call fails
+    // Clear client session even when /logout errors
     localStorage.removeItem(AUTH_TOKEN_KEY);
     localStorage.removeItem(AUTH_USER_KEY);
     sessionStorage.removeItem(AUTH_FEEDBACK_KEY);
@@ -110,10 +98,6 @@ export async function logout() {
   }
 }
 
-/**
- * Get current authenticated user
- * @returns {Promise<object>} User object
- */
 export async function getCurrentUser() {
   const response = await api.get('/me');
   const user = storeUser(response.data.user);
@@ -121,10 +105,6 @@ export async function getCurrentUser() {
   return user;
 }
 
-/**
- * Check if user is authenticated (has token in localStorage)
- * @returns {boolean}
- */
 export function isAuthenticated() {
   return !!localStorage.getItem(AUTH_TOKEN_KEY);
 }

@@ -1,15 +1,4 @@
-/**
- * Loader - Reusable loading spinner component
- * 
- * Pure presentational component for displaying loading states.
- * Supports customizable size and message.
- * 
- * @param {string} message - Optional loading text to display
- * @param {string} size - Spinner size: 'sm', 'md', 'lg' (default: 'md')
- * @param {boolean} fullHeight - Whether to use full container height
- */
 function Loader({ message = 'Loading...', size = 'md', fullHeight = true }) {
-  // Size mapping for spinner dimensions
   const sizeStyles = {
     sm: { width: '1.5rem', height: '1.5rem', borderWidth: '0.15rem' },
     md: { width: '3rem', height: '3rem', borderWidth: '0.25rem' },

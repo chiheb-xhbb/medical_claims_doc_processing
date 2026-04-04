@@ -1,4 +1,8 @@
-/* Documents list — layout, filters, skeleton, and table shell only; shared table/button styles: common.css */
+/* Documents list page */
+
+.documents-list .documents-subtitle {
+  max-width: 60ch;
+}
 
 .documents-list .card {
   border: none;
@@ -7,7 +11,7 @@
   overflow: hidden;
 }
 
-/* Action column: min width only (shared .btn-sm padding comes from common.css) */
+/* Action column */
 .documents-list td .btn-sm {
   min-width: 85px;
 }
