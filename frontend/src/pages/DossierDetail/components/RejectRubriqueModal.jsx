@@ -12,12 +12,14 @@ function RejectRubriqueModal({
 }) {
   const cancelButtonRef = useRef(null);
   const rejectButtonRef = useRef(null);
+  const rejectRubriqueNoteRef = useRef(null);
 
   if (!isOpen) {
     return null;
   }
 
   const isRejecting = Boolean(isRejectingRubriqueById[rejectRubriqueTarget?.id]);
+  const hasDecisionNote = Boolean((rejectRubriqueNote || '').trim());
 
   return (
     <DossierModalShell
@@ -30,12 +32,13 @@ function RejectRubriqueModal({
       }
       onClose={closeRejectRubriqueModal}
       isBusy={isRejecting}
-      initialFocus="secondary"
+      initialFocusRef={rejectRubriqueNoteRef}
       primaryActionRef={rejectButtonRef}
       secondaryActionRef={cancelButtonRef}
       footer={(
         <>
           <button
+            type="button"
             ref={cancelButtonRef}
             className="btn btn-outline-secondary"
             onClick={closeRejectRubriqueModal}
@@ -44,10 +47,11 @@ function RejectRubriqueModal({
             Cancel
           </button>
           <button
+            type="button"
             ref={rejectButtonRef}
             className="btn btn-danger"
             onClick={handleRejectRubriqueConfirm}
-            disabled={isRejecting}
+            disabled={isRejecting || !hasDecisionNote}
           >
             {isRejecting ? 'Rejecting...' : 'Reject All Documents'}
           </button>
@@ -58,14 +62,15 @@ function RejectRubriqueModal({
         All documents in this rubrique will be marked as <strong>REJECTED</strong>.
       </p>
       <div>
-        <label htmlFor="rejectRubriqueNote" className="form-label">Decision Note (optional)</label>
+        <label htmlFor="rejectRubriqueNote" className="form-label">Decision Note (required)</label>
         <textarea
+          ref={rejectRubriqueNoteRef}
           id="rejectRubriqueNote"
           className="form-control"
           rows={3}
           value={rejectRubriqueNote}
           onChange={(event) => setRejectRubriqueNote(event.target.value)}
-          placeholder="Optional: explain why this rubrique is rejected"
+          placeholder="Explain why this rubrique is rejected"
           disabled={isRejecting}
         />
       </div>

@@ -12,12 +12,14 @@ function RejectDocumentModal({
 }) {
   const cancelButtonRef = useRef(null);
   const rejectButtonRef = useRef(null);
+  const rejectNoteRef = useRef(null);
 
   if (!isOpen) {
     return null;
   }
 
   const isRejecting = Boolean(isDecidingByDocumentId[rejectTargetDocument?.id] || false);
+  const hasDecisionNote = Boolean((rejectNote || '').trim());
 
   return (
     <DossierModalShell
@@ -30,12 +32,13 @@ function RejectDocumentModal({
       }
       onClose={closeRejectDocumentModal}
       isBusy={isRejecting}
-      initialFocus="secondary"
+      initialFocusRef={rejectNoteRef}
       primaryActionRef={rejectButtonRef}
       secondaryActionRef={cancelButtonRef}
       footer={(
         <>
           <button
+            type="button"
             ref={cancelButtonRef}
             className="btn btn-outline-secondary"
             onClick={closeRejectDocumentModal}
@@ -44,10 +47,11 @@ function RejectDocumentModal({
             Cancel
           </button>
           <button
+            type="button"
             ref={rejectButtonRef}
             className="btn btn-danger"
             onClick={handleRejectDocument}
-            disabled={isRejecting}
+            disabled={isRejecting || !hasDecisionNote}
           >
             {isRejecting ? 'Rejecting...' : 'Reject Document'}
           </button>
@@ -57,6 +61,7 @@ function RejectDocumentModal({
       <div>
         <label htmlFor="rejectNote" className="form-label">Decision Note (required)</label>
         <textarea
+          ref={rejectNoteRef}
           id="rejectNote"
           className="form-control"
           rows={4}

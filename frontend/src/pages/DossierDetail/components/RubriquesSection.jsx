@@ -87,6 +87,11 @@ function RubriquesSection({
               const rubriqueDocuments = rubrique.documents || [];
               const canShowDeleteRubrique = canDeleteRubrique && !isFrozen && rubriqueDocuments.length === 0;
               const isDeletingRubrique = Boolean(isDeletingRubriqueById[rubrique.id]);
+              const isRejectingRubrique = Boolean(isRejectingRubriqueById[rubrique.id]);
+              const hasAcceptedDocs = rubriqueDocuments.some((doc) => {
+                const status = (doc?.decision_status ?? doc?.decisionStatus ?? '').toString().toUpperCase();
+                return status === 'ACCEPTED' || status === 'APPROVED';
+              });
 
               return (
                 <div className="card mb-3" key={rubrique.id}>
@@ -125,9 +130,9 @@ function RubriquesSection({
                         <button
                           className="btn btn-sm btn-outline-danger"
                           onClick={() => openRejectRubriqueModal(rubrique)}
-                          disabled={Boolean(isRejectingRubriqueById[rubrique.id]) || rubriqueDocuments.length === 0}
+                          disabled={isFrozen || isRejectingRubrique || rubriqueDocuments.length === 0 || hasAcceptedDocs}
                         >
-                          {isRejectingRubriqueById[rubrique.id] ? 'Rejecting...' : 'Reject Rubrique'}
+                          {isRejectingRubrique ? 'Rejecting...' : 'Reject Rubrique'}
                         </button>
                       )}
                     </div>

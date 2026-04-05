@@ -32,13 +32,24 @@ function DossierModalShell({
   onClose,
   isBusy = false,
   initialFocus = 'primary',
+  initialFocusRef,
   primaryActionRef,
   secondaryActionRef,
   className = ''
 }) {
   const dialogRef = useRef(null);
+  const onCloseRef = useRef(onClose);
+  const isBusyRef = useRef(isBusy);
   const titleId = useId();
   const descriptionId = useId();
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    isBusyRef.current = isBusy;
+  }, [isBusy]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -51,12 +62,13 @@ function DossierModalShell({
 
     document.body.style.overflow = 'hidden';
 
-    const preferredElement =
+    const preferredElement = initialFocusRef?.current || (
       initialFocus === 'secondary'
         ? secondaryActionRef?.current
         : initialFocus === 'primary'
           ? primaryActionRef?.current
-          : null;
+          : null
+    );
 
     if (preferredElement && !preferredElement.disabled) {
       preferredElement.focus();
@@ -71,9 +83,9 @@ function DossierModalShell({
 
     const handleKeyDown = (event) => {
       if (event.key === 'Escape') {
-        if (!isBusy) {
+        if (!isBusyRef.current) {
           event.preventDefault();
-          onClose?.();
+          onCloseRef.current?.();
         }
         return;
       }
@@ -119,10 +131,9 @@ function DossierModalShell({
       }
     };
   }, [
-    initialFocus,
-    isBusy,
     isOpen,
-    onClose,
+    initialFocus,
+    initialFocusRef,
     primaryActionRef,
     secondaryActionRef
   ]);

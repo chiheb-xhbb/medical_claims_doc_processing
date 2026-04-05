@@ -233,7 +233,8 @@ function DossierDetail() {
     (confirmationModal.action === 'submit' && isSubmittingDossier) ||
     (confirmationModal.action === 'process' && isProcessingDossier) ||
     (confirmationModal.action === 'detach' && Boolean(isDetachingByDocumentId[confirmationModal.payload?.documentId])) ||
-    (confirmationModal.action === 'delete_rubrique' && Boolean(isDeletingRubriqueById[confirmationModal.payload?.rubriqueId]));
+    (confirmationModal.action === 'delete_rubrique' && Boolean(isDeletingRubriqueById[confirmationModal.payload?.rubriqueId])) ||
+    (confirmationModal.action === 'accept_document' && Boolean(isDecidingByDocumentId[confirmationModal.payload?.documentId]));
 
   const allAttachedDocumentIds = useMemo(() => {
     const ids = new Set();
@@ -525,6 +526,24 @@ function DossierDetail() {
     });
   };
 
+  const requestAcceptDocument = (documentId) => {
+    if (!documentId) {
+      return;
+    }
+
+    openConfirmationModal({
+      action: 'accept_document',
+      title: 'Accept Document',
+      message: 'Accept this document as valid? This decision is final and cannot be undone.',
+      confirmLabel: 'Accept Document',
+      cancelLabel: 'Cancel',
+      confirmingLabel: 'Accepting...',
+      confirmVariant: 'success',
+      initialFocus: 'cancel',
+      payload: { documentId }
+    });
+  };
+
   const handleConfirmationAction = async () => {
     if (confirmationModal.action === 'detach') {
       await executeDetachDocument(confirmationModal.payload?.rubriqueId, confirmationModal.payload?.documentId);
@@ -542,10 +561,14 @@ function DossierDetail() {
       await executeDeleteRubrique(confirmationModal.payload?.rubriqueId);
     }
 
+    if (confirmationModal.action === 'accept_document') {
+      await executeAcceptDocument(confirmationModal.payload?.documentId);
+    }
+
     setConfirmationModal(INITIAL_CONFIRMATION_MODAL);
   };
 
-  const handleAcceptDocument = async (documentId) => {
+  const executeAcceptDocument = async (documentId) => {
     try {
       withMapPending(setIsDecidingByDocumentId, documentId, true);
       setDetailError(null);
@@ -559,6 +582,10 @@ function DossierDetail() {
     } finally {
       withMapPending(setIsDecidingByDocumentId, documentId, false);
     }
+  };
+
+  const handleAcceptDocument = (documentId) => {
+    requestAcceptDocument(documentId);
   };
 
   const handleRejectDocument = async () => {
