@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import DocumentValidation from './pages/DocumentValidation';
 import DocumentsList from './pages/DocumentsList';
@@ -8,19 +7,15 @@ import AdminUsers from './pages/AdminUsers';
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import { MainLayout } from './layout';
-import { setAuthToken } from './utils/setAuthToken';
-import { getCurrentUser, getDefaultLandingPath } from './services/auth';
+import { getDefaultLandingPath } from './services/auth';
+import { useAuth } from './context/AuthContext';
 
 function App() {
-  useEffect(() => {
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-      setAuthToken(token);
-      getCurrentUser().catch(() => {
-        // handled by interceptor if token is invalid
-      });
-    }
-  }, []);
+  const { token, isHydrating } = useAuth();
+
+  if (isHydrating) {
+    return null;
+  }
 
   return (
     <BrowserRouter>
@@ -29,7 +24,7 @@ function App() {
           <Route
             path="/login"
             element={
-              localStorage.getItem('auth_token')
+              token
                 ? <Navigate to={getDefaultLandingPath()} replace />
                 : <Login />
             }
@@ -101,7 +96,7 @@ function App() {
           <Route
             path="/"
             element={
-              localStorage.getItem('auth_token')
+              token
                 ? <Navigate to={getDefaultLandingPath()} replace />
                 : <Navigate to="/login" replace />
             }

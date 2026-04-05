@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const AUTH_TOKEN_KEY = 'auth_token';
+const AUTH_TOKEN_KEY = 'token';
 const AUTH_USER_KEY = 'auth_user';
 export const AUTH_CHANGED_EVENT = 'auth:changed';
 export const AUTH_FEEDBACK_KEY = 'auth_feedback_message';
@@ -47,6 +47,18 @@ const api = axios.create({
     'Content-Type': 'application/json',
     'Accept': 'application/json'
   }
+});
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem(AUTH_TOKEN_KEY);
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  } else if (config.headers?.Authorization) {
+    delete config.headers.Authorization;
+  }
+
+  return config;
 });
 
 const clearClientAuthSession = () => {

@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { login, getDefaultLandingPath, consumeAuthFeedback } from '../services/auth';
+import { getDefaultLandingPath, consumeAuthFeedback } from '../services/auth';
+import { useAuth } from '../context/AuthContext';
 import { ErrorAlert } from '../ui';
 
 function Login() {
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   // Form state

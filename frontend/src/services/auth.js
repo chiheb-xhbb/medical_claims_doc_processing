@@ -1,7 +1,7 @@
 import api, { AUTH_CHANGED_EVENT, AUTH_FEEDBACK_KEY } from './api';
 import { setAuthToken } from '../utils/setAuthToken';
 
-const AUTH_TOKEN_KEY = 'auth_token';
+const AUTH_TOKEN_KEY = 'token';
 const AUTH_USER_KEY = 'auth_user';
 export { AUTH_CHANGED_EVENT };
 
