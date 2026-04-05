@@ -114,6 +114,21 @@
   white-space: nowrap;
 }
 
+.dossier-detail-page .workflow-actions-stack {
+  width: 100%;
+  min-width: 240px;
+}
+
+@media (min-width: 992px) {
+  .dossier-detail-page .workflow-actions-stack {
+    max-width: 260px;
+  }
+}
+
+.dossier-detail-page .workflow-actions-label {
+  letter-spacing: 0.06em;
+}
+
 .dossier-modal-backdrop {
   position: fixed;
   inset: 0;
