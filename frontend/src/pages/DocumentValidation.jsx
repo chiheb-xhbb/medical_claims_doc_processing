@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import api from '../services/api';
 import {
   ConfidenceBadge,
   Loader,
-  ErrorAlert,
-  SuccessAlert,
+  EmptyState,
   WarningAlert,
   InfoAlert,
   StatusBadge,
@@ -74,15 +74,14 @@ function DocumentValidation() {
   const [confidenceScores, setConfidenceScores] = useState({});
   const [warnings, setWarnings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [loadErrorMessage, setLoadErrorMessage] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [successMessage, setSuccessMessage] = useState(null);
   const [businessWarnings, setBusinessWarnings] = useState([]);
 
   const fetchDocument = useCallback(async () => {
     try {
       setIsLoading(true);
-      setError(null);
+      setLoadErrorMessage(null);
 
       const response = await api.get(`/documents/${id}`);
       const doc = response.data;
@@ -106,15 +105,20 @@ function DocumentValidation() {
         setWarnings([]);
       }
     } catch (err) {
+      let errorMessage;
+
       if (err.response?.status === 404) {
-        setError('Document not found. Please check the document ID and try again.');
+        errorMessage = 'Document not found. Please check the document ID and try again.';
       } else if (err.code === 'ECONNABORTED' || err.message.includes('timeout')) {
-        setError('Request timed out. Please check your connection and try again.');
+        errorMessage = 'Request timed out. Please check your connection and try again.';
       } else if (err.code === 'ERR_NETWORK') {
-        setError('Network error. Please check if the server is running.');
+        errorMessage = 'Network error. Please check if the server is running.';
       } else {
-        setError(err.response?.data?.message || 'Failed to load document. Please try again.');
+        errorMessage = err.response?.data?.message || 'Failed to load document. Please try again.';
       }
+
+      setLoadErrorMessage(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -134,8 +138,6 @@ function DocumentValidation() {
   const handleValidate = async () => {
     try {
       setIsSubmitting(true);
-      setError(null);
-      setSuccessMessage(null);
       setBusinessWarnings([]);
 
       const cleanedFields = Object.fromEntries(
@@ -150,7 +152,7 @@ function DocumentValidation() {
       });
 
       setBusinessWarnings(response.data?.warnings || []);
-      setSuccessMessage('Document validated successfully! The extraction has been confirmed.');
+      toast.success('Document validated successfully! The extraction has been confirmed.');
 
       await fetchDocument();
 
@@ -158,21 +160,25 @@ function DocumentValidation() {
         navigate('/documents');
       }, 2000);
     } catch (err) {
+      let errorMessage;
+
       if (err.response?.status === 400) {
-        setError(err.response?.data?.message || 'Validation failed. Please check the field values.');
+        errorMessage = err.response?.data?.message || 'Validation failed. Please check the field values.';
       } else if (err.response?.status === 404) {
-        setError('Document not found.');
+        errorMessage = 'Document not found.';
       } else if (err.response?.status === 422) {
         const data = err.response?.data;
         const errors = data?.errors || {};
         if (errors.total_ttc && Array.isArray(errors.total_ttc) && errors.total_ttc.length > 0) {
-          setError(errors.total_ttc[0]);
+          errorMessage = errors.total_ttc[0];
         } else {
-          setError(data?.message || 'Validation failed. Please check the field values.');
+          errorMessage = data?.message || 'Validation failed. Please check the field values.';
         }
       } else {
-        setError(err.response?.data?.message || 'Failed to validate document. Please try again.');
+        errorMessage = err.response?.data?.message || 'Failed to validate document. Please try again.';
       }
+
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -193,12 +199,20 @@ function DocumentValidation() {
     );
   }
 
-  if (error && !document) {
+  if (loadErrorMessage && !document) {
     return (
       <div className="container py-5">
         <div className="row justify-content-center">
           <div className="col-lg-10">
-            <ErrorAlert message={error} title="Error Loading Document" />
+            <div className="card">
+              <div className="card-body">
+                <EmptyState
+                  icon="file-earmark-x"
+                  title="Error Loading Document"
+                  description={loadErrorMessage}
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -262,21 +276,9 @@ function DocumentValidation() {
         </div>
       )}
 
-      {successMessage && (
-        <div className="mb-4">
-          <SuccessAlert message={successMessage} title="Validation Successful" />
-        </div>
-      )}
-
       {businessWarnings.length > 0 && (
         <div className="mb-4">
           <WarningAlert warnings={businessWarnings} title="Business Validation Warnings" />
-        </div>
-      )}
-
-      {error && (
-        <div className="mb-4">
-          <ErrorAlert message={error} />
         </div>
       )}
 

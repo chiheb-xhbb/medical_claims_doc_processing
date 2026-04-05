@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import api, { getApiErrorMessage } from '../services/api';
 import { AUTH_CHANGED_EVENT, getStoredRole, getStoredUser } from '../services/auth';
 import DossierCreateModal from '../components/DossierCreateModal';
-import { ErrorAlert, EmptyState, SuccessAlert, ConfirmationModal, SortableHeader } from '../ui';
+import { EmptyState, ConfirmationModal, SortableHeader } from '../ui';
 import {
   normalizeListFilters,
   buildListQueryParams,
@@ -103,15 +104,12 @@ function DossiersList() {
 
   const [dossiers, setDossiers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [role, setRole] = useState(() => getStoredRole());
   const [currentUserId, setCurrentUserId] = useState(() => Number(getStoredUser()?.id || 0));
   const [accessDeniedMessage, setAccessDeniedMessage] = useState(null);
-  const [successMessage, setSuccessMessage] = useState(null);
-  const [actionError, setActionError] = useState(null);
   const [deleteTargetDossier, setDeleteTargetDossier] = useState(null);
   const [isDeleteConfirming, setIsDeleteConfirming] = useState(false);
   const [deletingDossierId, setDeletingDossierId] = useState(null);
@@ -152,8 +150,6 @@ function DossiersList() {
   const fetchDossiers = useCallback(
     async (page = 1, filters = appliedFiltersRef.current, sort = appliedSortRef.current) => {
       try {
-        setError(null);
-
         const response = await api.get('/dossiers', {
           params: buildListQueryParams(page, filters, sort)
         });
@@ -177,7 +173,7 @@ function DossiersList() {
         setLastPage(payload?.last_page ?? 1);
         setTotal(payload?.total ?? list.length);
       } catch (err) {
-        setError(getApiErrorMessage(err, 'Failed to load dossiers. Please try again.'));
+        toast.error(getApiErrorMessage(err, 'Failed to load dossiers. Please try again.'));
       } finally {
         setLoading(false);
       }
@@ -294,14 +290,12 @@ function DossiersList() {
 
     const targetId = deleteTargetDossier.id;
 
-    setActionError(null);
-    setSuccessMessage(null);
     setIsDeleteConfirming(true);
     setDeletingDossierId(targetId);
 
     try {
       const response = await api.delete(`/dossiers/${targetId}`);
-      setSuccessMessage(response.data?.message || 'Dossier deleted successfully.');
+      toast.success(response.data?.message || 'Dossier deleted successfully.');
       setDeleteTargetDossier(null);
 
       const nextPage = dossiers.length === 1 && currentPage > 1
@@ -311,7 +305,7 @@ function DossiersList() {
       setLoading(true);
       await fetchDossiers(nextPage, appliedFiltersRef.current, appliedSortRef.current);
     } catch (err) {
-      setActionError(getApiErrorMessage(err, 'Failed to delete dossier.'));
+      toast.error(getApiErrorMessage(err, 'Failed to delete dossier.'));
     } finally {
       setIsDeleteConfirming(false);
       setDeletingDossierId(null);
@@ -354,22 +348,6 @@ function DossiersList() {
         <div className="alert alert-warning d-flex align-items-center mb-3" role="alert">
           <i className="bi bi-shield-lock me-2"></i>
           <span>{accessDeniedMessage}</span>
-        </div>
-      )}
-      {successMessage && (
-        <div className="mb-3">
-          <SuccessAlert message={successMessage} title="" />
-        </div>
-      )}
-      {actionError && (
-        <div className="mb-3">
-          <ErrorAlert message={actionError} title="" showIcon={true} />
-        </div>
-      )}
-
-      {error && dossiers.length > 0 && (
-        <div className="mb-3">
-          <ErrorAlert message={error} title="" showIcon={true} />
         </div>
       )}
 
@@ -548,14 +526,6 @@ function DossiersList() {
                       <td><div className="skeleton-line skeleton-line-medium"></div></td>
                     </tr>
                   ))
-                ) : error ? (
-                  <tr>
-                    <td colSpan={7} className="p-0">
-                      <div className="inline-empty-state-wrapper">
-                        <ErrorAlert message={error} title="" showIcon={true} />
-                      </div>
-                    </td>
-                  </tr>
                 ) : (
                   <tr>
                     <td colSpan={7} className="p-0">

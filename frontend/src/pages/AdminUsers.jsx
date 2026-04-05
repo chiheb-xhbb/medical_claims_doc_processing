@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import api, { getApiErrorMessage } from '../services/api';
 import { getStoredUser } from '../services/auth';
-import { ConfirmationModal, EmptyState, ErrorAlert, Loader, SuccessAlert } from '../ui';
+import { ConfirmationModal, EmptyState, Loader } from '../ui';
 import './AdminUsers/AdminUsers.css';
 
 const ROLE_OPTIONS = ['AGENT', 'GESTIONNAIRE', 'ADMIN'];
@@ -60,8 +61,6 @@ function AdminUsers() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [listError, setListError] = useState(null);
-  const [actionError, setActionError] = useState(null);
-  const [successMessage, setSuccessMessage] = useState(null);
   const [reloadToken, setReloadToken] = useState(0);
 
   const [searchInput, setSearchInput] = useState('');
@@ -80,7 +79,6 @@ function AdminUsers() {
 
   const [createForm, setCreateForm] = useState(CREATE_USER_INITIAL_FORM);
   const [createErrors, setCreateErrors] = useState({});
-  const [createErrorMessage, setCreateErrorMessage] = useState(null);
   const [isCreatingUser, setIsCreatingUser] = useState(false);
 
   const [roleDrafts, setRoleDrafts] = useState({});
@@ -134,7 +132,9 @@ function AdminUsers() {
         return nextDrafts;
       });
     } catch (err) {
-      setListError(getApiErrorMessage(err, 'Failed to load users. Please try again.'));
+      const message = getApiErrorMessage(err, 'Failed to load users. Please try again.');
+      setListError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -192,9 +192,6 @@ function AdminUsers() {
 
   const handleCreateUser = async (event) => {
     event.preventDefault();
-    setCreateErrorMessage(null);
-    setActionError(null);
-    setSuccessMessage(null);
 
     if (!validateCreateForm()) {
       return;
@@ -217,7 +214,7 @@ function AdminUsers() {
 
       setCreateForm(CREATE_USER_INITIAL_FORM);
       setCreateErrors({});
-      setSuccessMessage(backendMessage);
+      toast.success(backendMessage);
 
       if (query.page === 1) {
         refreshUsers();
@@ -226,7 +223,7 @@ function AdminUsers() {
       }
     } catch (err) {
       setCreateErrors(err.response?.data?.errors || {});
-      setCreateErrorMessage(getApiErrorMessage(err, 'Failed to create user. Please try again.'));
+      toast.error(getApiErrorMessage(err, 'Failed to create user. Please try again.'));
     } finally {
       setIsCreatingUser(false);
     }
@@ -294,16 +291,14 @@ function AdminUsers() {
       return;
     }
 
-    setActionError(null);
-    setSuccessMessage(null);
     setUpdatingRoleIds((prev) => [...prev, user.id]);
 
     try {
       const response = await api.patch(`/admin/users/${user.id}/role`, { role: nextRole });
-      setSuccessMessage(response.data?.message || 'User role updated successfully.');
+      toast.success(response.data?.message || 'User role updated successfully.');
       refreshUsers();
     } catch (err) {
-      setActionError(getApiErrorMessage(err, 'Failed to update user role.'));
+      toast.error(getApiErrorMessage(err, 'Failed to update user role.'));
     } finally {
       setUpdatingRoleIds((prev) => prev.filter((id) => id !== user.id));
     }
@@ -335,8 +330,6 @@ function AdminUsers() {
       return;
     }
 
-    setActionError(null);
-    setSuccessMessage(null);
     setIsConfirmingStatus(true);
     setUpdatingStatusIds((prev) => [...prev, targetUser.id]);
 
@@ -345,7 +338,7 @@ function AdminUsers() {
         is_active: statusModalState.nextIsActive
       });
 
-      setSuccessMessage(response.data?.message || 'User status updated successfully.');
+      toast.success(response.data?.message || 'User status updated successfully.');
       setStatusModalState({
         isOpen: false,
         user: null,
@@ -353,7 +346,7 @@ function AdminUsers() {
       });
       refreshUsers();
     } catch (err) {
-      setActionError(getApiErrorMessage(err, 'Failed to update user status.'));
+      toast.error(getApiErrorMessage(err, 'Failed to update user status.'));
     } finally {
       setIsConfirmingStatus(false);
       setUpdatingStatusIds((prev) => prev.filter((id) => id !== targetUser.id));
@@ -382,18 +375,6 @@ function AdminUsers() {
         </p>
       </div>
 
-      {successMessage && (
-        <div className="mb-3">
-          <SuccessAlert title="" message={successMessage} />
-        </div>
-      )}
-
-      {actionError && (
-        <div className="mb-3">
-          <ErrorAlert title="" message={actionError} />
-        </div>
-      )}
-
       <div className="card mb-4">
         <div className="card-header">
           <h6 className="mb-0 d-flex align-items-center">
@@ -402,12 +383,6 @@ function AdminUsers() {
           </h6>
         </div>
         <div className="card-body">
-          {createErrorMessage && (
-            <div className="mb-3">
-              <ErrorAlert title="" message={createErrorMessage} />
-            </div>
-          )}
-
           <form onSubmit={handleCreateUser} noValidate>
             <div className="row g-3">
               <div className="col-md-6">
@@ -590,12 +565,6 @@ function AdminUsers() {
           </form>
         </div>
 
-        {listError && users.length > 0 && (
-          <div className="p-3 border-bottom">
-            <ErrorAlert title="" message={listError} />
-          </div>
-        )}
-
         {loading && users.length === 0 ? (
           <div className="card-body">
             <Loader message="Loading users..." size="md" />
@@ -603,7 +572,11 @@ function AdminUsers() {
         ) : users.length === 0 ? (
           <div className="card-body">
             {listError ? (
-              <ErrorAlert title="" message={listError} />
+              <EmptyState
+                icon="exclamation-triangle"
+                title="Unable to Load Users"
+                description={listError}
+              />
             ) : (
               <EmptyState
                 icon="people"

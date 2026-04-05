@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import api, { getApiErrorMessage } from '../services/api';
 import { AUTH_CHANGED_EVENT, getStoredRole, getStoredUser } from '../services/auth';
 import DocumentUploadModal from '../components/DocumentUploadModal';
-import { StatusBadge, ErrorAlert, EmptyState, SuccessAlert, ConfirmationModal, SortableHeader } from '../ui';
+import { StatusBadge, EmptyState, ConfirmationModal, SortableHeader } from '../ui';
 import {
   normalizeListFilters,
   buildListQueryParams,
@@ -36,13 +37,11 @@ function DocumentsList() {
 
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [retryingIds, setRetryingIds] = useState([]);
   const [accessDeniedMessage, setAccessDeniedMessage] = useState(null);
-  const [successMessage, setSuccessMessage] = useState(null);
   const [deleteTargetDocument, setDeleteTargetDocument] = useState(null);
   const [isDeleteConfirming, setIsDeleteConfirming] = useState(false);
   const [deletingDocumentId, setDeletingDocumentId] = useState(null);
@@ -104,8 +103,6 @@ function DocumentsList() {
   const fetchDocuments = useCallback(
     async (page = 1, filters = appliedFiltersRef.current, sort = appliedSortRef.current) => {
       try {
-        setError(null);
-
         const response = await api.get('/documents', {
           params: buildListQueryParams(page, filters, sort)
         });
@@ -118,7 +115,7 @@ function DocumentsList() {
 
         return data.data || [];
       } catch (err) {
-        setError(err.response?.data?.message || 'Failed to load documents. Please try again.');
+        toast.error(err.response?.data?.message || 'Failed to load documents. Please try again.');
         return [];
       } finally {
         setLoading(false);
@@ -187,7 +184,7 @@ function DocumentsList() {
   };
 
   const handleUploadModalFinished = async () => {
-    setSuccessMessage('Document(s) uploaded successfully.');
+    toast.success('Document(s) uploaded successfully.');
     setLoading(true);
     const docs = await fetchDocuments(
       currentPageRef.current,
@@ -249,8 +246,6 @@ function DocumentsList() {
 
   const handleRetry = async (documentId) => {
     try {
-      setError(null);
-      setSuccessMessage(null);
       setRetryingIds((prev) => [...prev, documentId]);
 
       await api.post(`/documents/${documentId}/retry`);
@@ -258,7 +253,7 @@ function DocumentsList() {
       const docs = await fetchDocuments(currentPageRef.current);
       setupPolling(docs);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to retry document.');
+      toast.error(err.response?.data?.message || 'Failed to retry document.');
     } finally {
       setRetryingIds((prev) => prev.filter((id) => id !== documentId));
     }
@@ -306,14 +301,12 @@ function DocumentsList() {
 
     const targetId = deleteTargetDocument.id;
 
-    setError(null);
-    setSuccessMessage(null);
     setIsDeleteConfirming(true);
     setDeletingDocumentId(targetId);
 
     try {
       const response = await api.delete(`/documents/${targetId}`);
-      setSuccessMessage(response.data?.message || 'Document deleted successfully.');
+      toast.success(response.data?.message || 'Document deleted successfully.');
       setDeleteTargetDocument(null);
 
       const nextPage = documents.length === 1 && currentPageRef.current > 1
@@ -324,7 +317,7 @@ function DocumentsList() {
       const docs = await fetchDocuments(nextPage);
       setupPolling(docs);
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Failed to delete document.'));
+      toast.error(getApiErrorMessage(err, 'Failed to delete document.'));
     } finally {
       setIsDeleteConfirming(false);
       setDeletingDocumentId(null);
@@ -436,11 +429,6 @@ function DocumentsList() {
           <span>{accessDeniedMessage}</span>
         </div>
       )}
-      {successMessage && (
-        <div className="mb-3">
-          <SuccessAlert message={successMessage} title="" />
-        </div>
-      )}
 
       <div className="d-flex justify-content-between align-items-start gap-3 mb-4">
         <div className="min-w-0">
@@ -464,12 +452,6 @@ function DocumentsList() {
           </button>
         )}
       </div>
-
-      {error && documents.length > 0 && (
-        <div className="mb-3">
-          <ErrorAlert message={error} title="" showIcon={true} />
-        </div>
-      )}
 
       <div className="card documents-filters-card mb-4">
         <div className="card-body">
@@ -629,14 +611,6 @@ function DocumentsList() {
                       <td><div className="skeleton-line skeleton-line-medium"></div></td>
                     </tr>
                   ))
-                ) : error ? (
-                  <tr>
-                    <td colSpan={6} className="p-0">
-                      <div className="inline-empty-state-wrapper">
-                        <ErrorAlert message={error} title="" showIcon={true} />
-                      </div>
-                    </td>
-                  </tr>
                 ) : (
                   <tr>
                     <td colSpan={6} className="p-0">

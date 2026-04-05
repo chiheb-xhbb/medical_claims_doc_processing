@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { getStoredRole, getStoredUser, AUTH_CHANGED_EVENT } from '../services/auth';
 import {
   getDossierDetail,
@@ -14,7 +15,7 @@ import {
   rejectRubrique,
   getValidatedDocuments
 } from '../services/dossierWorkflow';
-import { Loader, ErrorAlert, SuccessAlert, EmptyState, ConfirmationModal } from '../ui';
+import { Loader, EmptyState, ConfirmationModal } from '../ui';
 import DossierSummaryCard from './DossierDetail/components/DossierSummaryCard';
 import WorkflowActionsCard from './DossierDetail/components/WorkflowActionsCard';
 import RubriquesSection from './DossierDetail/components/RubriquesSection';
@@ -129,8 +130,7 @@ function DossierDetail() {
 
   const [dossierData, setDossierData] = useState(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(true);
-  const [detailError, setDetailError] = useState(null);
-  const [successMessage, setSuccessMessage] = useState(null);
+  const [loadErrorMessage, setLoadErrorMessage] = useState(null);
 
   const [rubriqueTitle, setRubriqueTitle] = useState('');
   const [rubriqueNotes, setRubriqueNotes] = useState('');
@@ -160,34 +160,18 @@ function DossierDetail() {
   const [rejectRubriqueNote, setRejectRubriqueNote] = useState('');
   const [confirmationModal, setConfirmationModal] = useState(INITIAL_CONFIRMATION_MODAL);
 
-  // Fix: auto-dismiss successMessage after 4 seconds
-  const successDismissTimer = useRef(null);
-  useEffect(() => {
-    if (successMessage) {
-      if (successDismissTimer.current) {
-        clearTimeout(successDismissTimer.current);
-      }
-      successDismissTimer.current = setTimeout(() => {
-        setSuccessMessage(null);
-      }, 4000);
-    }
-    return () => {
-      if (successDismissTimer.current) {
-        clearTimeout(successDismissTimer.current);
-      }
-    };
-  }, [successMessage]);
-
   const refreshDetail = useCallback(async () => {
     setIsLoadingDetail(true);
-    setDetailError(null);
+    setLoadErrorMessage(null);
 
     try {
       const response = await getDossierDetail(id);
       const normalized = mapDossierDetailResponse(response);
       setDossierData(normalized);
     } catch (error) {
-      setDetailError(formatApiError(error, 'Failed to load dossier details. Please try again.'));
+      const message = formatApiError(error, 'Failed to load dossier details. Please try again.');
+      setLoadErrorMessage(message);
+      toast.error(message);
       setDossierData(null);
     } finally {
       setIsLoadingDetail(false);
@@ -281,8 +265,6 @@ function DossierDetail() {
   };
 
   const openAttachModal = async (rubrique) => {
-    setSuccessMessage(null);
-    setDetailError(null);
     setAttachTargetRubrique(rubrique);
     setSelectedDocumentIds([]);
     setIsAttachModalOpen(true);
@@ -292,7 +274,7 @@ function DossierDetail() {
       const documents = await getValidatedDocuments();
       setValidatedDocuments(Array.isArray(documents) ? documents : []);
     } catch (error) {
-      setDetailError(formatApiError(error, 'Failed to load validated documents.'));
+      toast.error(formatApiError(error, 'Failed to load validated documents.'));
       setValidatedDocuments([]);
     } finally {
       setIsLoadingValidatedDocuments(false);
@@ -345,14 +327,12 @@ function DossierDetail() {
     event.preventDefault();
 
     if (!rubriqueTitle.trim()) {
-      setDetailError('Rubrique title is required.');
+      toast.error('Rubrique title is required.');
       return;
     }
 
     try {
       setIsCreatingRubrique(true);
-      setDetailError(null);
-      setSuccessMessage(null);
 
       const response = await createRubrique(id, {
         title: rubriqueTitle.trim(),
@@ -361,10 +341,10 @@ function DossierDetail() {
 
       setRubriqueTitle('');
       setRubriqueNotes('');
-      setSuccessMessage(response?.message || 'Rubrique created successfully.');
+      toast.success(response?.message || 'Rubrique created successfully.');
       await refreshDetail();
     } catch (error) {
-      setDetailError(formatApiError(error, 'Failed to create rubrique.'));
+      toast.error(formatApiError(error, 'Failed to create rubrique.'));
     } finally {
       setIsCreatingRubrique(false);
     }
@@ -376,22 +356,20 @@ function DossierDetail() {
     }
 
     if (selectedDocumentIds.length === 0) {
-      setDetailError('Select at least one validated document to attach.');
+      toast.error('Select at least one validated document to attach.');
       return;
     }
 
     try {
       withMapPending(setIsAttachingByRubriqueId, attachTargetRubrique.id, true);
-      setDetailError(null);
-      setSuccessMessage(null);
 
       const response = await attachDocuments(attachTargetRubrique.id, selectedDocumentIds);
 
-      setSuccessMessage(response?.message || 'Documents attached successfully.');
+      toast.success(response?.message || 'Documents attached successfully.');
       closeAttachModal();
       await refreshDetail();
     } catch (error) {
-      setDetailError(formatApiError(error, 'Failed to attach documents.'));
+      toast.error(formatApiError(error, 'Failed to attach documents.'));
     } finally {
       withMapPending(setIsAttachingByRubriqueId, attachTargetRubrique.id, false);
     }
@@ -404,14 +382,12 @@ function DossierDetail() {
 
     try {
       withMapPending(setIsDetachingByDocumentId, documentId, true);
-      setDetailError(null);
-      setSuccessMessage(null);
 
       const response = await detachDocument(rubriqueId, documentId);
-      setSuccessMessage(response?.message || 'Document detached successfully.');
+      toast.success(response?.message || 'Document detached successfully.');
       await refreshDetail();
     } catch (error) {
-      setDetailError(formatApiError(error, 'Failed to detach document.'));
+      toast.error(formatApiError(error, 'Failed to detach document.'));
     } finally {
       withMapPending(setIsDetachingByDocumentId, documentId, false);
     }
@@ -424,14 +400,12 @@ function DossierDetail() {
 
     try {
       withMapPending(setIsDeletingRubriqueById, rubriqueId, true);
-      setDetailError(null);
-      setSuccessMessage(null);
 
       const response = await deleteRubrique(rubriqueId);
-      setSuccessMessage(response?.message || 'Rubrique deleted successfully.');
+      toast.success(response?.message || 'Rubrique deleted successfully.');
       await refreshDetail();
     } catch (error) {
-      setDetailError(formatApiError(error, 'Failed to delete rubrique.'));
+      toast.error(formatApiError(error, 'Failed to delete rubrique.'));
     } finally {
       withMapPending(setIsDeletingRubriqueById, rubriqueId, false);
     }
@@ -440,14 +414,12 @@ function DossierDetail() {
   const executeSubmitDossier = async () => {
     try {
       setIsSubmittingDossier(true);
-      setDetailError(null);
-      setSuccessMessage(null);
 
       const response = await submitDossier(id);
-      setSuccessMessage(response?.message || 'Dossier submitted successfully.');
+      toast.success(response?.message || 'Dossier submitted successfully.');
       await refreshDetail();
     } catch (error) {
-      setDetailError(formatApiError(error, 'Failed to submit dossier.'));
+      toast.error(formatApiError(error, 'Failed to submit dossier.'));
     } finally {
       setIsSubmittingDossier(false);
     }
@@ -456,14 +428,12 @@ function DossierDetail() {
   const executeProcessDossier = async () => {
     try {
       setIsProcessingDossier(true);
-      setDetailError(null);
-      setSuccessMessage(null);
 
       const response = await processDossier(id);
-      setSuccessMessage(response?.message || 'Dossier processed successfully.');
+      toast.success(response?.message || 'Dossier processed successfully.');
       await refreshDetail();
     } catch (error) {
-      setDetailError(formatApiError(error, 'Failed to process dossier.'));
+      toast.error(formatApiError(error, 'Failed to process dossier.'));
     } finally {
       setIsProcessingDossier(false);
     }
@@ -571,14 +541,12 @@ function DossierDetail() {
   const executeAcceptDocument = async (documentId) => {
     try {
       withMapPending(setIsDecidingByDocumentId, documentId, true);
-      setDetailError(null);
-      setSuccessMessage(null);
 
       const response = await acceptDocument(documentId, null);
-      setSuccessMessage(response?.message || 'Document accepted successfully.');
+      toast.success(response?.message || 'Document accepted successfully.');
       await refreshDetail();
     } catch (error) {
-      setDetailError(formatApiError(error, 'Failed to accept document.'));
+      toast.error(formatApiError(error, 'Failed to accept document.'));
     } finally {
       withMapPending(setIsDecidingByDocumentId, documentId, false);
     }
@@ -596,21 +564,19 @@ function DossierDetail() {
 
     const normalizedNote = rejectNote.trim();
     if (!normalizedNote) {
-      setDetailError('A rejection note is required.');
+      toast.error('A rejection note is required.');
       return;
     }
 
     try {
       withMapPending(setIsDecidingByDocumentId, documentId, true);
-      setDetailError(null);
-      setSuccessMessage(null);
 
       const response = await rejectDocument(documentId, normalizedNote);
-      setSuccessMessage(response?.message || 'Document rejected successfully.');
+      toast.success(response?.message || 'Document rejected successfully.');
       closeRejectDocumentModal();
       await refreshDetail();
     } catch (error) {
-      setDetailError(formatApiError(error, 'Failed to reject document.'));
+      toast.error(formatApiError(error, 'Failed to reject document.'));
     } finally {
       withMapPending(setIsDecidingByDocumentId, documentId, false);
     }
@@ -636,16 +602,14 @@ function DossierDetail() {
 
     try {
       withMapPending(setIsRejectingRubriqueById, rubriqueId, true);
-      setDetailError(null);
-      setSuccessMessage(null);
 
       const note = rejectRubriqueNote.trim() || null;
       const response = await rejectRubrique(rubriqueId, note);
-      setSuccessMessage(response?.message || 'Rubrique rejected successfully.');
+      toast.success(response?.message || 'Rubrique rejected successfully.');
       closeRejectRubriqueModal();
       await refreshDetail();
     } catch (error) {
-      setDetailError(formatApiError(error, 'Failed to reject rubrique.'));
+      toast.error(formatApiError(error, 'Failed to reject rubrique.'));
     } finally {
       withMapPending(setIsRejectingRubriqueById, rubriqueId, false);
     }
@@ -659,12 +623,25 @@ function DossierDetail() {
     );
   }
 
-  if (detailError && !dossier) {
+  if (loadErrorMessage && !dossier) {
     return (
       <div className="container py-5">
         <div className="row justify-content-center">
           <div className="col-lg-8">
-            <ErrorAlert message={detailError} title="" />
+            <div className="card">
+              <div className="card-body">
+                <EmptyState
+                  icon="exclamation-triangle"
+                  title="Unable to Load Dossier"
+                  description={loadErrorMessage}
+                  action={
+                    <button className="btn btn-primary" onClick={() => navigate('/dossiers')}>
+                      Back to Dossiers
+                    </button>
+                  }
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -713,18 +690,6 @@ function DossierDetail() {
           Back to Dossiers
         </button>
       </div>
-
-      {detailError && (
-        <div className="mb-3">
-          <ErrorAlert message={detailError} title="" />
-        </div>
-      )}
-
-      {successMessage && (
-        <div className="mb-3">
-          <SuccessAlert message={successMessage} title="" />
-        </div>
-      )}
 
       {isFrozen && (
         <div className="alert alert-warning finalized-banner mb-4">
