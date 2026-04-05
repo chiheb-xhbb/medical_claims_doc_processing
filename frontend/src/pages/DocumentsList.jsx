@@ -721,6 +721,7 @@ function DocumentsList() {
         confirmLabel="Delete"
         confirmingLabel="Deleting..."
         confirmVariant="danger"
+        initialFocus="cancel"
         isConfirming={isDeleteConfirming}
         onCancel={closeDeleteModal}
         onConfirm={handleConfirmDelete}

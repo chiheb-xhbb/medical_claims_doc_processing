@@ -145,6 +145,24 @@
   min-width: 92px;
 }
 
+.documents-list .dossier-confirmation-modal {
+  width: min(520px, 100%);
+}
+
+.documents-list .dossier-confirmation-modal .confirmation-modal-header {
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.documents-list .dossier-confirmation-modal .confirmation-modal-body {
+  padding-top: 0.25rem;
+}
+
+.documents-list .dossier-confirmation-modal .confirmation-modal-footer {
+  border-top: 1px solid var(--color-border-light);
+  padding-top: 0.75rem;
+}
+
 @media (max-width: 767.98px) {
   .documents-list .documents-filters-card .card-body {
     padding: var(--spacing-4);
