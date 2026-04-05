@@ -78,7 +78,7 @@ export function AuthProvider({ children }) {
       }
 
       try {
-        const response = await api.get('/user');
+        const response = await api.get('/me');
         const nextUser = storeUser(response.data?.user ?? response.data);
 
         if (!isMounted) {
@@ -88,16 +88,20 @@ export function AuthProvider({ children }) {
         setToken(storedToken);
         setUser(nextUser);
         notifyAuthChanged();
-      } catch {
-        localStorage.removeItem(AUTH_TOKEN_KEY);
-        localStorage.removeItem(AUTH_USER_KEY);
+      } catch (error) {
+        const status = error?.response?.status;
 
-        if (isMounted) {
-          setToken(null);
-          setUser(null);
+        if (status === 401) {
+          localStorage.removeItem(AUTH_TOKEN_KEY);
+          localStorage.removeItem(AUTH_USER_KEY);
+
+          if (isMounted) {
+            setToken(null);
+            setUser(null);
+          }
+
+          notifyAuthChanged();
         }
-
-        notifyAuthChanged();
       } finally {
         if (isMounted) {
           setIsHydrating(false);

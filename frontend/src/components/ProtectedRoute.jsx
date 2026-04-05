@@ -1,10 +1,16 @@
 import { Navigate, useLocation } from 'react-router-dom';
-import { isAuthenticated, getStoredRole, getDefaultLandingPath } from '../services/auth';
+import { getStoredRole, getDefaultLandingPath } from '../services/auth';
+import { useAuth } from '../context/AuthContext';
 
 function ProtectedRoute({ children, allowedRoles }) {
   const location = useLocation();
+  const { token, isHydrating } = useAuth();
 
-  if (!isAuthenticated()) {
+  if (isHydrating) {
+    return null;
+  }
+
+  if (!token) {
     return <Navigate to="/login" replace />;
   }
 
