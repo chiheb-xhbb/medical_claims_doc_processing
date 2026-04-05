@@ -272,11 +272,11 @@ function DocumentsList() {
       return false;
     }
 
-    if (role === 'ADMIN') {
+    if (role === 'ADMIN' || role === 'GESTIONNAIRE') {
       return true;
     }
 
-    if (role === 'AGENT' || role === 'GESTIONNAIRE') {
+    if (role === 'AGENT') {
       return Number(doc.user_id) === Number(currentUserId);
     }
 

@@ -269,11 +269,11 @@ class DocumentController extends Controller
 
     private function canDeleteDocument(User $user, Document $document): bool
     {
-        if ($this->hasRole($user, UserRole::ADMIN)) {
+        if ($this->hasRole($user, UserRole::ADMIN, UserRole::GESTIONNAIRE)) {
             return true;
         }
 
-        return $this->hasRole($user, UserRole::AGENT, UserRole::GESTIONNAIRE)
+        return $this->hasRole($user, UserRole::AGENT)
             && (int) $document->user_id === (int) $user->id;
     }
 
