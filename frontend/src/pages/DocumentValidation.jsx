@@ -77,6 +77,31 @@ function DocumentValidation() {
   const [loadErrorMessage, setLoadErrorMessage] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [businessWarnings, setBusinessWarnings] = useState([]);
+  const [clientWarnings, setClientWarnings] = useState([]);
+
+  useEffect(() => {
+    const activeWarnings = [];
+    
+    if (editedFields.total_ttc !== undefined && editedFields.total_ttc !== null && editedFields.total_ttc !== '') {
+      const amount = Number(editedFields.total_ttc);
+      if (amount <= 0) {
+        activeWarnings.push('Amount must be positive.');
+      } else if (amount > 10000) {
+        activeWarnings.push('High amount detected: requires supervisor review.');
+      }
+    }
+
+    if (editedFields.invoice_date) {
+      const date = new Date(editedFields.invoice_date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (date > today) {
+        activeWarnings.push('Invoice date is in the future.');
+      }
+    }
+
+    setClientWarnings(activeWarnings);
+  }, [editedFields.total_ttc, editedFields.invoice_date]);
 
   const fetchDocument = useCallback(async () => {
     try {
@@ -276,9 +301,12 @@ function DocumentValidation() {
         </div>
       )}
 
-      {businessWarnings.length > 0 && (
+      {(businessWarnings.length > 0 || clientWarnings.length > 0) && (
         <div className="mb-4">
-          <WarningAlert warnings={businessWarnings} title="Business Validation Warnings" />
+          <WarningAlert 
+            warnings={Array.from(new Set([...clientWarnings, ...businessWarnings]))} 
+            title="Business Validation Warnings" 
+          />
         </div>
       )}
 
