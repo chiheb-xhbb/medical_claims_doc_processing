@@ -52,9 +52,17 @@ class DossierController extends Controller
                 $scope->where('created_by', $user->id)
                     ->orWhereIn('status', [
                         DossierStatus::TO_VALIDATE->value,
+                        DossierStatus::EN_DEROGATION->value,
+                        DossierStatus::COMPLEMENT_ATTENDU->value,
                         DossierStatus::PROCESSED->value,
                     ]);
             });
+        } elseif ($this->hasRole($user, UserRole::CHEF_HIERARCHIQUE)) {
+            $query->whereIn('status', [
+                DossierStatus::EN_DEROGATION->value,
+                DossierStatus::COMPLEMENT_ATTENDU->value,
+                DossierStatus::PROCESSED->value,
+            ]);
         } elseif (! $this->hasRole($user, UserRole::ADMIN)) {
             return response()->json([
                 'message' => 'You are not allowed to view dossiers.',
@@ -112,7 +120,13 @@ class DossierController extends Controller
             'notes' => $validated['notes'] ?? null,
             'created_by' => $user->id,
             'status' => DossierStatus::RECEIVED,
-        ])->fresh(['creator', 'submitter', 'processor']);
+        ])->fresh([
+            'creator',
+            'submitter',
+            'processor',
+            'escalator',
+            'chefDecisionMaker',
+        ]);
 
         return response()->json([
             'message' => 'Dossier created successfully.',
@@ -138,6 +152,8 @@ class DossierController extends Controller
             'creator',
             'submitter',
             'processor',
+            'escalator',
+            'chefDecisionMaker',
             'rubriques.creator',
             'rubriques.rejector',
             'rubriques.documents.extractions',
@@ -167,6 +183,17 @@ class DossierController extends Controller
             ], 403);
         }
 
+        if (! in_array($dossier->status, [
+            DossierStatus::RECEIVED,
+            DossierStatus::IN_PROGRESS,
+            DossierStatus::COMPLEMENT_ATTENDU,
+        ], true)) {
+            return response()->json([
+                'message' => 'This dossier cannot be updated in its current status.',
+                'current_status' => $dossier->status->value,
+            ], 422);
+        }
+
         if ($dossier->isFrozen()) {
             return response()->json([
                 'message' => 'Cannot update a frozen dossier.',
@@ -185,7 +212,13 @@ class DossierController extends Controller
                 : $dossier->notes,
         ]);
 
-        $dossier = $dossier->fresh(['creator', 'submitter', 'processor']);
+        $dossier = $dossier->fresh([
+            'creator',
+            'submitter',
+            'processor',
+            'escalator',
+            'chefDecisionMaker',
+        ]);
 
         return response()->json([
             'message' => 'Dossier updated successfully.',
@@ -249,7 +282,13 @@ class DossierController extends Controller
         $dossier->submitted_by = $user->id;
         $dossier->save();
 
-        $dossier = $dossier->fresh(['creator', 'submitter', 'processor']);
+        $dossier = $dossier->fresh([
+            'creator',
+            'submitter',
+            'processor',
+            'escalator',
+            'chefDecisionMaker',
+        ]);
 
         return response()->json([
             'message' => 'Dossier submitted successfully.',
@@ -289,7 +328,13 @@ class DossierController extends Controller
         $dossier->processed_at = now();
         $dossier->save();
 
-        $dossier = $dossier->fresh(['creator', 'submitter', 'processor']);
+        $dossier = $dossier->fresh([
+            'creator',
+            'submitter',
+            'processor',
+            'escalator',
+            'chefDecisionMaker',
+        ]);
 
         return response()->json([
             'message' => 'Dossier processed successfully.',
@@ -311,11 +356,21 @@ class DossierController extends Controller
             'display_total' => $dossier->getDisplayTotal(),
             'rubriques_count' => $dossier->rubriques_count ?? 0,
             'documents_count' => $dossier->documents_count ?? 0,
+
             'created_by' => $dossier->created_by,
             'submitted_by' => $dossier->submitted_by,
-            'submitted_at' => $dossier->submitted_at,
             'processed_by' => $dossier->processed_by,
+            'escalated_by' => $dossier->escalated_by,
+            'chef_decision_by' => $dossier->chef_decision_by,
+
+            'submitted_at' => $dossier->submitted_at,
             'processed_at' => $dossier->processed_at,
+            'escalated_at' => $dossier->escalated_at,
+            'escalation_reason' => $dossier->escalation_reason,
+            'chef_decision_type' => $dossier->chef_decision_type,
+            'chef_decision_at' => $dossier->chef_decision_at,
+            'chef_decision_note' => $dossier->chef_decision_note,
+
             'created_at' => $dossier->created_at,
             'updated_at' => $dossier->updated_at,
         ];
@@ -335,9 +390,16 @@ class DossierController extends Controller
             'created_by' => $dossier->created_by,
             'submitted_by' => $dossier->submitted_by,
             'processed_by' => $dossier->processed_by,
+            'escalated_by' => $dossier->escalated_by,
+            'chef_decision_by' => $dossier->chef_decision_by,
 
             'submitted_at' => $dossier->submitted_at,
             'processed_at' => $dossier->processed_at,
+            'escalated_at' => $dossier->escalated_at,
+            'escalation_reason' => $dossier->escalation_reason,
+            'chef_decision_type' => $dossier->chef_decision_type,
+            'chef_decision_at' => $dossier->chef_decision_at,
+            'chef_decision_note' => $dossier->chef_decision_note,
 
             'creator' => $dossier->creator ? [
                 'id' => $dossier->creator->id,
@@ -355,6 +417,18 @@ class DossierController extends Controller
                 'id' => $dossier->processor->id,
                 'name' => $dossier->processor->name,
                 'email' => $dossier->processor->email,
+            ] : null,
+
+            'escalator' => $dossier->escalator ? [
+                'id' => $dossier->escalator->id,
+                'name' => $dossier->escalator->name,
+                'email' => $dossier->escalator->email,
+            ] : null,
+
+            'chef_decision_maker' => $dossier->chefDecisionMaker ? [
+                'id' => $dossier->chefDecisionMaker->id,
+                'name' => $dossier->chefDecisionMaker->name,
+                'email' => $dossier->chefDecisionMaker->email,
             ] : null,
 
             'created_at' => $dossier->created_at,
@@ -453,6 +527,16 @@ class DossierController extends Controller
 
             return in_array($dossier->status->value, [
                 DossierStatus::TO_VALIDATE->value,
+                DossierStatus::EN_DEROGATION->value,
+                DossierStatus::COMPLEMENT_ATTENDU->value,
+                DossierStatus::PROCESSED->value,
+            ], true);
+        }
+
+        if ($this->hasRole($user, UserRole::CHEF_HIERARCHIQUE)) {
+            return in_array($dossier->status->value, [
+                DossierStatus::EN_DEROGATION->value,
+                DossierStatus::COMPLEMENT_ATTENDU->value,
                 DossierStatus::PROCESSED->value,
             ], true);
         }

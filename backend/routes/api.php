@@ -1,11 +1,11 @@
 <?php
 
-
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\DocumentValidationController;
 use App\Http\Controllers\Api\DossierController;
+use App\Http\Controllers\Api\DossierEscalationController;
 use App\Http\Controllers\Api\RubriqueController;
 use App\Http\Controllers\Api\DocumentDecisionController;
 use App\Http\Controllers\Api\AdminUserController;
@@ -14,20 +14,16 @@ use App\Http\Controllers\Api\AdminUserController;
 |--------------------------------------------------------------------------
 | API Routes
 |--------------------------------------------------------------------------
-|
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "api" middleware group. Make something great!
-|
 */
 
-//Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
+// Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 
 Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
     // Auth
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
+
     // Documents
     Route::prefix('documents')->group(function () {
         Route::post('/', [DocumentController::class, 'store']);
@@ -50,6 +46,12 @@ Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
         Route::post('/{dossier}/submit', [DossierController::class, 'submit']);
         Route::post('/{dossier}/process', [DossierController::class, 'process']);
 
+        // Hierarchical escalation workflow
+        Route::post('/{dossier}/escalate', [DossierEscalationController::class, 'escalate']);
+        Route::post('/{dossier}/chef/approve', [DossierEscalationController::class, 'approveDerogation']);
+        Route::post('/{dossier}/chef/return', [DossierEscalationController::class, 'returnToGestionnaire']);
+        Route::post('/{dossier}/chef/request-complement', [DossierEscalationController::class, 'requestComplement']);
+
         // Rubriques inside a dossier
         Route::post('/{dossier}/rubriques', [RubriqueController::class, 'store']);
     });
@@ -58,7 +60,6 @@ Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
     Route::prefix('rubriques')->group(function () {
         Route::put('/{rubrique}', [RubriqueController::class, 'update']);
         Route::delete('/{rubrique}', [RubriqueController::class, 'destroy']);
-
         Route::post('/{rubrique}/attach-documents', [RubriqueController::class, 'attachDocuments']);
         Route::delete('/{rubrique}/documents/{document}', [RubriqueController::class, 'detachDocument']);
         Route::post('/{rubrique}/reject-all', [RubriqueController::class, 'rejectAll']);

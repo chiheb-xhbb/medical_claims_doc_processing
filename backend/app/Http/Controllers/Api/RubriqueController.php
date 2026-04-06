@@ -495,6 +495,7 @@ class RubriqueController extends Controller
         return in_array($dossier->status, [
             DossierStatus::RECEIVED,
             DossierStatus::IN_PROGRESS,
+            DossierStatus::COMPLEMENT_ATTENDU,
         ], true);
     }
 

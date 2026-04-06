@@ -30,6 +30,8 @@ class Dossier extends Model
         'montant_total' => 'decimal:3',
         'submitted_at' => 'datetime',
         'processed_at' => 'datetime',
+        'escalated_at' => 'datetime',
+        'chef_decision_at' => 'datetime',
     ];
 
     protected static function boot(): void
@@ -59,7 +61,26 @@ class Dossier extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    // Business rules
+    public function submitter(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'submitted_by');
+    }
+
+    public function processor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'processed_by');
+    }
+
+    public function escalator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'escalated_by');
+    }
+
+    public function chefDecisionMaker(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'chef_decision_by');
+    }
+
     public function isFrozen(): bool
     {
         return $this->status === DossierStatus::PROCESSED;
@@ -72,7 +93,10 @@ class Dossier extends Model
 
     public function canBeSubmitted(): bool
     {
-        return $this->status === DossierStatus::IN_PROGRESS
+        return in_array($this->status, [
+            DossierStatus::IN_PROGRESS,
+            DossierStatus::COMPLEMENT_ATTENDU,
+        ], true)
             && $this->rubriques()->exists()
             && $this->documents()->exists();
     }
@@ -90,6 +114,23 @@ class Dossier extends Model
         return ! $this->documents()
             ->where('documents.decision_status', DocumentDecisionStatus::PENDING->value)
             ->exists();
+    }
+
+    public function canBeEscalated(): bool
+    {
+        return $this->status === DossierStatus::TO_VALIDATE && ! $this->isFrozen();
+    }
+
+    public function canBeChefReviewed(): bool
+    {
+        return $this->status === DossierStatus::EN_DEROGATION;
+    }
+
+    public function canBeResubmittedAfterComplement(): bool
+    {
+        return $this->status === DossierStatus::COMPLEMENT_ATTENDU
+            && $this->rubriques()->exists()
+            && $this->documents()->exists();
     }
 
     public function getRequestedTotal(): float
@@ -146,15 +187,5 @@ class Dossier extends Model
             $this->montant_total = $this->getCurrentTotal();
             $this->saveQuietly();
         }
-    }
-
-    public function submitter(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'submitted_by');
-    }
-
-    public function processor(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'processed_by');
     }
 }
