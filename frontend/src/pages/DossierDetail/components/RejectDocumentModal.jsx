@@ -6,6 +6,7 @@ function RejectDocumentModal({
   rejectTargetDocument,
   rejectNote,
   setRejectNote,
+  isReturnedToGestionnaire,
   closeRejectDocumentModal,
   handleRejectDocument,
   isDecidingByDocumentId
@@ -20,6 +21,9 @@ function RejectDocumentModal({
 
   const isRejecting = Boolean(isDecidingByDocumentId[rejectTargetDocument?.id] || false);
   const hasDecisionNote = Boolean((rejectNote || '').trim());
+  const reviewMessage = isReturnedToGestionnaire
+    ? 'Reject this document for the returned dossier review? This will update the current decision.'
+    : 'Reject this document for the current review.';
 
   return (
     <DossierModalShell
@@ -28,6 +32,7 @@ function RejectDocumentModal({
       description={
         <>
           Document: <strong>{rejectTargetDocument?.original_filename || `#${rejectTargetDocument?.id || ''}`}</strong>
+          <div className="mt-2">{reviewMessage}</div>
         </>
       }
       onClose={closeRejectDocumentModal}

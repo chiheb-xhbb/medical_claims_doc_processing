@@ -64,7 +64,7 @@ export function consumeAuthFeedback() {
 }
 
 export function getDefaultLandingPath(role = getStoredRole()) {
-  if (role === 'GESTIONNAIRE' || role === 'ADMIN') {
+  if (role === 'GESTIONNAIRE' || role === 'ADMIN' || role === 'CHEF_HIERARCHIQUE') {
     return '/dossiers';
   }
 

@@ -5,11 +5,12 @@ import { getStoredUser } from '../services/auth';
 import { ConfirmationModal, EmptyState, Loader } from '../ui';
 import './AdminUsers/AdminUsers.css';
 
-const ROLE_OPTIONS = ['AGENT', 'GESTIONNAIRE', 'ADMIN'];
+const ROLE_OPTIONS = ['AGENT', 'GESTIONNAIRE', 'CHEF_HIERARCHIQUE', 'ADMIN'];
 
 const ROLE_LABELS = {
   AGENT: 'Agent',
   GESTIONNAIRE: 'Gestionnaire',
+  CHEF_HIERARCHIQUE: 'Chef Hiérarchique',
   ADMIN: 'Admin'
 };
 
@@ -50,6 +51,10 @@ const getRoleBadgeClass = (role) => {
 
   if (role === 'GESTIONNAIRE') {
     return 'bg-warning-subtle text-warning-emphasis';
+  }
+
+  if (role === 'CHEF_HIERARCHIQUE') {
+    return 'bg-success-subtle text-success-emphasis';
   }
 
   return 'bg-info-subtle text-info-emphasis';

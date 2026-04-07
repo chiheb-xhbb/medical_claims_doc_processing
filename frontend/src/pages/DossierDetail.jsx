@@ -13,7 +13,11 @@ import {
   acceptDocument,
   rejectDocument,
   rejectRubrique,
-  getValidatedDocuments
+  getValidatedDocuments,
+  escalateDossier,
+  approveDerogation,
+  returnToGestionnaire,
+  requestComplement,
 } from '../services/dossierWorkflow';
 import { Loader, EmptyState, ConfirmationModal } from '../ui';
 import DossierSummaryCard from './DossierDetail/components/DossierSummaryCard';
@@ -22,6 +26,8 @@ import RubriquesSection from './DossierDetail/components/RubriquesSection';
 import AttachDocumentsModal from './DossierDetail/components/AttachDocumentsModal';
 import RejectDocumentModal from './DossierDetail/components/RejectDocumentModal';
 import RejectRubriqueModal from './DossierDetail/components/RejectRubriqueModal';
+import EscalationInfoBlock from './DossierDetail/components/EscalationInfoBlock';
+import ChefActionPanel from './DossierDetail/components/ChefActionPanel';
 import './DossierDetail/DossierDetail.css';
 
 const DOSSIER_FROZEN_STATUSES = ['PROCESSED'];
@@ -138,6 +144,8 @@ function DossierDetail() {
   const [isCreatingRubrique, setIsCreatingRubrique] = useState(false);
   const [isSubmittingDossier, setIsSubmittingDossier] = useState(false);
   const [isProcessingDossier, setIsProcessingDossier] = useState(false);
+  const [isEscalatingDossier, setIsEscalatingDossier] = useState(false);
+  const [isChefActing, setIsChefActing] = useState(false);
   const [isAttachingByRubriqueId, setIsAttachingByRubriqueId] = useState({});
   const [isDeletingRubriqueById, setIsDeletingRubriqueById] = useState({});
   const [isRejectingRubriqueById, setIsRejectingRubriqueById] = useState({});
@@ -154,11 +162,14 @@ function DossierDetail() {
   const [rejectTargetDocument, setRejectTargetDocument] = useState(null);
   const [rejectNote, setRejectNote] = useState('');
 
-  // Rubrique rejection modal state
   const [isRejectRubriqueModalOpen, setIsRejectRubriqueModalOpen] = useState(false);
   const [rejectRubriqueTarget, setRejectRubriqueTarget] = useState(null);
   const [rejectRubriqueNote, setRejectRubriqueNote] = useState('');
   const [confirmationModal, setConfirmationModal] = useState(INITIAL_CONFIRMATION_MODAL);
+
+  // Escalation modal state
+  const [escalateModalOpen, setEscalateModalOpen] = useState(false);
+  const [escalationReason, setEscalationReason] = useState('');
 
   const refreshDetail = useCallback(async () => {
     setIsLoadingDetail(true);
@@ -197,22 +208,37 @@ function DossierDetail() {
   const dossier = dossierData?.dossier;
   const rubriques = useMemo(() => dossierData?.rubriques ?? [], [dossierData]);
   const dossierStatus = (dossier?.status || '').toUpperCase();
+  const isDossierOwnedByCurrentUser = Number(dossier?.created_by) === currentUserId;
 
-  const canPrepare = role === 'AGENT' || role === 'GESTIONNAIRE' || role === 'ADMIN';
+  const isChef = role === 'CHEF_HIERARCHIQUE';
+  const isChefReviewer = role === 'CHEF_HIERARCHIQUE' || role === 'ADMIN';
+  const canPrepare = !isChef && (role === 'AGENT' || role === 'GESTIONNAIRE' || role === 'ADMIN');
+  const canManagePreparation = role === 'ADMIN' || isDossierOwnedByCurrentUser;
   const canReview = role === 'GESTIONNAIRE' || role === 'ADMIN';
 
   const isFrozen = DOSSIER_FROZEN_STATUSES.includes(dossierStatus);
-  // Preparation actions: AGENT, GESTIONNAIRE, or ADMIN + correct status
-  const canCreateRubrique = canPrepare && (dossierStatus === 'RECEIVED' || dossierStatus === 'IN_PROGRESS');
-  const canDeleteRubrique = canPrepare && (dossierStatus === 'RECEIVED' || dossierStatus === 'IN_PROGRESS');
-  const canAttachDocuments = canPrepare && dossierStatus === 'IN_PROGRESS';
-  const canDetachDocuments = canPrepare && dossierStatus === 'IN_PROGRESS';
-  const canSubmitDossier = canPrepare && dossierStatus === 'IN_PROGRESS';
-  // Review actions: GESTIONNAIRE or ADMIN + dossier status TO_VALIDATE
+
+  const canCreateRubrique = canPrepare && canManagePreparation && (dossierStatus === 'RECEIVED' || dossierStatus === 'IN_PROGRESS' || dossierStatus === 'COMPLEMENT_ATTENDU');
+  const canDeleteRubrique = canPrepare && canManagePreparation && (dossierStatus === 'RECEIVED' || dossierStatus === 'IN_PROGRESS' || dossierStatus === 'COMPLEMENT_ATTENDU');
+  const canAttachDocuments = canPrepare && canManagePreparation && (dossierStatus === 'IN_PROGRESS' || dossierStatus === 'COMPLEMENT_ATTENDU');
+  const canDetachDocuments = canPrepare && canManagePreparation && (dossierStatus === 'IN_PROGRESS' || dossierStatus === 'COMPLEMENT_ATTENDU');
+  const canSubmitDossier = canPrepare && canManagePreparation && (dossierStatus === 'IN_PROGRESS' || dossierStatus === 'COMPLEMENT_ATTENDU');
   const canDecideDocuments = canReview && dossierStatus === 'TO_VALIDATE';
   const canProcessDossier = canReview && dossierStatus === 'TO_VALIDATE';
   const canRejectRubrique = canReview && dossierStatus === 'TO_VALIDATE';
-  const showWorkflowActions = !isFrozen && (canCreateRubrique || canSubmitDossier || canProcessDossier);
+
+  const canEscalate = (role === 'GESTIONNAIRE' || role === 'ADMIN') && dossierStatus === 'TO_VALIDATE';
+
+  const canChefAct = isChefReviewer && dossierStatus === 'EN_DEROGATION';
+
+  const showWorkflowActions = !isFrozen && !isChef && (canCreateRubrique || canSubmitDossier || canProcessDossier);
+
+  const isReturnedToGestionnaire =
+    dossierStatus === 'TO_VALIDATE' &&
+    dossier?.chef_decision_type === 'RETURNED';
+
+  const isComplementPending = dossierStatus === 'COMPLEMENT_ATTENDU';
+
   const isConfirmingAction =
     (confirmationModal.action === 'submit' && isSubmittingDossier) ||
     (confirmationModal.action === 'process' && isProcessingDossier) ||
@@ -244,12 +270,10 @@ function DossierDetail() {
         return false;
       }
 
-      // Skip docs already shown on a rubrique here (stale list right after attach).
       if (allAttachedDocumentIds.has(document.id)) {
         return false;
       }
 
-      // Unattached only (matches RubriqueController::attachDocuments()).
       return document.rubrique_id === null || document.rubrique_id === undefined;
     });
   }, [validatedDocuments, allAttachedDocumentIds, role, currentUserId]);
@@ -439,6 +463,66 @@ function DossierDetail() {
     }
   };
 
+  const handleEscalateConfirm = async () => {
+    const trimmedReason = escalationReason.trim();
+    if (!trimmedReason) {
+      toast.error('Escalation reason is required.');
+      return;
+    }
+
+    try {
+      setIsEscalatingDossier(true);
+      const response = await escalateDossier(id, trimmedReason);
+      toast.success(response?.message || 'Dossier escalated to Chef Hiérarchique.');
+      setEscalateModalOpen(false);
+      setEscalationReason('');
+      await refreshDetail();
+    } catch (error) {
+      toast.error(formatApiError(error, 'Failed to escalate dossier.'));
+    } finally {
+      setIsEscalatingDossier(false);
+    }
+  };
+
+  const handleChefApprove = async (note) => {
+    try {
+      setIsChefActing(true);
+      const response = await approveDerogation(id, note);
+      toast.success(response?.message || 'Derogation approved. Dossier is now processed.');
+      await refreshDetail();
+    } catch (error) {
+      toast.error(formatApiError(error, 'Failed to approve derogation.'));
+    } finally {
+      setIsChefActing(false);
+    }
+  };
+
+  const handleChefReturn = async (note) => {
+    try {
+      setIsChefActing(true);
+      const response = await returnToGestionnaire(id, note);
+      toast.success(response?.message || 'Dossier returned to Gestionnaire for review.');
+      await refreshDetail();
+    } catch (error) {
+      toast.error(formatApiError(error, 'Failed to return dossier.'));
+    } finally {
+      setIsChefActing(false);
+    }
+  };
+
+  const handleChefRequestComplement = async (note) => {
+    try {
+      setIsChefActing(true);
+      const response = await requestComplement(id, note);
+      toast.success(response?.message || 'Complement request sent to preparation owner.');
+      await refreshDetail();
+    } catch (error) {
+      toast.error(formatApiError(error, 'Failed to request complement.'));
+    } finally {
+      setIsChefActing(false);
+    }
+  };
+
   const requestDetachDocument = (rubriqueId, documentId) => {
     openConfirmationModal({
       action: 'detach',
@@ -501,10 +585,14 @@ function DossierDetail() {
       return;
     }
 
+    const acceptMessage = isReturnedToGestionnaire
+      ? 'Accept this document for the returned dossier review? This will update the current decision.'
+      : 'Accept this document as valid? This decision is final for the current review.';
+
     openConfirmationModal({
       action: 'accept_document',
       title: 'Accept Document',
-      message: 'Accept this document as valid? This decision is final and cannot be undone.',
+      message: acceptMessage,
       confirmLabel: 'Accept Document',
       cancelLabel: 'Cancel',
       confirmingLabel: 'Accepting...',
@@ -697,6 +785,42 @@ function DossierDetail() {
         </div>
       )}
 
+      {dossierStatus === 'EN_DEROGATION' && !isChef && (
+        <div className="alert derogation-notice mb-4" role="alert">
+          <i className="bi bi-diagram-3 me-2" aria-hidden="true"></i>
+          <span>
+            <strong>Pending hierarchical review.</strong> This dossier has been escalated to the Chef Hiérarchique and is awaiting a decision.
+          </span>
+        </div>
+      )}
+
+      {isReturnedToGestionnaire && canReview && (
+        <div className="alert returned-warning mb-4" role="alert">
+          <div>
+            <i className="bi bi-arrow-return-left me-2" aria-hidden="true"></i>
+            <strong>Returned by Chef Hiérarchique</strong>
+          </div>
+          <p className="mb-0 mt-2">
+            Re-review mode: previous document decisions are preserved below and can be updated.
+          </p>
+          {dossier.chef_decision_note && (
+            <p className="mb-0 mt-2">Chef note: {dossier.chef_decision_note}</p>
+          )}
+        </div>
+      )}
+
+      {isComplementPending && isDossierOwnedByCurrentUser && (
+        <div className="alert complement-alert mb-4" role="alert">
+          <div>
+            <i className="bi bi-file-earmark-plus me-2" aria-hidden="true"></i>
+            <strong>Complement Required</strong>
+          </div>
+          {dossier.chef_decision_note && (
+            <p className="mb-0 mt-2">{dossier.chef_decision_note}</p>
+          )}
+        </div>
+      )}
+
       <DossierSummaryCard
         dossier={dossier}
         dossierData={dossierData}
@@ -704,6 +828,18 @@ function DossierDetail() {
         formatDateTime={formatDateTime}
         formatDisplayTotal={formatDisplayTotal}
       />
+
+      <EscalationInfoBlock dossier={dossier} formatDateTime={formatDateTime} />
+
+      {canChefAct && (
+        <ChefActionPanel
+          dossierId={id}
+          onApprove={handleChefApprove}
+          onReturn={handleChefReturn}
+          onComplement={handleChefRequestComplement}
+          isBusy={isChefActing}
+        />
+      )}
 
       {showWorkflowActions && (
         <WorkflowActionsCard
@@ -724,12 +860,76 @@ function DossierDetail() {
         />
       )}
 
+      {canEscalate && (
+        <div className="card mb-4">
+          <div className="card-header d-flex align-items-center gap-2">
+            <i className="bi bi-diagram-3 text-muted" aria-hidden="true"></i>
+            <h6 className="mb-0">Escalation</h6>
+          </div>
+          <div className="card-body">
+            {!escalateModalOpen ? (
+              <div>
+                <p className="text-muted mb-3">
+                  Escalate this dossier to the Chef Hiérarchique for hierarchical review if standard processing is not applicable.
+                </p>
+                <button
+                  type="button"
+                  className="btn btn-outline-danger"
+                  onClick={() => setEscalateModalOpen(true)}
+                  disabled={isEscalatingDossier}
+                >
+                  <i className="bi bi-diagram-3 me-2" aria-hidden="true"></i>
+                  Escalate to Chef Hiérarchique
+                </button>
+              </div>
+            ) : (
+              <div style={{ maxWidth: 640 }}>
+                <div className="mb-3">
+                  <label htmlFor="escalation-reason" className="form-label">
+                    Escalation Reason <span className="text-danger">*</span>
+                  </label>
+                  <textarea
+                    id="escalation-reason"
+                    className="form-control"
+                    rows={3}
+                    value={escalationReason}
+                    onChange={(e) => setEscalationReason(e.target.value)}
+                    placeholder="Describe why this dossier requires hierarchical review…"
+                    disabled={isEscalatingDossier}
+                    autoFocus
+                  />
+                </div>
+                <div className="d-flex gap-2 justify-content-end">
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={() => { setEscalateModalOpen(false); setEscalationReason(''); }}
+                    disabled={isEscalatingDossier}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-danger"
+                    onClick={handleEscalateConfirm}
+                    disabled={isEscalatingDossier || !escalationReason.trim()}
+                  >
+                    {isEscalatingDossier ? 'Escalating...' : 'Confirm Escalation'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <RubriquesSection
         rubriques={rubriques}
         canAttachDocuments={canAttachDocuments}
         canDeleteRubrique={canDeleteRubrique}
         canRejectRubrique={canRejectRubrique}
         canDecideDocuments={canDecideDocuments}
+        isReturnedToGestionnaire={isReturnedToGestionnaire}
         canDetachDocuments={canDetachDocuments}
         isFrozen={isFrozen}
         isAttachingByRubriqueId={isAttachingByRubriqueId}
@@ -763,6 +963,7 @@ function DossierDetail() {
         rejectTargetDocument={rejectTargetDocument}
         rejectNote={rejectNote}
         setRejectNote={setRejectNote}
+        isReturnedToGestionnaire={isReturnedToGestionnaire}
         closeRejectDocumentModal={closeRejectDocumentModal}
         handleRejectDocument={handleRejectDocument}
         isDecidingByDocumentId={isDecidingByDocumentId}
@@ -796,4 +997,3 @@ function DossierDetail() {
 }
 
 export default DossierDetail;
-

@@ -88,3 +88,37 @@ export async function getValidatedDocuments() {
   // independently in RubriqueController::attachDocuments(). Verified safe.
   return allDocuments.filter((document) => document?.status === 'VALIDATED');
 }
+
+export async function escalateDossier(id, reason) {
+  const response = await api.post(`/dossiers/${id}/escalate`, { escalation_reason: reason });
+  return response.data || {};
+}
+
+export async function approveDerogation(id, note) {
+  const response = await api.post(`/dossiers/${id}/chef/approve`, { decision_note: note });
+  return response.data || {};
+}
+
+export async function returnToGestionnaire(id, note) {
+  const response = await api.post(`/dossiers/${id}/chef/return`, { decision_note: note });
+  return response.data || {};
+}
+
+export async function requestComplement(id, note) {
+  const response = await api.post(`/dossiers/${id}/chef/request-complement`, { decision_note: note });
+  return response.data || {};
+}
+
+export async function getPendingEscalations() {
+  const response = await api.get('/dossiers', {
+    params: { status: 'EN_DEROGATION', per_page: 50, page: 1 }
+  });
+  const payload = response.data || {};
+
+  if (Array.isArray(payload)) {
+    return { items: payload, total: payload.length };
+  }
+
+  const items = Array.isArray(payload.data) ? payload.data : [];
+  return { items, total: Number(payload.total ?? items.length) };
+}

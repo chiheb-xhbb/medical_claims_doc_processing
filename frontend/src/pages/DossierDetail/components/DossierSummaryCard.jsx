@@ -1,3 +1,13 @@
+function getDossierStatusClass(status) {
+  switch ((status || '').toUpperCase()) {
+    case 'EN_DEROGATION': return 'badge dossier-status dossier-status--en-derogation';
+    case 'COMPLEMENT_ATTENDU': return 'badge dossier-status dossier-status--complement-attendu';
+    case 'PROCESSED': return 'badge dossier-status dossier-status--processed';
+    case 'TO_VALIDATE': return 'badge dossier-status dossier-status--to-validate';
+    default: return 'badge bg-primary-subtle text-primary-emphasis dossier-status';
+  }
+}
+
 function DossierSummaryCard({ dossier, dossierData, formatAmount, formatDateTime, formatDisplayTotal }) {
   return (
     <div className="card mb-4">
@@ -19,7 +29,7 @@ function DossierSummaryCard({ dossier, dossierData, formatAmount, formatDateTime
             <div className="detail-item">
               <p className="detail-label mb-1">Status</p>
               <p className="detail-value mb-0">
-                <span className="badge bg-primary-subtle text-primary-emphasis dossier-status">{dossier.status || '-'}</span>
+                <span className={getDossierStatusClass(dossier.status)}>{dossier.status || '-'}</span>
               </p>
             </div>
           </div>

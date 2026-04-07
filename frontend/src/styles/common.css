@@ -267,6 +267,12 @@ body {
   border: 1px solid rgba(249, 115, 22, 0.3);
 }
 
+.nb-role-badge--chef {
+  background-color: rgba(20, 184, 166, 0.25);
+  color: #5eead4;
+  border: 1px solid rgba(20, 184, 166, 0.3);
+}
+
 /* ─── Chevron ────────────────────────────────────────────────────────────── */
 
 .nb-chevron {
@@ -385,6 +391,12 @@ body {
   border-color: rgba(249, 115, 22, 0.25);
 }
 
+.nb-dropdown__header .nb-role-badge--chef {
+  background-color: rgba(20, 184, 166, 0.12);
+  color: #0d9488;
+  border-color: rgba(20, 184, 166, 0.25);
+}
+
 /* ─── Responsive: mobile collapse ────────────────────────────────────────── */
 
 @media (max-width: 991.98px) {
@@ -480,11 +492,192 @@ body {
 
   .nb-dropdown__header .nb-role-badge--agent,
   .nb-dropdown__header .nb-role-badge--gestionnaire,
-  .nb-dropdown__header .nb-role-badge--admin {
+  .nb-dropdown__header .nb-role-badge--admin,
+  .nb-dropdown__header .nb-role-badge--chef {
     background-color: rgba(255, 255, 255, 0.15);
     color: rgba(255, 255, 255, 0.85);
     border-color: rgba(255, 255, 255, 0.2);
   }
+}
+
+/* ─── Bell button (Chef review alerts) ───────────────────────────────────── */
+
+.nb-bell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: transparent;
+  border: none;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-md);
+  color: rgba(255, 255, 255, 0.72);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.nb-bell:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.97);
+}
+
+.nb-bell i {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.nb-bell__badge {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: var(--radius-full);
+  background-color: #ef4444;
+  color: #fff;
+  font-size: 0.625rem;
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  border: 1.5px solid rgba(30, 58, 138, 0.8);
+  pointer-events: none;
+}
+
+.nb-bell-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 340px;
+  background: var(--color-white);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.13), 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  z-index: var(--z-dropdown);
+  animation: nb-dropdown-in 0.14s ease;
+}
+
+.nb-bell-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: var(--color-bg-subtle);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.nb-bell-panel__title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.nb-bell-panel__count {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-danger);
+  background-color: var(--color-danger-light);
+  border-radius: var(--radius-full);
+  padding: 0.125rem 0.5rem;
+}
+
+.nb-bell-panel__list {
+  max-height: 380px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.nb-bell-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-border-light);
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  background: transparent;
+  transition: background-color var(--transition-fast);
+  text-decoration: none;
+  color: inherit;
+  text-align: left;
+  width: 100%;
+}
+
+.nb-bell-item:last-child {
+  border-bottom: none;
+}
+
+.nb-bell-item:hover {
+  background-color: var(--color-bg-subtle);
+}
+
+.nb-bell-item__number {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.nb-bell-item__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  flex-wrap: wrap;
+}
+
+.nb-bell-item__assured {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.nb-bell-item__date {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-left: auto;
+}
+
+.nb-bell-item__reason {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nb-bell-panel__empty {
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+.nb-bell-panel__empty-icon {
+  font-size: 1.5rem;
+  color: var(--color-gray-300);
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.nb-bell-panel__empty-text {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+/* ─── Dossier row accent (returned / complement) ─────────────────────────── */
+
+.dossier-row--accent-amber > td:first-child {
+  box-shadow: inset 3px 0 0 #d97706;
+}
+
+.dossier-row--accent-amber > td {
+  background-color: rgba(217, 119, 6, 0.04) !important;
+}
+
+.dossier-row--accent-amber:hover > td {
+  background-color: rgba(217, 119, 6, 0.08) !important;
 }
 
 /* Legacy override: ensure Bootstrap navbar-dark bg-primary is replaced */

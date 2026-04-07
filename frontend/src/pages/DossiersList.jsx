@@ -15,9 +15,10 @@ import {
 import './DossiersList/DossiersList.css';
 
 const DOSSIER_STATUS_OPTIONS = {
-  AGENT: ['RECEIVED', 'IN_PROGRESS', 'TO_VALIDATE', 'PROCESSED'],
-  GESTIONNAIRE: ['RECEIVED', 'IN_PROGRESS', 'TO_VALIDATE', 'PROCESSED'],
-  ADMIN: ['RECEIVED', 'IN_PROGRESS', 'TO_VALIDATE', 'PROCESSED']
+  AGENT: ['RECEIVED', 'IN_PROGRESS', 'TO_VALIDATE', 'COMPLEMENT_ATTENDU', 'PROCESSED'],
+  GESTIONNAIRE: ['RECEIVED', 'IN_PROGRESS', 'TO_VALIDATE', 'EN_DEROGATION', 'COMPLEMENT_ATTENDU', 'PROCESSED'],
+  CHEF_HIERARCHIQUE: ['EN_DEROGATION', 'COMPLEMENT_ATTENDU', 'PROCESSED'],
+  ADMIN: ['RECEIVED', 'IN_PROGRESS', 'TO_VALIDATE', 'EN_DEROGATION', 'COMPLEMENT_ATTENDU', 'PROCESSED']
 };
 
 const DEFAULT_DOSSIER_FILTERS = {
@@ -52,6 +53,17 @@ const getRolePageConfig = (role) => {
       emptyDescription: 'No dossier is currently available. You can create a new dossier to get started.',
       createButtonLabel: 'New Dossier',
       canCreateDossier: true
+    };
+  }
+
+  if (role === 'CHEF_HIERARCHIQUE') {
+    return {
+      title: 'Dossiers',
+      subtitle: 'Review escalated dossiers requiring hierarchical decision.',
+      emptyTitle: 'No Escalated Dossiers',
+      emptyDescription: 'No dossier is currently pending hierarchical review.',
+      createButtonLabel: '',
+      canCreateDossier: false
     };
   }
 
@@ -98,6 +110,25 @@ const formatDate = (value) => {
   return parsed.toLocaleDateString();
 };
 
+const getDossierStatusBadgeClass = (status) => {
+  switch (status) {
+    case 'PROCESSED': return 'bg-success-subtle text-success-emphasis';
+    case 'TO_VALIDATE': return 'bg-warning-subtle text-warning-emphasis';
+    case 'EN_DEROGATION': return 'bg-danger-subtle text-danger-emphasis';
+    case 'COMPLEMENT_ATTENDU': return 'bg-info-subtle text-info-emphasis';
+    case 'IN_PROGRESS': return 'bg-primary-subtle text-primary-emphasis';
+    default: return 'bg-secondary-subtle text-secondary-emphasis';
+  }
+};
+
+function DossierStatusBadge({ status }) {
+  return (
+    <span className={`badge ${getDossierStatusBadgeClass(status)} dossier-status`}>
+      {(status || '-').toString()}
+    </span>
+  );
+}
+
 function DossiersList() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -113,11 +144,27 @@ function DossiersList() {
   const [deleteTargetDossier, setDeleteTargetDossier] = useState(null);
   const [isDeleteConfirming, setIsDeleteConfirming] = useState(false);
   const [deletingDossierId, setDeletingDossierId] = useState(null);
-  const [filtersDraft, setFiltersDraft] = useState(DEFAULT_DOSSIER_FILTERS);
-  const [appliedFilters, setAppliedFilters] = useState(DEFAULT_DOSSIER_FILTERS);
+  const [filtersDraft, setFiltersDraft] = useState(() => {
+    const storedRole = getStoredRole();
+    if (storedRole === 'CHEF_HIERARCHIQUE') {
+      return { ...DEFAULT_DOSSIER_FILTERS, status: 'EN_DEROGATION' };
+    }
+    return DEFAULT_DOSSIER_FILTERS;
+  });
+  const [appliedFilters, setAppliedFilters] = useState(() => {
+    const storedRole = getStoredRole();
+    if (storedRole === 'CHEF_HIERARCHIQUE') {
+      return { ...DEFAULT_DOSSIER_FILTERS, status: 'EN_DEROGATION' };
+    }
+    return DEFAULT_DOSSIER_FILTERS;
+  });
   const [sortState, setSortState] = useState(DEFAULT_DOSSIER_SORT);
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const appliedFiltersRef = useRef(DEFAULT_DOSSIER_FILTERS);
+  const appliedFiltersRef = useRef(
+    getStoredRole() === 'CHEF_HIERARCHIQUE'
+      ? { ...DEFAULT_DOSSIER_FILTERS, status: 'EN_DEROGATION' }
+      : DEFAULT_DOSSIER_FILTERS
+  );
   const appliedSortRef = useRef(DEFAULT_DOSSIER_SORT);
 
   useEffect(() => {
@@ -228,7 +275,10 @@ function DossiersList() {
   };
 
   const handleResetFilters = async () => {
-    const resetFilters = { ...DEFAULT_DOSSIER_FILTERS };
+    const resetFilters =
+      role === 'CHEF_HIERARCHIQUE'
+        ? { ...DEFAULT_DOSSIER_FILTERS, status: 'EN_DEROGATION' }
+        : { ...DEFAULT_DOSSIER_FILTERS };
     const resetSort = { ...DEFAULT_DOSSIER_SORT };
 
     setFiltersDraft(resetFilters);
@@ -477,15 +527,21 @@ function DossiersList() {
               <tbody>
                 {dossiers.length > 0 ? dossiers.map((dossier) => {
                   const documentsCount = dossier.documents_count ?? dossier.documents?.length ?? 0;
+                  const isReturnedRow =
+                    role === 'GESTIONNAIRE' &&
+                    dossier.status === 'TO_VALIDATE' &&
+                    dossier.chef_decision_type === 'RETURNED';
+                  const isComplementRow =
+                    role === 'AGENT' &&
+                    dossier.status === 'COMPLEMENT_ATTENDU';
+                  const rowAccentClass = (isReturnedRow || isComplementRow) ? 'dossier-row--accent-amber' : '';
 
                   return (
-                    <tr key={dossier.id}>
+                    <tr key={dossier.id} className={rowAccentClass}>
                       <td className="fw-semibold">{dossier.numero_dossier || '-'}</td>
                       <td>{dossier.assured_identifier || '-'}</td>
                       <td>
-                        <span className="badge bg-primary-subtle text-primary-emphasis dossier-status">
-                          {(dossier.status || '-').toString()}
-                        </span>
+                        <DossierStatusBadge status={dossier.status} />
                       </td>
                       <td>{formatAmount(dossier.montant_total)}</td>
                       <td>{documentsCount}</td>
@@ -497,7 +553,7 @@ function DossiersList() {
                             onClick={() => navigate(`/dossiers/${dossier.id}`)}
                           >
                             <i className="bi bi-eye me-1"></i>
-                            Details
+                            {role === 'CHEF_HIERARCHIQUE' ? 'Review' : 'Details'}
                           </button>
 
                           {canDeleteDossier(dossier) && (

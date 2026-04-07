@@ -48,6 +48,7 @@ function RubriquesSection({
   canDeleteRubrique,
   canRejectRubrique,
   canDecideDocuments,
+  isReturnedToGestionnaire,
   canDetachDocuments,
   isFrozen,
   isAttachingByRubriqueId,
@@ -169,10 +170,16 @@ function RubriquesSection({
                           <tbody>
                             {rubriqueDocuments.map((document) => {
                               const extractionTotal = getDocumentExtractionTotal(document);
-                              const decisionStatus = document.decision_status || 'PENDING';
+                              const decisionStatus = (document.decision_status || 'PENDING').toString().toUpperCase();
                               const documentId = document.id;
+                              const technicalStatus = (document.status || '').toString().toUpperCase();
+                              const isDecided = decisionStatus === 'ACCEPTED' || decisionStatus === 'REJECTED' || decisionStatus === 'APPROVED';
+                              const canReDecideReturnedDocument = isReturnedToGestionnaire && isDecided;
+                              const canDecideCurrentDocument =
+                                decisionStatus === 'PENDING' ||
+                                (canReDecideReturnedDocument && technicalStatus === 'VALIDATED');
                               const isBusy = Boolean(isDecidingByDocumentId[documentId] || isDetachingByDocumentId[documentId]);
-                              const canShowDecisionActions = canDecideDocuments && !isFrozen && decisionStatus === 'PENDING';
+                              const canShowDecisionActions = canDecideDocuments && !isFrozen && canDecideCurrentDocument;
                               const canShowDetachAction = canDetachDocuments && !isFrozen;
                               const showActionsPlaceholder = !canShowDecisionActions && !canShowDetachAction;
                               const actionPlaceholderText = decisionStatus === 'PENDING' ? '-' : 'Decision completed';

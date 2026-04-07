@@ -1,22 +1,26 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { AUTH_CHANGED_EVENT, getDefaultLandingPath, getStoredRole, getStoredUser, isAuthenticated, logout } from '../services/auth';
+import ChefBellButton from './ChefBellButton';
 
 const ROLE_LABELS = {
   AGENT: 'Agent',
   GESTIONNAIRE: 'Gestionnaire',
+  CHEF_HIERARCHIQUE: 'Chef Hiérarchique',
   ADMIN: 'Admin',
 };
 
 const ROLE_BADGE_CLASS = {
   AGENT: 'nb-role-badge--agent',
   GESTIONNAIRE: 'nb-role-badge--gestionnaire',
+  CHEF_HIERARCHIQUE: 'nb-role-badge--chef',
   ADMIN: 'nb-role-badge--admin',
 };
 
 const getDossiersNavLabel = (role) => {
   if (role === 'AGENT') return 'My Dossiers';
   if (role === 'GESTIONNAIRE') return 'Dossiers';
+  if (role === 'CHEF_HIERARCHIQUE') return 'Dossiers';
   if (role === 'ADMIN') return 'All Dossiers';
   return 'Dossiers';
 };
@@ -78,7 +82,6 @@ function Navbar() {
 
   const dossiersNavLabel = useMemo(() => getDossiersNavLabel(authSnapshot.role), [authSnapshot.role]);
 
-  // Check if a path is active (for highlighting)
   const isActive = (path) => {
     if (path === '/documents') {
       return (
@@ -122,6 +125,9 @@ function Navbar() {
   const roleBadgeClass = ROLE_BADGE_CLASS[authSnapshot.role] || '';
   const roleLabel = ROLE_LABELS[authSnapshot.role] || authSnapshot.role || '';
 
+  const isChef = authSnapshot.role === 'CHEF_HIERARCHIQUE';
+  const showDocumentsLink = !isChef;
+
   return (
     <nav className={`nb-navbar navbar navbar-expand-lg${scrolled ? ' nb-navbar--scrolled' : ''}`} aria-label="Main navigation">
       <div className="container nb-navbar__inner">
@@ -155,16 +161,18 @@ function Navbar() {
             <>
               {/* Primary nav links */}
               <ul className="navbar-nav nb-nav-links mx-auto">
-                <li className="nav-item">
-                  <NavLink
-                    className={() => `nb-nav-link nav-link${isActive('/documents') ? ' active' : ''}`}
-                    to="/documents"
-                    end
-                  >
-                    <i className="bi bi-files" aria-hidden="true"></i>
-                    Documents
-                  </NavLink>
-                </li>
+                {showDocumentsLink && (
+                  <li className="nav-item">
+                    <NavLink
+                      className={() => `nb-nav-link nav-link${isActive('/documents') ? ' active' : ''}`}
+                      to="/documents"
+                      end
+                    >
+                      <i className="bi bi-files" aria-hidden="true"></i>
+                      Documents
+                    </NavLink>
+                  </li>
+                )}
 
                 <li className="nav-item">
                   <NavLink
@@ -189,9 +197,11 @@ function Navbar() {
                 )}
               </ul>
 
-              {/* Divider + User area */}
+              {/* Divider + Bell (Chef only) + User area */}
               <div className="nb-user-area" ref={dropdownRef}>
                 <div className="nb-user-divider" role="separator" aria-hidden="true"></div>
+
+                {isChef && <ChefBellButton />}
 
                 <button
                   className="nb-user-trigger"
