@@ -23,6 +23,18 @@ const getFocusableElements = (container) => {
   });
 };
 
+const restoreFocus = (element) => {
+  if (!(element instanceof HTMLElement) || !document.contains(element)) {
+    return;
+  }
+
+  try {
+    element.focus({ preventScroll: true });
+  } catch {
+    element.focus();
+  }
+};
+
 function DossierModalShell({
   isOpen,
   title,
@@ -126,9 +138,7 @@ function DossierModalShell({
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = previousOverflow;
-      if (previousActiveElement instanceof HTMLElement && document.contains(previousActiveElement)) {
-        previousActiveElement.focus();
-      }
+      restoreFocus(previousActiveElement);
     };
   }, [
     isOpen,

@@ -141,6 +141,7 @@ function DossierDetail() {
 
   const [dossierData, setDossierData] = useState(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(true);
+  const [isRefreshingDetail, setIsRefreshingDetail] = useState(false);
   const [loadErrorMessage, setLoadErrorMessage] = useState(null);
 
   const [rubriqueTitle, setRubriqueTitle] = useState('');
@@ -191,6 +192,21 @@ function DossierDetail() {
       setDossierData(null);
     } finally {
       setIsLoadingDetail(false);
+    }
+  }, [id]);
+
+  const refreshDetailSilently = useCallback(async () => {
+    setIsRefreshingDetail(true);
+
+    try {
+      const response = await getDossierDetail(id);
+      const normalized = mapDossierDetailResponse(response);
+      setDossierData(normalized);
+    } catch (error) {
+      const message = formatApiError(error, 'Failed to load case file details. Please try again.');
+      toast.error(message);
+    } finally {
+      setIsRefreshingDetail(false);
     }
   }, [id]);
 
@@ -389,7 +405,7 @@ function DossierDetail() {
       setRubriqueTitle('');
       setRubriqueNotes('');
       toast.success(response?.message || 'Section created successfully.');
-      await refreshDetail();
+      await refreshDetailSilently();
     } catch (error) {
       toast.error(formatApiError(error, 'Failed to create section.'));
     } finally {
@@ -414,7 +430,7 @@ function DossierDetail() {
 
       toast.success(response?.message || 'Documents attached successfully.');
       closeAttachModal();
-      await refreshDetail();
+      await refreshDetailSilently();
     } catch (error) {
       toast.error(formatApiError(error, 'Failed to attach documents.'));
     } finally {
@@ -432,7 +448,7 @@ function DossierDetail() {
 
       const response = await detachDocument(rubriqueId, documentId);
       toast.success(response?.message || 'Document detached successfully.');
-      await refreshDetail();
+      await refreshDetailSilently();
     } catch (error) {
       toast.error(formatApiError(error, 'Failed to detach document.'));
     } finally {
@@ -450,7 +466,7 @@ function DossierDetail() {
 
       const response = await deleteRubrique(rubriqueId);
       toast.success(response?.message || 'Section deleted successfully.');
-      await refreshDetail();
+      await refreshDetailSilently();
     } catch (error) {
       toast.error(formatApiError(error, 'Failed to delete section.'));
     } finally {
@@ -464,7 +480,7 @@ function DossierDetail() {
 
       const response = await submitDossier(id);
       toast.success(response?.message || 'Case file submitted successfully.');
-      await refreshDetail();
+      await refreshDetailSilently();
     } catch (error) {
       toast.error(formatApiError(error, 'Failed to submit case file.'));
     } finally {
@@ -478,7 +494,7 @@ function DossierDetail() {
 
       const response = await processDossier(id);
       toast.success(response?.message || 'Case file processed successfully.');
-      await refreshDetail();
+      await refreshDetailSilently();
     } catch (error) {
       toast.error(formatApiError(error, 'Failed to process case file.'));
     } finally {
@@ -499,7 +515,7 @@ function DossierDetail() {
       toast.success(response?.message || 'Case file escalated to Supervisor.');
       setEscalateModalOpen(false);
       setEscalationReason('');
-      await refreshDetail();
+      await refreshDetailSilently();
     } catch (error) {
       toast.error(formatApiError(error, 'Failed to escalate case file.'));
     } finally {
@@ -512,7 +528,7 @@ function DossierDetail() {
       setIsSupervisorActing(true);
       const response = await approveEscalation(id, note);
       toast.success(response?.message || 'Escalation approved. Case file is now processed.');
-      await refreshDetail();
+      await refreshDetailSilently();
     } catch (error) {
       toast.error(formatApiError(error, 'Failed to approve escalation.'));
     } finally {
@@ -525,7 +541,7 @@ function DossierDetail() {
       setIsSupervisorActing(true);
       const response = await returnToClaimsManager(id, note);
       toast.success(response?.message || 'Case file returned to Claims Manager for review.');
-      await refreshDetail();
+      await refreshDetailSilently();
     } catch (error) {
       toast.error(formatApiError(error, 'Failed to return case file.'));
     } finally {
@@ -538,7 +554,7 @@ function DossierDetail() {
       setIsSupervisorActing(true);
       const response = await requestComplement(id, note);
       toast.success(response?.message || 'Complement request sent to preparation owner.');
-      await refreshDetail();
+      await refreshDetailSilently();
     } catch (error) {
       toast.error(formatApiError(error, 'Failed to request complement.'));
     } finally {
@@ -655,7 +671,7 @@ function DossierDetail() {
 
       const response = await acceptDocument(documentId, null);
       toast.success(response?.message || 'Document accepted successfully.');
-      await refreshDetail();
+      await refreshDetailSilently();
     } catch (error) {
       toast.error(formatApiError(error, 'Failed to accept document.'));
     } finally {
@@ -685,7 +701,7 @@ function DossierDetail() {
       const response = await rejectDocument(documentId, normalizedNote);
       toast.success(response?.message || 'Document rejected successfully.');
       closeRejectDocumentModal();
-      await refreshDetail();
+      await refreshDetailSilently();
     } catch (error) {
       toast.error(formatApiError(error, 'Failed to reject document.'));
     } finally {
@@ -718,7 +734,7 @@ function DossierDetail() {
       const response = await rejectRubrique(rubriqueId, note);
       toast.success(response?.message || 'Section rejected successfully.');
       closeRejectRubriqueModal();
-      await refreshDetail();
+      await refreshDetailSilently();
     } catch (error) {
       toast.error(formatApiError(error, 'Failed to reject section.'));
     } finally {
@@ -785,7 +801,7 @@ function DossierDetail() {
   }
 
   return (
-    <div className="container py-4 dossier-detail-page">
+    <div className="container py-4 dossier-detail-page" aria-busy={isRefreshingDetail}>
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2 className="mb-0 page-title d-flex align-items-center">
           <i className="bi bi-folder2-open me-2 opacity-75"></i>
