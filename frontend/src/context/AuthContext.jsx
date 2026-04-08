@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import api, { AUTH_CHANGED_EVENT } from '../services/api';
+import { USER_ROLES } from '../constants/domainLabels';
 
 const AUTH_TOKEN_KEY = 'token';
 const AUTH_USER_KEY = 'auth_user';
@@ -11,7 +12,8 @@ const normalizeUser = (user) => {
     return null;
   }
 
-  const role = typeof user.role === 'string' ? user.role.toUpperCase() : null;
+  const normalizedRole = typeof user.role === 'string' ? user.role.toUpperCase() : null;
+  const role = normalizedRole && USER_ROLES[normalizedRole] ? USER_ROLES[normalizedRole] : normalizedRole;
 
   return {
     ...user,

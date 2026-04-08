@@ -90,7 +90,7 @@ class DocumentDecisionController extends Controller
             ], 422);
         }
 
-        if ($dossier->status !== DossierStatus::TO_VALIDATE) {
+        if ($dossier->status !== DossierStatus::UNDER_REVIEW) {
             return response()->json([
                 'message' => 'Documents can only be decided while the dossier is under review.',
             ], 422);
@@ -137,7 +137,7 @@ class DocumentDecisionController extends Controller
                 $this->unprocessable('This dossier is frozen and cannot be modified.');
             }
 
-            if ($lockedDossier->status !== DossierStatus::TO_VALIDATE) {
+            if ($lockedDossier->status !== DossierStatus::UNDER_REVIEW) {
                 $this->unprocessable('Documents can only be decided while the dossier is under review.');
             }
 
@@ -171,7 +171,7 @@ class DocumentDecisionController extends Controller
 
     private function canReviewDossiers(User $user): bool
     {
-        return $this->hasRole($user, UserRole::GESTIONNAIRE, UserRole::ADMIN);
+        return $this->hasRole($user, UserRole::CLAIMS_MANAGER, UserRole::ADMIN);
     }
 
     private function hasRole(User $user, UserRole ...$roles): bool

@@ -7,6 +7,7 @@ use App\Enums\DocumentStatus;
 use App\Enums\DossierStatus;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\AttachDocumentsRequest;
 use App\Models\Document;
 use App\Models\Dossier;
 use App\Models\Rubrique;
@@ -195,7 +196,7 @@ class RubriqueController extends Controller
         ], 200);
     }
 
-    public function attachDocuments(Request $request, Rubrique $rubrique): JsonResponse
+    public function attachDocuments(AttachDocumentsRequest $request, Rubrique $rubrique): JsonResponse
     {
         /** @var User $user */
         $user = $request->user();
@@ -225,12 +226,7 @@ class RubriqueController extends Controller
             ], 422);
         }
 
-        $validated = $request->validate([
-            'document_ids' => ['required', 'array', 'min:1'],
-            'document_ids.*' => ['integer', 'distinct', 'exists:documents,id'],
-        ]);
-
-        $documentIds = collect($validated['document_ids'])
+        $documentIds = collect($request->validated('document_ids'))
             ->map(fn ($id) => (int) $id)
             ->values();
 
@@ -268,6 +264,7 @@ class RubriqueController extends Controller
             }
 
             foreach ($documentIds as $documentId) {
+                /** @var Document $document */
                 $document = $documents->get($documentId);
 
                 if ((int) $document->user_id !== (int) $user->id && ! $this->hasRole($user, UserRole::ADMIN)) {
@@ -284,6 +281,7 @@ class RubriqueController extends Controller
             }
 
             foreach ($documentIds as $documentId) {
+                /** @var Document $document */
                 $document = $documents->get($documentId);
 
                 $document->dossier_id = $lockedDossier->id;
@@ -415,7 +413,7 @@ class RubriqueController extends Controller
             ], 422);
         }
 
-        if ($dossier->status !== DossierStatus::TO_VALIDATE) {
+        if ($dossier->status !== DossierStatus::UNDER_REVIEW) {
             return response()->json([
                 'message' => 'A rubrique can only be rejected while the dossier is under review.',
             ], 422);
@@ -444,7 +442,7 @@ class RubriqueController extends Controller
                 $this->unprocessable('This dossier is frozen and cannot be modified.');
             }
 
-            if ($lockedDossier->status !== DossierStatus::TO_VALIDATE) {
+            if ($lockedDossier->status !== DossierStatus::UNDER_REVIEW) {
                 $this->unprocessable('A rubrique can only be rejected while the dossier is under review.');
             }
 
@@ -472,12 +470,12 @@ class RubriqueController extends Controller
 
     private function canPrepareDossiers(User $user): bool
     {
-        return $this->hasRole($user, UserRole::AGENT, UserRole::GESTIONNAIRE, UserRole::ADMIN);
+        return $this->hasRole($user, UserRole::AGENT, UserRole::CLAIMS_MANAGER, UserRole::ADMIN);
     }
 
     private function canReviewDossiers(User $user): bool
     {
-        return $this->hasRole($user, UserRole::GESTIONNAIRE, UserRole::ADMIN);
+        return $this->hasRole($user, UserRole::CLAIMS_MANAGER, UserRole::ADMIN);
     }
 
     private function canManagePreparationDossier(User $user, Dossier $dossier): bool
@@ -486,7 +484,7 @@ class RubriqueController extends Controller
             return true;
         }
 
-        return $this->hasRole($user, UserRole::AGENT, UserRole::GESTIONNAIRE)
+        return $this->hasRole($user, UserRole::AGENT, UserRole::CLAIMS_MANAGER)
             && (int) $dossier->created_by === (int) $user->id;
     }
 
@@ -495,7 +493,7 @@ class RubriqueController extends Controller
         return in_array($dossier->status, [
             DossierStatus::RECEIVED,
             DossierStatus::IN_PROGRESS,
-            DossierStatus::COMPLEMENT_ATTENDU,
+            DossierStatus::AWAITING_COMPLEMENT,
         ], true);
     }
 

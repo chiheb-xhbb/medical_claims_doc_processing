@@ -1,5 +1,6 @@
 import api, { AUTH_CHANGED_EVENT, AUTH_FEEDBACK_KEY } from './api';
 import { setAuthToken } from '../utils/setAuthToken';
+import { USER_ROLES } from '../constants/domainLabels';
 
 const AUTH_TOKEN_KEY = 'token';
 const AUTH_USER_KEY = 'auth_user';
@@ -10,7 +11,8 @@ const normalizeUser = (user) => {
     return null;
   }
 
-  const role = typeof user.role === 'string' ? user.role.toUpperCase() : null;
+  const normalizedRole = typeof user.role === 'string' ? user.role.toUpperCase() : null;
+  const role = normalizedRole && USER_ROLES[normalizedRole] ? USER_ROLES[normalizedRole] : normalizedRole;
 
   return {
     ...user,
@@ -64,7 +66,11 @@ export function consumeAuthFeedback() {
 }
 
 export function getDefaultLandingPath(role = getStoredRole()) {
-  if (role === 'GESTIONNAIRE' || role === 'ADMIN' || role === 'CHEF_HIERARCHIQUE') {
+  if (
+    role === USER_ROLES.CLAIMS_MANAGER ||
+    role === USER_ROLES.ADMIN ||
+    role === USER_ROLES.SUPERVISOR
+  ) {
     return '/dossiers';
   }
 

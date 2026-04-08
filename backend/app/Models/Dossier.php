@@ -95,7 +95,7 @@ class Dossier extends Model
     {
         return in_array($this->status, [
             DossierStatus::IN_PROGRESS,
-            DossierStatus::COMPLEMENT_ATTENDU,
+            DossierStatus::AWAITING_COMPLEMENT,
         ], true)
             && $this->rubriques()->exists()
             && $this->documents()->exists();
@@ -103,7 +103,7 @@ class Dossier extends Model
 
     public function canBeProcessed(): bool
     {
-        if ($this->status !== DossierStatus::TO_VALIDATE) {
+        if ($this->status !== DossierStatus::UNDER_REVIEW) {
             return false;
         }
 
@@ -118,17 +118,17 @@ class Dossier extends Model
 
     public function canBeEscalated(): bool
     {
-        return $this->status === DossierStatus::TO_VALIDATE && ! $this->isFrozen();
+        return $this->status === DossierStatus::UNDER_REVIEW && ! $this->isFrozen();
     }
 
     public function canBeChefReviewed(): bool
     {
-        return $this->status === DossierStatus::EN_DEROGATION;
+        return $this->status === DossierStatus::IN_ESCALATION;
     }
 
     public function canBeResubmittedAfterComplement(): bool
     {
-        return $this->status === DossierStatus::COMPLEMENT_ATTENDU
+        return $this->status === DossierStatus::AWAITING_COMPLEMENT
             && $this->rubriques()->exists()
             && $this->documents()->exists();
     }

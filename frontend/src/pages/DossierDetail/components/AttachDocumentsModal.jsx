@@ -28,7 +28,7 @@ function AttachDocumentsModal({
       title="Attach Validated Documents"
       description={
         <>
-          Target rubrique: <strong>{attachTargetRubrique?.title || '-'}</strong>
+          Target section: <strong>{attachTargetRubrique?.title || '-'}</strong>
         </>
       }
       onClose={closeAttachModal}

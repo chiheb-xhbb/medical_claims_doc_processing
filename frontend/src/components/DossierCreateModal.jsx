@@ -10,7 +10,7 @@ function DossierCreateModal({ isOpen, onClose }) {
   return (
     <WorkspaceModalShell
       isOpen={isOpen}
-      title="Create Dossier"
+      title="Create Case File"
       iconClass="bi-folder-plus"
       onClose={onClose}
       isBusy={busy}

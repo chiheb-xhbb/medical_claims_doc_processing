@@ -8,10 +8,16 @@ import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import { MainLayout } from './layout';
 import { getDefaultLandingPath } from './services/auth';
+import { USER_ROLES } from './constants/domainLabels';
 import { useAuth } from './context/AuthContext';
 
 function App() {
   const { token, isHydrating } = useAuth();
+  const documentWorkspaceRoles = [
+    USER_ROLES.AGENT,
+    USER_ROLES.CLAIMS_MANAGER,
+    USER_ROLES.ADMIN,
+  ];
 
   if (isHydrating) {
     return null;
@@ -33,7 +39,7 @@ function App() {
           <Route
             path="/documents"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={documentWorkspaceRoles}>
                 <DocumentsList />
               </ProtectedRoute>
             }
@@ -42,7 +48,7 @@ function App() {
           <Route
             path="/documents/upload"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={documentWorkspaceRoles}>
                 <Navigate to="/documents" replace />
               </ProtectedRoute>
             }
@@ -51,7 +57,7 @@ function App() {
           <Route
             path="/documents/:id/validate"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={documentWorkspaceRoles}>
                 <DocumentValidation />
               </ProtectedRoute>
             }
@@ -87,7 +93,7 @@ function App() {
           <Route
             path="/admin/users"
             element={
-              <ProtectedRoute allowedRoles={['ADMIN']}>
+              <ProtectedRoute allowedRoles={[USER_ROLES.ADMIN]}>
                 <AdminUsers />
               </ProtectedRoute>
             }

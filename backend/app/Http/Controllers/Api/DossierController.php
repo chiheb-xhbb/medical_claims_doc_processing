@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\DocumentDecisionStatus;
 use App\Enums\DossierStatus;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
@@ -31,6 +32,7 @@ class DossierController extends Controller
             fn (DossierStatus $case) => $case->value,
             DossierStatus::cases()
         );
+
         $allowedSortFields = ['numero_dossier', 'status', 'montant_total', 'created_at'];
         $allowedSortDirections = ['asc', 'desc'];
 
@@ -47,20 +49,20 @@ class DossierController extends Controller
 
         if ($this->hasRole($user, UserRole::AGENT)) {
             $query->where('created_by', $user->id);
-        } elseif ($this->hasRole($user, UserRole::GESTIONNAIRE)) {
+        } elseif ($this->hasRole($user, UserRole::CLAIMS_MANAGER)) {
             $query->where(function ($scope) use ($user) {
                 $scope->where('created_by', $user->id)
                     ->orWhereIn('status', [
-                        DossierStatus::TO_VALIDATE->value,
-                        DossierStatus::EN_DEROGATION->value,
-                        DossierStatus::COMPLEMENT_ATTENDU->value,
+                        DossierStatus::UNDER_REVIEW->value,
+                        DossierStatus::IN_ESCALATION->value,
+                        DossierStatus::AWAITING_COMPLEMENT->value,
                         DossierStatus::PROCESSED->value,
                     ]);
             });
-        } elseif ($this->hasRole($user, UserRole::CHEF_HIERARCHIQUE)) {
+        } elseif ($this->hasRole($user, UserRole::SUPERVISOR)) {
             $query->whereIn('status', [
-                DossierStatus::EN_DEROGATION->value,
-                DossierStatus::COMPLEMENT_ATTENDU->value,
+                DossierStatus::IN_ESCALATION->value,
+                DossierStatus::AWAITING_COMPLEMENT->value,
                 DossierStatus::PROCESSED->value,
             ]);
         } elseif (! $this->hasRole($user, UserRole::ADMIN)) {
@@ -186,7 +188,7 @@ class DossierController extends Controller
         if (! in_array($dossier->status, [
             DossierStatus::RECEIVED,
             DossierStatus::IN_PROGRESS,
-            DossierStatus::COMPLEMENT_ATTENDU,
+            DossierStatus::AWAITING_COMPLEMENT,
         ], true)) {
             return response()->json([
                 'message' => 'This dossier cannot be updated in its current status.',
@@ -240,7 +242,7 @@ class DossierController extends Controller
             ], 403);
         }
 
-        if (! $dossier->canBeDeleted()) {
+        if ($dossier->status !== DossierStatus::RECEIVED) {
             return response()->json([
                 'message' => 'Only dossiers in RECEIVED status can be deleted.',
                 'current_status' => $dossier->status->value,
@@ -271,13 +273,22 @@ class DossierController extends Controller
             ], 422);
         }
 
-        if (! $dossier->canBeSubmitted()) {
+        if (! in_array($dossier->status, [
+            DossierStatus::IN_PROGRESS,
+            DossierStatus::AWAITING_COMPLEMENT,
+        ], true)) {
+            return response()->json([
+                'message' => 'Only dossiers in IN_PROGRESS or AWAITING_COMPLEMENT can be submitted.',
+            ], 422);
+        }
+
+        if (! $dossier->rubriques()->exists() || ! $dossier->documents()->exists()) {
             return response()->json([
                 'message' => 'This dossier is not ready to be submitted.',
             ], 422);
         }
 
-        $dossier->status = DossierStatus::TO_VALIDATE;
+        $dossier->status = DossierStatus::UNDER_REVIEW;
         $dossier->submitted_at = now();
         $dossier->submitted_by = $user->id;
         $dossier->save();
@@ -316,9 +327,25 @@ class DossierController extends Controller
             ], 422);
         }
 
-        if (! $dossier->canBeProcessed()) {
+        if ($dossier->status !== DossierStatus::UNDER_REVIEW) {
+            return response()->json([
+                'message' => 'Only dossiers in UNDER_REVIEW status can be processed.',
+            ], 422);
+        }
+
+        if (! $dossier->documents()->exists()) {
             return response()->json([
                 'message' => 'This dossier cannot be processed yet.',
+            ], 422);
+        }
+
+        $hasPendingDecisions = $dossier->documents()
+            ->where('documents.decision_status', DocumentDecisionStatus::PENDING->value)
+            ->exists();
+
+        if ($hasPendingDecisions) {
+            return response()->json([
+                'message' => 'All document decisions must be completed before processing the dossier.',
             ], 422);
         }
 
@@ -482,12 +509,12 @@ class DossierController extends Controller
 
     private function canPrepareDossiers(User $user): bool
     {
-        return $this->hasRole($user, UserRole::AGENT, UserRole::GESTIONNAIRE, UserRole::ADMIN);
+        return $this->hasRole($user, UserRole::AGENT, UserRole::CLAIMS_MANAGER, UserRole::ADMIN);
     }
 
     private function canReviewDossiers(User $user): bool
     {
-        return $this->hasRole($user, UserRole::GESTIONNAIRE, UserRole::ADMIN);
+        return $this->hasRole($user, UserRole::CLAIMS_MANAGER, UserRole::ADMIN);
     }
 
     private function canManageOwnDossier(User $user, Dossier $dossier): bool
@@ -496,7 +523,7 @@ class DossierController extends Controller
             return true;
         }
 
-        return $this->hasRole($user, UserRole::AGENT, UserRole::GESTIONNAIRE)
+        return $this->hasRole($user, UserRole::AGENT, UserRole::CLAIMS_MANAGER)
             && (int) $dossier->created_by === (int) $user->id;
     }
 
@@ -506,7 +533,7 @@ class DossierController extends Controller
             return true;
         }
 
-        return $this->hasRole($user, UserRole::AGENT, UserRole::GESTIONNAIRE)
+        return $this->hasRole($user, UserRole::AGENT, UserRole::CLAIMS_MANAGER)
             && (int) $dossier->created_by === (int) $user->id;
     }
 
@@ -520,23 +547,23 @@ class DossierController extends Controller
             return (int) $dossier->created_by === (int) $user->id;
         }
 
-        if ($this->hasRole($user, UserRole::GESTIONNAIRE)) {
+        if ($this->hasRole($user, UserRole::CLAIMS_MANAGER)) {
             if ((int) $dossier->created_by === (int) $user->id) {
                 return true;
             }
 
             return in_array($dossier->status->value, [
-                DossierStatus::TO_VALIDATE->value,
-                DossierStatus::EN_DEROGATION->value,
-                DossierStatus::COMPLEMENT_ATTENDU->value,
+                DossierStatus::UNDER_REVIEW->value,
+                DossierStatus::IN_ESCALATION->value,
+                DossierStatus::AWAITING_COMPLEMENT->value,
                 DossierStatus::PROCESSED->value,
             ], true);
         }
 
-        if ($this->hasRole($user, UserRole::CHEF_HIERARCHIQUE)) {
+        if ($this->hasRole($user, UserRole::SUPERVISOR)) {
             return in_array($dossier->status->value, [
-                DossierStatus::EN_DEROGATION->value,
-                DossierStatus::COMPLEMENT_ATTENDU->value,
+                DossierStatus::IN_ESCALATION->value,
+                DossierStatus::AWAITING_COMPLEMENT->value,
                 DossierStatus::PROCESSED->value,
             ], true);
         }

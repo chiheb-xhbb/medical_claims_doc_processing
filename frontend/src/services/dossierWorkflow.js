@@ -1,4 +1,5 @@
 import api from './api';
+import { DOSSIER_STATUSES } from '../constants/domainLabels';
 
 const extractPageItems = (payload) => {
   if (Array.isArray(payload)) {
@@ -94,12 +95,12 @@ export async function escalateDossier(id, reason) {
   return response.data || {};
 }
 
-export async function approveDerogation(id, note) {
+export async function approveEscalation(id, note) {
   const response = await api.post(`/dossiers/${id}/chef/approve`, { decision_note: note });
   return response.data || {};
 }
 
-export async function returnToGestionnaire(id, note) {
+export async function returnToClaimsManager(id, note) {
   const response = await api.post(`/dossiers/${id}/chef/return`, { decision_note: note });
   return response.data || {};
 }
@@ -111,7 +112,7 @@ export async function requestComplement(id, note) {
 
 export async function getPendingEscalations() {
   const response = await api.get('/dossiers', {
-    params: { status: 'EN_DEROGATION', per_page: 50, page: 1 }
+    params: { status: DOSSIER_STATUSES.IN_ESCALATION, per_page: 50, page: 1 }
   });
   const payload = response.data || {};
 

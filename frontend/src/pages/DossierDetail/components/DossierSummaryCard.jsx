@@ -1,20 +1,24 @@
+import { DOSSIER_STATUSES, DOSSIER_STATUS_LABELS } from '../../../constants/domainLabels';
+
 function getDossierStatusClass(status) {
   switch ((status || '').toUpperCase()) {
-    case 'EN_DEROGATION': return 'badge dossier-status dossier-status--en-derogation';
-    case 'COMPLEMENT_ATTENDU': return 'badge dossier-status dossier-status--complement-attendu';
-    case 'PROCESSED': return 'badge dossier-status dossier-status--processed';
-    case 'TO_VALIDATE': return 'badge dossier-status dossier-status--to-validate';
+    case DOSSIER_STATUSES.IN_ESCALATION: return 'badge dossier-status dossier-status--in-escalation';
+    case DOSSIER_STATUSES.AWAITING_COMPLEMENT: return 'badge dossier-status dossier-status--awaiting-complement';
+    case DOSSIER_STATUSES.PROCESSED: return 'badge dossier-status dossier-status--processed';
+    case DOSSIER_STATUSES.UNDER_REVIEW: return 'badge dossier-status dossier-status--under-review';
     default: return 'badge bg-primary-subtle text-primary-emphasis dossier-status';
   }
 }
 
 function DossierSummaryCard({ dossier, dossierData, formatAmount, formatDateTime, formatDisplayTotal }) {
+  const normalizedStatus = (dossier.status || '').toUpperCase();
+
   return (
     <div className="card mb-4">
       <div className="card-header bg-primary text-white">
         <h5 className="mb-0 d-flex align-items-center">
           <i className="bi bi-briefcase me-2"></i>
-          {dossier.numero_dossier || 'Dossier'}
+          {dossier.numero_dossier || 'Case File'}
         </h5>
       </div>
       <div className="card-body">
@@ -29,7 +33,9 @@ function DossierSummaryCard({ dossier, dossierData, formatAmount, formatDateTime
             <div className="detail-item">
               <p className="detail-label mb-1">Status</p>
               <p className="detail-value mb-0">
-                <span className={getDossierStatusClass(dossier.status)}>{dossier.status || '-'}</span>
+                <span className={getDossierStatusClass(dossier.status)}>
+                  {DOSSIER_STATUS_LABELS[normalizedStatus] || normalizedStatus || '-'}
+                </span>
               </p>
             </div>
           </div>

@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api, { getApiErrorMessage } from '../services/api';
 import { AUTH_CHANGED_EVENT, getStoredRole, getStoredUser } from '../services/auth';
+import { USER_ROLES } from '../constants/domainLabels';
 import DocumentUploadModal from '../components/DocumentUploadModal';
 import { StatusBadge, EmptyState, ConfirmationModal, SortableHeader } from '../ui';
 import {
@@ -33,7 +34,7 @@ function DocumentsList() {
   const location = useLocation();
   const [role, setRole] = useState(() => getStoredRole());
   const [currentUserId, setCurrentUserId] = useState(() => Number(getStoredUser()?.id || 0));
-  const canUpload = role === 'AGENT' || role === 'GESTIONNAIRE' || role === 'ADMIN';
+  const canUpload = role === USER_ROLES.AGENT || role === USER_ROLES.CLAIMS_MANAGER || role === USER_ROLES.ADMIN;
 
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -267,11 +268,11 @@ function DocumentsList() {
       return false;
     }
 
-    if (role === 'ADMIN' || role === 'GESTIONNAIRE') {
+    if (role === USER_ROLES.ADMIN || role === USER_ROLES.CLAIMS_MANAGER) {
       return true;
     }
 
-    if (role === 'AGENT') {
+    if (role === USER_ROLES.AGENT) {
       return Number(doc.user_id) === Number(currentUserId);
     }
 

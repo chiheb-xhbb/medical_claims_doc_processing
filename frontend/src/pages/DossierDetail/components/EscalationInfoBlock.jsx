@@ -1,16 +1,16 @@
 const DECISION_TYPE_LABELS = {
   APPROVED: 'Approved',
-  RETURNED: 'Returned to Gestionnaire',
+  RETURNED: 'Returned to Claims Manager',
   COMPLEMENT_REQUESTED: 'Complement Requested',
 };
 
 function EscalationInfoBlock({ dossier, formatDateTime }) {
   const hasEscalation = Boolean(dossier?.escalated_at);
-  const hasChefDecision = Boolean(dossier?.chef_decision_type);
+  const hasSupervisorDecision = Boolean(dossier?.chef_decision_type);
   const escalatorName = dossier?.escalator?.name || dossier?.escalated_by;
-  const chefDecisionMakerName = dossier?.chef_decision_maker?.name || dossier?.chef_decision_by;
+  const supervisorDecisionMakerName = dossier?.chef_decision_maker?.name || dossier?.chef_decision_by;
 
-  if (!hasEscalation && !hasChefDecision) {
+  if (!hasEscalation && !hasSupervisorDecision) {
     return null;
   }
 
@@ -18,7 +18,7 @@ function EscalationInfoBlock({ dossier, formatDateTime }) {
     <div className="card mb-4">
       <div className="card-header d-flex align-items-center gap-2">
         <i className="bi bi-diagram-3 text-muted" aria-hidden="true"></i>
-        <h6 className="mb-0">Escalation &amp; Hierarchical Review</h6>
+        <h6 className="mb-0">Escalation &amp; Supervisor Review</h6>
       </div>
       <div className="card-body">
         <div className="row g-4">
@@ -51,21 +51,21 @@ function EscalationInfoBlock({ dossier, formatDateTime }) {
             </>
           )}
 
-          {hasChefDecision && (
+          {hasSupervisorDecision && (
             <>
               <div className="col-md-6 col-lg-4">
                 <div className="detail-item">
-                  <p className="detail-label mb-1">Chef Decision</p>
+                  <p className="detail-label mb-1">Supervisor Decision</p>
                   <p className="detail-value mb-0">
                     {DECISION_TYPE_LABELS[dossier.chef_decision_type] || dossier.chef_decision_type}
                   </p>
                 </div>
               </div>
-              {chefDecisionMakerName && (
+              {supervisorDecisionMakerName && (
                 <div className="col-md-6 col-lg-4">
                   <div className="detail-item">
                     <p className="detail-label mb-1">Decision By</p>
-                    <p className="detail-value mb-0">{chefDecisionMakerName}</p>
+                    <p className="detail-value mb-0">{supervisorDecisionMakerName}</p>
                   </div>
                 </div>
               )}
@@ -80,7 +80,7 @@ function EscalationInfoBlock({ dossier, formatDateTime }) {
               {dossier.chef_decision_note && (
                 <div className="col-md-12">
                   <div className="detail-item">
-                    <p className="detail-label mb-1">Chef Note</p>
+                    <p className="detail-label mb-1">Supervisor Note</p>
                     <p className="detail-value mb-0">{dossier.chef_decision_note}</p>
                   </div>
                 </div>

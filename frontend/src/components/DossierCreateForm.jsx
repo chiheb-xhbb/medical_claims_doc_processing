@@ -73,7 +73,7 @@ function DossierCreateForm({ onCancel, onSuccess, onBusyChange }) {
           setError(err.response?.data?.message || 'Validation failed. Please check your input.');
         }
       } else {
-        setError(err.response?.data?.message || 'Failed to create dossier. Please try again.');
+        setError(err.response?.data?.message || 'Failed to create case file. Please try again.');
       }
     } finally {
       setSubmitting(false);
@@ -162,7 +162,7 @@ function DossierCreateForm({ onCancel, onSuccess, onBusyChange }) {
             ) : (
               <>
                 <i className="bi bi-check2-circle me-2"></i>
-                Create Dossier
+                Create Case File
               </>
             )}
           </button>

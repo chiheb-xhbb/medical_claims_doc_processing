@@ -16,7 +16,9 @@ function ProtectedRoute({ children, allowedRoles }) {
 
   if (allowedRoles && allowedRoles.length > 0) {
     const role = getStoredRole();
-    if (!role || !allowedRoles.includes(role)) {
+    const normalizedAllowedRoles = allowedRoles.map((allowedRole) => String(allowedRole).toUpperCase());
+
+    if (!role || !normalizedAllowedRoles.includes(role)) {
       const redirectPath = role ? getDefaultLandingPath(role) : '/login';
 
       return (

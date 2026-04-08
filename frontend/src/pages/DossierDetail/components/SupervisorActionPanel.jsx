@@ -2,25 +2,25 @@ import { useRef, useState } from 'react';
 
 const ACTIONS = {
   approve: {
-    label: 'Approve Derogation',
+    label: 'Approve Escalation',
     icon: 'bi-check-circle',
     btnClass: 'btn-outline-success',
     noteRequired: false,
-    notePlaceholder: 'Optional approval note…',
+    notePlaceholder: 'Optional approval note...',
     noteLabel: 'Approval Note (optional)',
     confirmLabel: 'Approve',
-    confirmingLabel: 'Approving…',
+    confirmingLabel: 'Approving...',
     confirmClass: 'btn-success',
   },
   return: {
-    label: 'Return to Gestionnaire',
+    label: 'Return to Claims Manager',
     icon: 'bi-arrow-return-left',
     btnClass: 'btn-outline-warning',
     noteRequired: true,
-    notePlaceholder: 'Required — explain the reason for returning this dossier…',
+    notePlaceholder: 'Required - explain the reason for returning this case file...',
     noteLabel: 'Return Note (required)',
     confirmLabel: 'Return',
-    confirmingLabel: 'Returning…',
+    confirmingLabel: 'Returning...',
     confirmClass: 'btn-warning',
   },
   complement: {
@@ -28,15 +28,15 @@ const ACTIONS = {
     icon: 'bi-file-earmark-plus',
     btnClass: 'btn-outline-secondary',
     noteRequired: true,
-    notePlaceholder: 'Required — describe what information is missing…',
+    notePlaceholder: 'Required - describe what information is missing...',
     noteLabel: 'Complement Request (required)',
     confirmLabel: 'Request Complement',
-    confirmingLabel: 'Sending…',
+    confirmingLabel: 'Sending...',
     confirmClass: 'btn-primary',
   },
 };
 
-function ChefActionPanel({ dossierId, onApprove, onReturn, onComplement, isBusy }) {
+function SupervisorActionPanel({ onApprove, onReturn, onComplement, isBusy }) {
   const [activeAction, setActiveAction] = useState(null);
   const [note, setNote] = useState('');
   const [noteError, setNoteError] = useState('');
@@ -83,10 +83,10 @@ function ChefActionPanel({ dossierId, onApprove, onReturn, onComplement, isBusy 
   const config = activeAction ? ACTIONS[activeAction] : null;
 
   return (
-    <div className="card mb-4 chef-action-panel">
+    <div className="card mb-4 supervisor-action-panel">
       <div className="card-header d-flex align-items-center gap-2">
         <i className="bi bi-shield-check text-muted" aria-hidden="true"></i>
-        <h6 className="mb-0">Chef Decision</h6>
+        <h6 className="mb-0">Supervisor Decision</h6>
       </div>
       <div className="card-body">
         {!activeAction ? (
@@ -105,18 +105,18 @@ function ChefActionPanel({ dossierId, onApprove, onReturn, onComplement, isBusy 
             ))}
           </div>
         ) : (
-          <div className="chef-action-form">
+          <div className="supervisor-action-form">
             <p className="fw-semibold mb-3">
               <i className={`bi ${config.icon} me-2`} aria-hidden="true"></i>
               {config.label}
             </p>
 
             <div className="mb-3">
-              <label htmlFor="chef-action-note" className="form-label">
+              <label htmlFor="supervisor-action-note" className="form-label">
                 {config.noteLabel}
               </label>
               <textarea
-                id="chef-action-note"
+                id="supervisor-action-note"
                 ref={noteRef}
                 className={`form-control${noteError ? ' is-invalid' : ''}`}
                 rows={3}
@@ -158,4 +158,4 @@ function ChefActionPanel({ dossierId, onApprove, onReturn, onComplement, isBusy 
   );
 }
 
-export default ChefActionPanel;
+export default SupervisorActionPanel;

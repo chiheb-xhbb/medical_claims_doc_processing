@@ -44,15 +44,15 @@ class DossierEscalationController extends Controller
                 $this->unprocessable('This dossier is frozen and cannot be escalated.');
             }
 
-            if (! $lockedDossier->canBeEscalated()) {
-                $this->unprocessable('Only dossiers in TO_VALIDATE status can be escalated.');
+            if ($lockedDossier->status !== DossierStatus::UNDER_REVIEW) {
+                $this->unprocessable('Only dossiers in UNDER_REVIEW status can be escalated.');
             }
 
             if ($this->hasPendingDecisionDocuments($lockedDossier)) {
                 $this->unprocessable('All document decisions must be completed before escalation.');
             }
 
-            $lockedDossier->status = DossierStatus::EN_DEROGATION;
+            $lockedDossier->status = DossierStatus::IN_ESCALATION;
             $lockedDossier->escalated_by = $user->id;
             $lockedDossier->escalated_at = now();
             $lockedDossier->escalation_reason = $request->validated('escalation_reason');
@@ -108,8 +108,8 @@ class DossierEscalationController extends Controller
                 $this->unprocessable('This dossier is already frozen.');
             }
 
-            if (! $lockedDossier->canBeChefReviewed()) {
-                $this->unprocessable('Only dossiers in EN_DEROGATION status can be approved by Chef Hiérarchique.');
+            if ($lockedDossier->status !== DossierStatus::IN_ESCALATION) {
+                $this->unprocessable('Only dossiers in IN_ESCALATION status can be approved by the supervisor.');
             }
 
             if ($this->hasPendingDecisionDocuments($lockedDossier)) {
@@ -138,7 +138,7 @@ class DossierEscalationController extends Controller
         });
 
         return response()->json([
-            'message' => 'Derogation approved successfully.',
+            'message' => 'Escalation approved successfully.',
             'dossier' => $this->formatDossierPayload($updatedDossier),
             'requested_total' => $updatedDossier->getRequestedTotal(),
             'current_total' => $updatedDossier->getCurrentTotal(),
@@ -172,11 +172,11 @@ class DossierEscalationController extends Controller
                 $this->unprocessable('This dossier is already frozen.');
             }
 
-            if (! $lockedDossier->canBeChefReviewed()) {
-                $this->unprocessable('Only dossiers in EN_DEROGATION status can be returned to Gestionnaire.');
+            if ($lockedDossier->status !== DossierStatus::IN_ESCALATION) {
+                $this->unprocessable('Only dossiers in IN_ESCALATION status can be returned to the claims manager.');
             }
 
-            $lockedDossier->status = DossierStatus::TO_VALIDATE;
+            $lockedDossier->status = DossierStatus::UNDER_REVIEW;
 
             $lockedDossier->chef_decision_type = 'RETURNED';
             $lockedDossier->chef_decision_by = $user->id;
@@ -195,7 +195,7 @@ class DossierEscalationController extends Controller
         });
 
         return response()->json([
-            'message' => 'Dossier returned to Gestionnaire successfully.',
+            'message' => 'Dossier returned to the claims manager successfully.',
             'dossier' => $this->formatDossierPayload($updatedDossier),
             'requested_total' => $updatedDossier->getRequestedTotal(),
             'current_total' => $updatedDossier->getCurrentTotal(),
@@ -229,11 +229,11 @@ class DossierEscalationController extends Controller
                 $this->unprocessable('This dossier is already frozen.');
             }
 
-            if (! $lockedDossier->canBeChefReviewed()) {
-                $this->unprocessable('Only dossiers in EN_DEROGATION status can receive a complement request.');
+            if ($lockedDossier->status !== DossierStatus::IN_ESCALATION) {
+                $this->unprocessable('Only dossiers in IN_ESCALATION status can receive a complement request.');
             }
 
-            $lockedDossier->status = DossierStatus::COMPLEMENT_ATTENDU;
+            $lockedDossier->status = DossierStatus::AWAITING_COMPLEMENT;
 
             $lockedDossier->chef_decision_type = 'COMPLEMENT_REQUESTED';
             $lockedDossier->chef_decision_by = $user->id;
@@ -262,12 +262,12 @@ class DossierEscalationController extends Controller
 
     private function canEscalateDossiers(User $user): bool
     {
-        return $this->hasRole($user, UserRole::GESTIONNAIRE, UserRole::ADMIN);
+        return $this->hasRole($user, UserRole::CLAIMS_MANAGER, UserRole::ADMIN);
     }
 
     private function canChefReviewDossiers(User $user): bool
     {
-        return $this->hasRole($user, UserRole::CHEF_HIERARCHIQUE, UserRole::ADMIN);
+        return $this->hasRole($user, UserRole::SUPERVISOR, UserRole::ADMIN);
     }
 
     private function hasPendingDecisionDocuments(Dossier $dossier): bool

@@ -116,7 +116,7 @@ class DocumentController extends Controller
 
         if ($this->hasRole($user, UserRole::AGENT)) {
             $query->where('user_id', $user->id);
-        } elseif (! $this->hasRole($user, UserRole::GESTIONNAIRE, UserRole::ADMIN)) {
+        } elseif (! $this->hasRole($user, UserRole::CLAIMS_MANAGER, UserRole::ADMIN)) {
             return response()->json([
                 'message' => 'You are not allowed to view documents.',
             ], 403);
@@ -259,7 +259,7 @@ class DocumentController extends Controller
 
     private function canViewDocument(User $user, Document $document): bool
     {
-        if ($this->hasRole($user, UserRole::GESTIONNAIRE, UserRole::ADMIN)) {
+        if ($this->hasRole($user, UserRole::CLAIMS_MANAGER, UserRole::ADMIN)) {
             return true;
         }
 
@@ -269,7 +269,7 @@ class DocumentController extends Controller
 
     private function canDeleteDocument(User $user, Document $document): bool
     {
-        if ($this->hasRole($user, UserRole::ADMIN, UserRole::GESTIONNAIRE)) {
+        if ($this->hasRole($user, UserRole::ADMIN, UserRole::CLAIMS_MANAGER)) {
             return true;
         }
 

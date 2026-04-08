@@ -211,7 +211,7 @@ class DocumentValidationController extends Controller
 
     private function canValidateDocument(User $user, Document $document): bool
     {
-        if ($this->hasRole($user, UserRole::GESTIONNAIRE, UserRole::ADMIN)) {
+        if ($this->hasRole($user, UserRole::CLAIMS_MANAGER, UserRole::ADMIN)) {
             return true;
         }
 

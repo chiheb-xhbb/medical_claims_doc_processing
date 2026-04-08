@@ -3,6 +3,11 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api, { getApiErrorMessage } from '../services/api';
 import { AUTH_CHANGED_EVENT, getStoredRole, getStoredUser } from '../services/auth';
+import {
+  USER_ROLES,
+  DOSSIER_STATUSES,
+  DOSSIER_STATUS_LABELS
+} from '../constants/domainLabels';
 import DossierCreateModal from '../components/DossierCreateModal';
 import { EmptyState, ConfirmationModal, SortableHeader } from '../ui';
 import {
@@ -15,10 +20,34 @@ import {
 import './DossiersList/DossiersList.css';
 
 const DOSSIER_STATUS_OPTIONS = {
-  AGENT: ['RECEIVED', 'IN_PROGRESS', 'TO_VALIDATE', 'COMPLEMENT_ATTENDU', 'PROCESSED'],
-  GESTIONNAIRE: ['RECEIVED', 'IN_PROGRESS', 'TO_VALIDATE', 'EN_DEROGATION', 'COMPLEMENT_ATTENDU', 'PROCESSED'],
-  CHEF_HIERARCHIQUE: ['EN_DEROGATION', 'COMPLEMENT_ATTENDU', 'PROCESSED'],
-  ADMIN: ['RECEIVED', 'IN_PROGRESS', 'TO_VALIDATE', 'EN_DEROGATION', 'COMPLEMENT_ATTENDU', 'PROCESSED']
+  [USER_ROLES.AGENT]: [
+    DOSSIER_STATUSES.RECEIVED,
+    DOSSIER_STATUSES.IN_PROGRESS,
+    DOSSIER_STATUSES.UNDER_REVIEW,
+    DOSSIER_STATUSES.AWAITING_COMPLEMENT,
+    DOSSIER_STATUSES.PROCESSED
+  ],
+  [USER_ROLES.CLAIMS_MANAGER]: [
+    DOSSIER_STATUSES.RECEIVED,
+    DOSSIER_STATUSES.IN_PROGRESS,
+    DOSSIER_STATUSES.UNDER_REVIEW,
+    DOSSIER_STATUSES.IN_ESCALATION,
+    DOSSIER_STATUSES.AWAITING_COMPLEMENT,
+    DOSSIER_STATUSES.PROCESSED
+  ],
+  [USER_ROLES.SUPERVISOR]: [
+    DOSSIER_STATUSES.IN_ESCALATION,
+    DOSSIER_STATUSES.AWAITING_COMPLEMENT,
+    DOSSIER_STATUSES.PROCESSED
+  ],
+  [USER_ROLES.ADMIN]: [
+    DOSSIER_STATUSES.RECEIVED,
+    DOSSIER_STATUSES.IN_PROGRESS,
+    DOSSIER_STATUSES.UNDER_REVIEW,
+    DOSSIER_STATUSES.IN_ESCALATION,
+    DOSSIER_STATUSES.AWAITING_COMPLEMENT,
+    DOSSIER_STATUSES.PROCESSED
+  ]
 };
 
 const DEFAULT_DOSSIER_FILTERS = {
@@ -34,56 +63,56 @@ const DEFAULT_DOSSIER_SORT = {
 };
 
 const getRolePageConfig = (role) => {
-  if (role === 'AGENT') {
+  if (role === USER_ROLES.AGENT) {
     return {
-      title: 'My Dossiers',
-      subtitle: 'Prepare, submit, and follow your dossier history.',
-      emptyTitle: 'No Dossiers Yet',
-      emptyDescription: 'Create your first dossier to group validated medical documents.',
-      createButtonLabel: 'New Dossier',
+      title: 'My Case Files',
+      subtitle: 'Prepare, submit, and track your case file history.',
+      emptyTitle: 'No Case Files Yet',
+      emptyDescription: 'Create your first case file to group validated medical documents.',
+      createButtonLabel: 'New Case File',
       canCreateDossier: true
     };
   }
 
-  if (role === 'GESTIONNAIRE') {
+  if (role === USER_ROLES.CLAIMS_MANAGER) {
     return {
-      title: 'Dossiers',
-      subtitle: 'Create your dossiers and review dossiers awaiting business decisions.',
-      emptyTitle: 'No Dossiers Found',
-      emptyDescription: 'No dossier is currently available. You can create a new dossier to get started.',
-      createButtonLabel: 'New Dossier',
+      title: 'Case Files',
+      subtitle: 'Create case files and review items awaiting business decisions.',
+      emptyTitle: 'No Case Files Found',
+      emptyDescription: 'No case file is currently available. You can create a new case file to get started.',
+      createButtonLabel: 'New Case File',
       canCreateDossier: true
     };
   }
 
-  if (role === 'CHEF_HIERARCHIQUE') {
+  if (role === USER_ROLES.SUPERVISOR) {
     return {
-      title: 'Dossiers',
-      subtitle: 'Review escalated dossiers requiring hierarchical decision.',
-      emptyTitle: 'No Escalated Dossiers',
-      emptyDescription: 'No dossier is currently pending hierarchical review.',
+      title: 'Case Files',
+      subtitle: 'Review escalated case files requiring supervisor decisions.',
+      emptyTitle: 'No Escalated Case Files',
+      emptyDescription: 'No case file is currently pending supervisor review.',
       createButtonLabel: '',
       canCreateDossier: false
     };
   }
 
-  if (role === 'ADMIN') {
+  if (role === USER_ROLES.ADMIN) {
     return {
-      title: 'All Dossiers',
-      subtitle: 'Supervise dossier activity across preparation and review.',
-      emptyTitle: 'No Dossiers Found',
-      emptyDescription: 'No dossier is currently available in the system.',
-      createButtonLabel: 'New Dossier',
+      title: 'All Case Files',
+      subtitle: 'Supervise case file activity across preparation and review.',
+      emptyTitle: 'No Case Files Found',
+      emptyDescription: 'No case file is currently available in the system.',
+      createButtonLabel: 'New Case File',
       canCreateDossier: true
     };
   }
 
   return {
-    title: 'Dossiers',
-    subtitle: 'Track dossier preparation and review workflow.',
-    emptyTitle: 'No Dossiers Found',
-    emptyDescription: 'No dossier is currently available.',
-    createButtonLabel: 'New Dossier',
+    title: 'Case Files',
+    subtitle: 'Track case file preparation and review workflow.',
+    emptyTitle: 'No Case Files Found',
+    emptyDescription: 'No case file is currently available.',
+    createButtonLabel: 'New Case File',
     canCreateDossier: false
   };
 };
@@ -112,19 +141,21 @@ const formatDate = (value) => {
 
 const getDossierStatusBadgeClass = (status) => {
   switch (status) {
-    case 'PROCESSED': return 'bg-success-subtle text-success-emphasis';
-    case 'TO_VALIDATE': return 'bg-warning-subtle text-warning-emphasis';
-    case 'EN_DEROGATION': return 'bg-danger-subtle text-danger-emphasis';
-    case 'COMPLEMENT_ATTENDU': return 'bg-info-subtle text-info-emphasis';
-    case 'IN_PROGRESS': return 'bg-primary-subtle text-primary-emphasis';
+    case DOSSIER_STATUSES.PROCESSED: return 'bg-success-subtle text-success-emphasis';
+    case DOSSIER_STATUSES.UNDER_REVIEW: return 'bg-warning-subtle text-warning-emphasis';
+    case DOSSIER_STATUSES.IN_ESCALATION: return 'bg-danger-subtle text-danger-emphasis';
+    case DOSSIER_STATUSES.AWAITING_COMPLEMENT: return 'bg-info-subtle text-info-emphasis';
+    case DOSSIER_STATUSES.IN_PROGRESS: return 'bg-primary-subtle text-primary-emphasis';
     default: return 'bg-secondary-subtle text-secondary-emphasis';
   }
 };
 
 function DossierStatusBadge({ status }) {
+  const normalizedStatus = (status || '').toString().toUpperCase();
+
   return (
-    <span className={`badge ${getDossierStatusBadgeClass(status)} dossier-status`}>
-      {(status || '-').toString()}
+    <span className={`badge ${getDossierStatusBadgeClass(normalizedStatus)} dossier-status`}>
+      {DOSSIER_STATUS_LABELS[normalizedStatus] || normalizedStatus || '-'}
     </span>
   );
 }
@@ -146,23 +177,23 @@ function DossiersList() {
   const [deletingDossierId, setDeletingDossierId] = useState(null);
   const [filtersDraft, setFiltersDraft] = useState(() => {
     const storedRole = getStoredRole();
-    if (storedRole === 'CHEF_HIERARCHIQUE') {
-      return { ...DEFAULT_DOSSIER_FILTERS, status: 'EN_DEROGATION' };
+    if (storedRole === USER_ROLES.SUPERVISOR) {
+      return { ...DEFAULT_DOSSIER_FILTERS, status: DOSSIER_STATUSES.IN_ESCALATION };
     }
     return DEFAULT_DOSSIER_FILTERS;
   });
   const [appliedFilters, setAppliedFilters] = useState(() => {
     const storedRole = getStoredRole();
-    if (storedRole === 'CHEF_HIERARCHIQUE') {
-      return { ...DEFAULT_DOSSIER_FILTERS, status: 'EN_DEROGATION' };
+    if (storedRole === USER_ROLES.SUPERVISOR) {
+      return { ...DEFAULT_DOSSIER_FILTERS, status: DOSSIER_STATUSES.IN_ESCALATION };
     }
     return DEFAULT_DOSSIER_FILTERS;
   });
   const [sortState, setSortState] = useState(DEFAULT_DOSSIER_SORT);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const appliedFiltersRef = useRef(
-    getStoredRole() === 'CHEF_HIERARCHIQUE'
-      ? { ...DEFAULT_DOSSIER_FILTERS, status: 'EN_DEROGATION' }
+    getStoredRole() === USER_ROLES.SUPERVISOR
+      ? { ...DEFAULT_DOSSIER_FILTERS, status: DOSSIER_STATUSES.IN_ESCALATION }
       : DEFAULT_DOSSIER_FILTERS
   );
   const appliedSortRef = useRef(DEFAULT_DOSSIER_SORT);
@@ -182,7 +213,7 @@ function DossiersList() {
 
   const pageConfig = useMemo(() => getRolePageConfig(role), [role]);
   const dossierStatusOptions = useMemo(
-    () => DOSSIER_STATUS_OPTIONS[role] || DOSSIER_STATUS_OPTIONS.ADMIN,
+    () => DOSSIER_STATUS_OPTIONS[role] || DOSSIER_STATUS_OPTIONS[USER_ROLES.ADMIN],
     [role]
   );
 
@@ -220,7 +251,7 @@ function DossiersList() {
         setLastPage(payload?.last_page ?? 1);
         setTotal(payload?.total ?? list.length);
       } catch (err) {
-        toast.error(getApiErrorMessage(err, 'Failed to load dossiers. Please try again.'));
+        toast.error(getApiErrorMessage(err, 'Failed to load case files. Please try again.'));
       } finally {
         setLoading(false);
       }
@@ -276,8 +307,8 @@ function DossiersList() {
 
   const handleResetFilters = async () => {
     const resetFilters =
-      role === 'CHEF_HIERARCHIQUE'
-        ? { ...DEFAULT_DOSSIER_FILTERS, status: 'EN_DEROGATION' }
+      role === USER_ROLES.SUPERVISOR
+        ? { ...DEFAULT_DOSSIER_FILTERS, status: DOSSIER_STATUSES.IN_ESCALATION }
         : { ...DEFAULT_DOSSIER_FILTERS };
     const resetSort = { ...DEFAULT_DOSSIER_SORT };
 
@@ -302,15 +333,15 @@ function DossiersList() {
   };
 
   const canDeleteDossier = (dossier) => {
-    if (dossier.status !== 'RECEIVED') {
+    if (dossier.status !== DOSSIER_STATUSES.RECEIVED) {
       return false;
     }
 
-    if (role === 'ADMIN') {
+    if (role === USER_ROLES.ADMIN) {
       return true;
     }
 
-    if (role === 'AGENT' || role === 'GESTIONNAIRE') {
+    if (role === USER_ROLES.AGENT || role === USER_ROLES.CLAIMS_MANAGER) {
       return Number(dossier.created_by) === Number(currentUserId);
     }
 
@@ -345,7 +376,7 @@ function DossiersList() {
 
     try {
       const response = await api.delete(`/dossiers/${targetId}`);
-      toast.success(response.data?.message || 'Dossier deleted successfully.');
+      toast.success(response.data?.message || 'Case file deleted successfully.');
       setDeleteTargetDossier(null);
 
       const nextPage = dossiers.length === 1 && currentPage > 1
@@ -355,7 +386,7 @@ function DossiersList() {
       setLoading(true);
       await fetchDossiers(nextPage, appliedFiltersRef.current, appliedSortRef.current);
     } catch (err) {
-      toast.error(getApiErrorMessage(err, 'Failed to delete dossier.'));
+      toast.error(getApiErrorMessage(err, 'Failed to delete case file.'));
     } finally {
       setIsDeleteConfirming(false);
       setDeletingDossierId(null);
@@ -366,7 +397,7 @@ function DossiersList() {
   const hasDraftFilters = hasAnyListFilter(filtersDraft);
   const hasSortOverride = !isDefaultSort(sortState, DEFAULT_DOSSIER_SORT);
 
-  const emptyTitle = hasActiveFilters ? 'No Dossiers Match Your Filters' : pageConfig.emptyTitle;
+  const emptyTitle = hasActiveFilters ? 'No Case Files Match Your Filters' : pageConfig.emptyTitle;
   const emptyDescription = hasActiveFilters
     ? 'Try adjusting your search, status, or date range and apply again.'
     : pageConfig.emptyDescription;
@@ -410,7 +441,7 @@ function DossiersList() {
                 id="dossiersSearch"
                 type="text"
                 className="form-control"
-                placeholder="Search by dossier number or assured identifier"
+                placeholder="Search by case file number or assured identifier"
                 value={filtersDraft.search}
                 onChange={(event) => handleFiltersDraftChange('search', event.target.value)}
                 disabled={loading}
@@ -429,7 +460,7 @@ function DossiersList() {
                 <option value="">All Statuses</option>
                 {dossierStatusOptions.map((status) => (
                   <option key={status} value={status}>
-                    {status}
+                    {DOSSIER_STATUS_LABELS[status] || status}
                   </option>
                 ))}
               </select>
@@ -482,7 +513,7 @@ function DossiersList() {
           {loading && dossiers.length > 0 && (
             <div className="table-loading-overlay" role="status" aria-live="polite" aria-label="Updating list">
               <span className="spinner-border spinner-border-sm text-primary" aria-hidden="true"></span>
-              <span>Updating dossiers...</span>
+              <span>Updating case files...</span>
             </div>
           )}
 
@@ -491,7 +522,7 @@ function DossiersList() {
               <thead className="table-light">
                 <tr>
                   <SortableHeader
-                    label="Dossier #"
+                    label="Case File #"
                     sortBy="numero_dossier"
                     sortState={sortState}
                     onSortChange={handleSortChange}
@@ -528,12 +559,12 @@ function DossiersList() {
                 {dossiers.length > 0 ? dossiers.map((dossier) => {
                   const documentsCount = dossier.documents_count ?? dossier.documents?.length ?? 0;
                   const isReturnedRow =
-                    role === 'GESTIONNAIRE' &&
-                    dossier.status === 'TO_VALIDATE' &&
+                    role === USER_ROLES.CLAIMS_MANAGER &&
+                    dossier.status === DOSSIER_STATUSES.UNDER_REVIEW &&
                     dossier.chef_decision_type === 'RETURNED';
                   const isComplementRow =
-                    role === 'AGENT' &&
-                    dossier.status === 'COMPLEMENT_ATTENDU';
+                    role === USER_ROLES.AGENT &&
+                    dossier.status === DOSSIER_STATUSES.AWAITING_COMPLEMENT;
                   const rowAccentClass = (isReturnedRow || isComplementRow) ? 'dossier-row--accent-amber' : '';
 
                   return (
@@ -553,7 +584,7 @@ function DossiersList() {
                             onClick={() => navigate(`/dossiers/${dossier.id}`)}
                           >
                             <i className="bi bi-eye me-1"></i>
-                            {role === 'CHEF_HIERARCHIQUE' ? 'Review' : 'Details'}
+                            {role === USER_ROLES.SUPERVISOR ? 'Review' : 'Details'}
                           </button>
 
                           {canDeleteDossier(dossier) && (
@@ -607,7 +638,7 @@ function DossiersList() {
                                 onClick={() => setCreateModalOpen(true)}
                               >
                                 <i className="bi bi-plus-circle me-2"></i>
-                                Create Dossier
+                                Create Case File
                               </button>
                             ) : null
                           }
@@ -624,7 +655,7 @@ function DossiersList() {
         <div className="card-footer bg-white d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
           <span className="pagination-info d-inline-flex align-items-center gap-2">
             <i className="bi bi-grid-3x3-gap"></i>
-            Page {currentPage} of {lastPage} ({total} total dossiers)
+            Page {currentPage} of {lastPage} ({total} total case files)
           </span>
 
           <div className="btn-group pagination-controls">
@@ -656,10 +687,10 @@ function DossiersList() {
 
       <ConfirmationModal
         isOpen={Boolean(deleteTargetDossier)}
-        title="Delete Dossier"
+        title="Delete Case File"
         message={
           deleteTargetDossier
-            ? `Delete dossier "${deleteTargetDossier.numero_dossier}"? This action cannot be undone.`
+            ? `Delete case file "${deleteTargetDossier.numero_dossier}"? This action cannot be undone.`
             : ''
         }
         confirmLabel="Delete"

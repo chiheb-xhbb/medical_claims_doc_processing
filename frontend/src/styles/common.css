@@ -255,7 +255,7 @@ body {
   border: 1px solid rgba(14, 165, 233, 0.3);
 }
 
-.nb-role-badge--gestionnaire {
+.nb-role-badge--claims-manager {
   background-color: rgba(168, 85, 247, 0.25);
   color: #d8b4fe;
   border: 1px solid rgba(168, 85, 247, 0.3);
@@ -267,7 +267,7 @@ body {
   border: 1px solid rgba(249, 115, 22, 0.3);
 }
 
-.nb-role-badge--chef {
+.nb-role-badge--supervisor {
   background-color: rgba(20, 184, 166, 0.25);
   color: #5eead4;
   border: 1px solid rgba(20, 184, 166, 0.3);
@@ -379,7 +379,7 @@ body {
   border-color: rgba(14, 165, 233, 0.25);
 }
 
-.nb-dropdown__header .nb-role-badge--gestionnaire {
+.nb-dropdown__header .nb-role-badge--claims-manager {
   background-color: rgba(168, 85, 247, 0.12);
   color: #7c3aed;
   border-color: rgba(168, 85, 247, 0.25);
@@ -391,7 +391,7 @@ body {
   border-color: rgba(249, 115, 22, 0.25);
 }
 
-.nb-dropdown__header .nb-role-badge--chef {
+.nb-dropdown__header .nb-role-badge--supervisor {
   background-color: rgba(20, 184, 166, 0.12);
   color: #0d9488;
   border-color: rgba(20, 184, 166, 0.25);
@@ -491,16 +491,16 @@ body {
   }
 
   .nb-dropdown__header .nb-role-badge--agent,
-  .nb-dropdown__header .nb-role-badge--gestionnaire,
+  .nb-dropdown__header .nb-role-badge--claims-manager,
   .nb-dropdown__header .nb-role-badge--admin,
-  .nb-dropdown__header .nb-role-badge--chef {
+  .nb-dropdown__header .nb-role-badge--supervisor {
     background-color: rgba(255, 255, 255, 0.15);
     color: rgba(255, 255, 255, 0.85);
     border-color: rgba(255, 255, 255, 0.2);
   }
 }
 
-/* ─── Bell button (Chef review alerts) ───────────────────────────────────── */
+/* ─── Bell button (Supervisor review alerts) ─────────────────────────────── */
 
 .nb-bell {
   display: flex;

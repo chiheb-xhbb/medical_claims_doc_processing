@@ -48,7 +48,7 @@ function RubriquesSection({
   canDeleteRubrique,
   canRejectRubrique,
   canDecideDocuments,
-  isReturnedToGestionnaire,
+  isReturnedForClaimsReview,
   canDetachDocuments,
   isFrozen,
   isAttachingByRubriqueId,
@@ -69,18 +69,18 @@ function RubriquesSection({
       <div className="card-header d-flex justify-content-between align-items-center">
         <h6 className="mb-0 d-flex align-items-center">
           <i className="bi bi-diagram-3 me-2"></i>
-          Rubriques
+          Sections
         </h6>
         <span className="text-muted small">
-          {rubriques.length} {rubriques.length === 1 ? 'rubrique' : 'rubriques'}
+          {rubriques.length} {rubriques.length === 1 ? 'section' : 'sections'}
         </span>
       </div>
       <div className="card-body">
         {rubriques.length === 0 ? (
           <EmptyState
             icon="folder2-open"
-            title="No Rubriques"
-            description="Create a rubrique to start attaching validated documents."
+            title="No Sections"
+            description="Create a section to start attaching validated documents."
           />
         ) : (
           <div className="rubrique-list">
@@ -98,7 +98,7 @@ function RubriquesSection({
                 <div className="card mb-3" key={rubrique.id}>
                   <div className="card-header d-flex justify-content-between align-items-center">
                     <div>
-                      <h6 className="mb-0">{rubrique.title || `Rubrique #${rubrique.id}`}</h6>
+                      <h6 className="mb-0">{rubrique.title || `Section #${rubrique.id}`}</h6>
                       <small className="text-muted">
                         Status: <span className="fw-semibold">{rubrique.status || 'PENDING'}</span>
                         {' | '}
@@ -123,7 +123,7 @@ function RubriquesSection({
                           onClick={() => requestDeleteRubrique(rubrique)}
                           disabled={isDeletingRubrique}
                         >
-                          {isDeletingRubrique ? 'Deleting...' : 'Delete Rubrique'}
+                          {isDeletingRubrique ? 'Deleting...' : 'Delete Section'}
                         </button>
                       )}
 
@@ -133,14 +133,14 @@ function RubriquesSection({
                           onClick={() => openRejectRubriqueModal(rubrique)}
                           disabled={isFrozen || isRejectingRubrique || rubriqueDocuments.length === 0 || hasAcceptedDocs}
                         >
-                          {isRejectingRubrique ? 'Rejecting...' : 'Reject Rubrique'}
+                          {isRejectingRubrique ? 'Rejecting...' : 'Reject Section'}
                         </button>
                       )}
                     </div>
                   </div>
 
                   <div className="card-body">
-                    <p className="mb-3 text-muted">{rubrique.notes || 'No notes for this rubrique.'}</p>
+                    <p className="mb-3 text-muted">{rubrique.notes || 'No notes for this section.'}</p>
 
                     {rubriqueDocuments.length === 0 ? (
                       <div className="rubrique-empty-compact">
@@ -174,7 +174,7 @@ function RubriquesSection({
                               const documentId = document.id;
                               const technicalStatus = (document.status || '').toString().toUpperCase();
                               const isDecided = decisionStatus === 'ACCEPTED' || decisionStatus === 'REJECTED' || decisionStatus === 'APPROVED';
-                              const canReDecideReturnedDocument = isReturnedToGestionnaire && isDecided;
+                              const canReDecideReturnedDocument = isReturnedForClaimsReview && isDecided;
                               const canDecideCurrentDocument =
                                 decisionStatus === 'PENDING' ||
                                 (canReDecideReturnedDocument && technicalStatus === 'VALIDATED');

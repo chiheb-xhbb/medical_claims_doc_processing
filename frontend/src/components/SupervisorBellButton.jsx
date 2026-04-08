@@ -13,10 +13,10 @@ const formatShortDate = (value) => {
 
 const truncate = (text, max = 60) => {
   if (!text) return '';
-  return text.length > max ? `${text.slice(0, max)}…` : text;
+  return text.length > max ? `${text.slice(0, max)}...` : text;
 };
 
-function ChefBellButton() {
+function SupervisorBellButton() {
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
@@ -66,7 +66,7 @@ function ChefBellButton() {
         type="button"
         className="nb-bell"
         onClick={() => setPanelOpen((prev) => !prev)}
-        aria-label={`Chef review alerts${total > 0 ? `, ${total} pending` : ''}`}
+        aria-label={`Supervisor review alerts${total > 0 ? `, ${total} pending` : ''}`}
         aria-expanded={panelOpen}
         aria-haspopup="true"
         id="nb-bell-btn"
@@ -134,4 +134,4 @@ function ChefBellButton() {
   );
 }
 
-export default ChefBellButton;
+export default SupervisorBellButton;

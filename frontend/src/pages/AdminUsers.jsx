@@ -2,24 +2,23 @@ import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import api, { getApiErrorMessage } from '../services/api';
 import { getStoredUser } from '../services/auth';
+import { USER_ROLES, USER_ROLE_LABELS } from '../constants/domainLabels';
 import { ConfirmationModal, EmptyState, Loader } from '../ui';
 import './AdminUsers/AdminUsers.css';
 
-const ROLE_OPTIONS = ['AGENT', 'GESTIONNAIRE', 'CHEF_HIERARCHIQUE', 'ADMIN'];
-
-const ROLE_LABELS = {
-  AGENT: 'Agent',
-  GESTIONNAIRE: 'Gestionnaire',
-  CHEF_HIERARCHIQUE: 'Chef Hiérarchique',
-  ADMIN: 'Admin'
-};
+const ROLE_OPTIONS = [
+  USER_ROLES.AGENT,
+  USER_ROLES.CLAIMS_MANAGER,
+  USER_ROLES.SUPERVISOR,
+  USER_ROLES.ADMIN
+];
 
 const CREATE_USER_INITIAL_FORM = {
   name: '',
   email: '',
   password: '',
   password_confirmation: '',
-  role: 'AGENT',
+  role: USER_ROLES.AGENT,
   is_active: true
 };
 
@@ -45,15 +44,15 @@ const getFirstErrorMessage = (errorValue) => {
 };
 
 const getRoleBadgeClass = (role) => {
-  if (role === 'ADMIN') {
+  if (role === USER_ROLES.ADMIN) {
     return 'bg-primary-subtle text-primary-emphasis';
   }
 
-  if (role === 'GESTIONNAIRE') {
+  if (role === USER_ROLES.CLAIMS_MANAGER) {
     return 'bg-warning-subtle text-warning-emphasis';
   }
 
-  if (role === 'CHEF_HIERARCHIQUE') {
+  if (role === USER_ROLES.SUPERVISOR) {
     return 'bg-success-subtle text-success-emphasis';
   }
 
@@ -431,7 +430,7 @@ function AdminUsers() {
                 >
                   {ROLE_OPTIONS.map((roleValue) => (
                     <option key={roleValue} value={roleValue}>
-                      {ROLE_LABELS[roleValue]}
+                      {USER_ROLE_LABELS[roleValue]}
                     </option>
                   ))}
                 </select>
@@ -532,7 +531,7 @@ function AdminUsers() {
                 <option value="">All</option>
                 {ROLE_OPTIONS.map((roleValue) => (
                   <option key={roleValue} value={roleValue}>
-                    {ROLE_LABELS[roleValue]}
+                    {USER_ROLE_LABELS[roleValue]}
                   </option>
                 ))}
               </select>
@@ -620,7 +619,7 @@ function AdminUsers() {
                         <td className="admin-users-email-cell">{user.email || '-'}</td>
                         <td>
                           <span className={`badge ${getRoleBadgeClass(user.role)} admin-users-role-badge`}>
-                            {ROLE_LABELS[user.role] || user.role || '-'}
+                            {USER_ROLE_LABELS[user.role] || user.role || '-'}
                           </span>
                         </td>
                         <td>
@@ -641,7 +640,7 @@ function AdminUsers() {
                               >
                                 {ROLE_OPTIONS.map((roleValue) => (
                                   <option key={roleValue} value={roleValue}>
-                                    {ROLE_LABELS[roleValue]}
+                                    {USER_ROLE_LABELS[roleValue]}
                                   </option>
                                 ))}
                               </select>

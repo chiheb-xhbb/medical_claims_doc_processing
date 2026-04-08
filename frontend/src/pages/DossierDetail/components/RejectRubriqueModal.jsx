@@ -24,10 +24,10 @@ function RejectRubriqueModal({
   return (
     <DossierModalShell
       isOpen={isOpen}
-      title="Reject Entire Rubrique"
+      title="Reject Entire Section"
       description={
         <>
-          Rubrique: <strong>{rejectRubriqueTarget?.title || `#${rejectRubriqueTarget?.id || ''}`}</strong>
+          Section: <strong>{rejectRubriqueTarget?.title || `#${rejectRubriqueTarget?.id || ''}`}</strong>
         </>
       }
       onClose={closeRejectRubriqueModal}
@@ -59,7 +59,7 @@ function RejectRubriqueModal({
       )}
     >
       <p className="text-muted small mb-3">
-        All documents in this rubrique will be marked as <strong>REJECTED</strong>.
+        All documents in this section will be marked as <strong>REJECTED</strong>.
       </p>
       <div>
         <label htmlFor="rejectRubriqueNote" className="form-label">Decision Note (required)</label>
@@ -70,7 +70,7 @@ function RejectRubriqueModal({
           rows={3}
           value={rejectRubriqueNote}
           onChange={(event) => setRejectRubriqueNote(event.target.value)}
-          placeholder="Explain why this rubrique is rejected"
+          placeholder="Explain why this section is rejected"
           disabled={isRejecting}
         />
       </div>

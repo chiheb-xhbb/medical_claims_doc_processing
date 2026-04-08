@@ -1,28 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { AUTH_CHANGED_EVENT, getDefaultLandingPath, getStoredRole, getStoredUser, isAuthenticated, logout } from '../services/auth';
-import ChefBellButton from './ChefBellButton';
-
-const ROLE_LABELS = {
-  AGENT: 'Agent',
-  GESTIONNAIRE: 'Gestionnaire',
-  CHEF_HIERARCHIQUE: 'Chef Hiérarchique',
-  ADMIN: 'Admin',
-};
+import { USER_ROLES, USER_ROLE_LABELS } from '../constants/domainLabels';
+import SupervisorBellButton from './SupervisorBellButton';
 
 const ROLE_BADGE_CLASS = {
-  AGENT: 'nb-role-badge--agent',
-  GESTIONNAIRE: 'nb-role-badge--gestionnaire',
-  CHEF_HIERARCHIQUE: 'nb-role-badge--chef',
-  ADMIN: 'nb-role-badge--admin',
+  [USER_ROLES.AGENT]: 'nb-role-badge--agent',
+  [USER_ROLES.CLAIMS_MANAGER]: 'nb-role-badge--claims-manager',
+  [USER_ROLES.SUPERVISOR]: 'nb-role-badge--supervisor',
+  [USER_ROLES.ADMIN]: 'nb-role-badge--admin',
 };
 
-const getDossiersNavLabel = (role) => {
-  if (role === 'AGENT') return 'My Dossiers';
-  if (role === 'GESTIONNAIRE') return 'Dossiers';
-  if (role === 'CHEF_HIERARCHIQUE') return 'Dossiers';
-  if (role === 'ADMIN') return 'All Dossiers';
-  return 'Dossiers';
+const getCaseFilesNavLabel = (role) => {
+  if (role === USER_ROLES.AGENT) return 'My Case Files';
+  if (role === USER_ROLES.ADMIN) return 'All Case Files';
+  return 'Case Files';
 };
 
 function Navbar() {
@@ -80,7 +72,7 @@ function Navbar() {
     setDropdownOpen(false);
   }, [location.pathname]);
 
-  const dossiersNavLabel = useMemo(() => getDossiersNavLabel(authSnapshot.role), [authSnapshot.role]);
+  const caseFilesNavLabel = useMemo(() => getCaseFilesNavLabel(authSnapshot.role), [authSnapshot.role]);
 
   const isActive = (path) => {
     if (path === '/documents') {
@@ -123,10 +115,10 @@ function Navbar() {
   const userDisplayName = authSnapshot.user?.name || authSnapshot.user?.email || 'User';
   const userInitial = userDisplayName.charAt(0).toUpperCase();
   const roleBadgeClass = ROLE_BADGE_CLASS[authSnapshot.role] || '';
-  const roleLabel = ROLE_LABELS[authSnapshot.role] || authSnapshot.role || '';
+  const roleLabel = USER_ROLE_LABELS[authSnapshot.role] || authSnapshot.role || '';
 
-  const isChef = authSnapshot.role === 'CHEF_HIERARCHIQUE';
-  const showDocumentsLink = !isChef;
+  const isSupervisor = authSnapshot.role === USER_ROLES.SUPERVISOR;
+  const showDocumentsLink = !isSupervisor;
 
   return (
     <nav className={`nb-navbar navbar navbar-expand-lg${scrolled ? ' nb-navbar--scrolled' : ''}`} aria-label="Main navigation">
@@ -180,11 +172,11 @@ function Navbar() {
                     to="/dossiers"
                   >
                     <i className="bi bi-briefcase" aria-hidden="true"></i>
-                    {dossiersNavLabel}
+                    {caseFilesNavLabel}
                   </NavLink>
                 </li>
 
-                {authSnapshot.role === 'ADMIN' && (
+                {authSnapshot.role === USER_ROLES.ADMIN && (
                   <li className="nav-item">
                     <NavLink
                       className={() => `nb-nav-link nav-link${isActive('/admin/users') ? ' active' : ''}`}
@@ -197,11 +189,11 @@ function Navbar() {
                 )}
               </ul>
 
-              {/* Divider + Bell (Chef only) + User area */}
+              {/* Divider + Bell (Supervisor only) + User area */}
               <div className="nb-user-area" ref={dropdownRef}>
                 <div className="nb-user-divider" role="separator" aria-hidden="true"></div>
 
-                {isChef && <ChefBellButton />}
+                {isSupervisor && <SupervisorBellButton />}
 
                 <button
                   className="nb-user-trigger"

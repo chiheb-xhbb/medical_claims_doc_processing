@@ -19,13 +19,17 @@ class StoreDocumentRequest extends FormRequest
             ? $user->role
             : UserRole::tryFrom((string) $user->role);
 
-        return in_array($currentRole, [UserRole::AGENT, UserRole::GESTIONNAIRE, UserRole::ADMIN], true);
+        return in_array($currentRole, [
+            UserRole::AGENT,
+            UserRole::CLAIMS_MANAGER,
+            UserRole::ADMIN,
+        ], true);
     }
 
     public function rules(): array
     {
         return [
-            'file' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'], // 10MB
+            'file' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
             'doc_type' => ['nullable', 'string'],
         ];
     }
