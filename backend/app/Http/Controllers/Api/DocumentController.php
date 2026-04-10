@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\DocumentStatus;
+use App\Enums\DossierStatus;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreDocumentRequest;
@@ -257,6 +258,62 @@ class DocumentController extends Controller
         });
     }
 
+    public function view(Request $request, Document $document)
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        if (! $this->canAccessDocumentFile($user, $document)) {
+            return response()->json([
+                'message' => 'Unauthorized access to this document.',
+            ], 403);
+        }
+
+        if (! Storage::disk('local')->exists($document->file_path)) {
+            return response()->json([
+                'message' => 'Source file not found.',
+            ], 404);
+        }
+
+        $mimeType = $document->mime_type ?: 'application/octet-stream';
+        $filename = $this->resolveSafeDownloadFilename($document);
+
+        if (! $this->isPreviewableMime($mimeType)) {
+            return Storage::disk('local')->download($document->file_path, $filename);
+        }
+
+        return response()->file(
+            Storage::disk('local')->path($document->file_path),
+            [
+                'Content-Type' => $mimeType,
+                'Content-Disposition' => 'inline; filename="' . $filename . '"',
+            ]
+        );
+    }
+
+    public function download(Request $request, Document $document)
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        if (! $this->canAccessDocumentFile($user, $document)) {
+            return response()->json([
+                'message' => 'Unauthorized access to this document.',
+            ], 403);
+        }
+
+        if (! Storage::disk('local')->exists($document->file_path)) {
+            return response()->json([
+                'message' => 'Source file not found.',
+            ], 404);
+        }
+
+        return Storage::disk('local')->download(
+            $document->file_path,
+            $this->resolveSafeDownloadFilename($document)
+        );
+    }
+
     private function canViewDocument(User $user, Document $document): bool
     {
         if ($this->hasRole($user, UserRole::CLAIMS_MANAGER, UserRole::ADMIN)) {
@@ -265,6 +322,46 @@ class DocumentController extends Controller
 
         return $this->hasRole($user, UserRole::AGENT)
             && (int) $document->user_id === (int) $user->id;
+    }
+
+    private function canAccessDocumentFile(User $user, Document $document): bool
+    {
+        if ($this->hasRole($user, UserRole::ADMIN)) {
+            return true;
+        }
+
+        if ($this->hasRole($user, UserRole::AGENT)) {
+            return (int) $document->user_id === (int) $user->id;
+        }
+
+        if ($this->hasRole($user, UserRole::CLAIMS_MANAGER)) {
+            return true;
+        }
+
+        if ($this->hasRole($user, UserRole::SUPERVISOR)) {
+            $document->loadMissing([
+                'rubrique.dossier',
+                'dossier',
+            ]);
+
+            $dossier = $document->rubrique?->dossier ?? $document->dossier;
+
+            if (! $dossier || ! $dossier->status) {
+                return false;
+            }
+
+            $statusValue = $dossier->status instanceof DossierStatus
+                ? $dossier->status->value
+                : (string) $dossier->status;
+
+            return in_array($statusValue, [
+                DossierStatus::IN_ESCALATION->value,
+                DossierStatus::AWAITING_COMPLEMENT->value,
+                DossierStatus::PROCESSED->value,
+            ], true);
+        }
+
+        return false;
     }
 
     private function canDeleteDocument(User $user, Document $document): bool
@@ -288,5 +385,30 @@ class DocumentController extends Controller
         }
 
         return in_array($currentRole, $roles, true);
+    }
+
+    private function isPreviewableMime(string $mimeType): bool
+    {
+        return in_array($mimeType, [
+            'application/pdf',
+            'image/jpeg',
+            'image/jpg',
+            'image/png',
+        ], true);
+    }
+
+    private function resolveSafeDownloadFilename(Document $document): string
+    {
+        $filename = trim((string) ($document->original_filename ?: 'document_' . $document->id));
+
+        if ($filename === '') {
+            $filename = 'document_' . $document->id;
+        }
+
+        return str_replace(
+            ["\\", "/", "\"", "\r", "\n"],
+            '',
+            $filename
+        );
     }
 }

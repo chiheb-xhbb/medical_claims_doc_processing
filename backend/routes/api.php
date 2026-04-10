@@ -34,6 +34,8 @@ Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
         Route::post('/{document}/retry', [DocumentController::class, 'retry']);
         Route::post('/{document}/accept', [DocumentDecisionController::class, 'accept']);
         Route::post('/{document}/reject', [DocumentDecisionController::class, 'reject']);
+        Route::get('/{document}/view', [DocumentController::class, 'view']);
+        Route::get('/{document}/download', [DocumentController::class, 'download']);
     });
 
     // Dossiers
