@@ -1,3 +1,7 @@
+import { useState } from 'react';
+import toast from 'react-hot-toast';
+import { getApiErrorMessage } from '../../../services/api';
+import { previewDocument, downloadDocument } from '../../../services/documentAccess';
 import { EmptyState } from '../../../ui';
 
 const getDocumentExtractionTotal = (document) => {
@@ -64,6 +68,70 @@ function RubriquesSection({
   requestDetachDocument,
   formatAmount
 }) {
+  const [previewingById, setPreviewingById] = useState({});
+  const [downloadingById, setDownloadingById] = useState({});
+
+  const setDocumentAccessPending = (setter, documentId, isPending) => {
+    setter((prev) => {
+      if (isPending) {
+        return {
+          ...prev,
+          [documentId]: true
+        };
+      }
+
+      if (!prev[documentId]) {
+        return prev;
+      }
+
+      const next = { ...prev };
+      delete next[documentId];
+      return next;
+    });
+  };
+
+  const handlePreviewSourceDocument = async (document) => {
+    const documentId = document?.id;
+
+    if (!documentId || previewingById[documentId]) {
+      return;
+    }
+
+    try {
+      setDocumentAccessPending(setPreviewingById, documentId, true);
+      await previewDocument(documentId);
+    } catch (error) {
+      const message = error?.response
+        ? getApiErrorMessage(error, 'Failed to open original document.')
+        : error?.message || 'Failed to open original document.';
+
+      toast.error(message);
+    } finally {
+      setDocumentAccessPending(setPreviewingById, documentId, false);
+    }
+  };
+
+  const handleDownloadSourceDocument = async (document) => {
+    const documentId = document?.id;
+
+    if (!documentId || downloadingById[documentId]) {
+      return;
+    }
+
+    try {
+      setDocumentAccessPending(setDownloadingById, documentId, true);
+      await downloadDocument(documentId, document?.original_filename);
+    } catch (error) {
+      const message = error?.response
+        ? getApiErrorMessage(error, 'Failed to download original document.')
+        : error?.message || 'Failed to download original document.';
+
+      toast.error(message);
+    } finally {
+      setDocumentAccessPending(setDownloadingById, documentId, false);
+    }
+  };
+
   return (
     <div className="card">
       <div className="card-header d-flex justify-content-between align-items-center">
@@ -172,6 +240,9 @@ function RubriquesSection({
                               const extractionTotal = getDocumentExtractionTotal(document);
                               const decisionStatus = (document.decision_status || 'PENDING').toString().toUpperCase();
                               const documentId = document.id;
+                              const originalFilename = document.original_filename || `Document #${documentId}`;
+                              const isPreviewing = Boolean(previewingById[documentId]);
+                              const isDownloading = Boolean(downloadingById[documentId]);
                               const technicalStatus = (document.status || '').toString().toUpperCase();
                               const isDecided = decisionStatus === 'ACCEPTED' || decisionStatus === 'REJECTED' || decisionStatus === 'APPROVED';
                               const canReDecideReturnedDocument = isReturnedForClaimsReview && isDecided;
@@ -189,7 +260,33 @@ function RubriquesSection({
                               return (
                                 <tr key={documentId} className={decisionRowClass}>
                                   <td>{documentId}</td>
-                                  <td>{document.original_filename || `Document #${documentId}`}</td>
+                                  <td>
+                                    <div className="dossier-document-file-access">
+                                      <button
+                                        type="button"
+                                        className="btn btn-link dossier-document-file-access__name"
+                                        onClick={() => handlePreviewSourceDocument(document)}
+                                        disabled={isPreviewing}
+                                        title={originalFilename}
+                                      >
+                                        {originalFilename}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className="btn btn-outline-secondary btn-sm dossier-document-file-access__download"
+                                        onClick={() => handleDownloadSourceDocument(document)}
+                                        disabled={isDownloading}
+                                        title="Download original document"
+                                        aria-label={`Download ${originalFilename}`}
+                                      >
+                                        {isDownloading ? (
+                                          <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                        ) : (
+                                          <i className="bi bi-download" aria-hidden="true"></i>
+                                        )}
+                                      </button>
+                                    </div>
+                                  </td>
                                   <td>
                                     <span className="badge bg-secondary">{document.status || '-'}</span>
                                   </td>

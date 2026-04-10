@@ -36,11 +36,7 @@
   font-size: 1.1rem;
   font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-normal);
-}
-
-.dv-document-header-card__title i {
-  font-size: 0.95rem;
-  opacity: 0.85;
+  min-width: 0;
 }
 
 .dv-document-header-card__meta {
@@ -66,6 +62,62 @@
 .dv-document-header-card__status {
   flex-shrink: 0;
   align-self: center;
+}
+
+.dv-document-file-access {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  justify-content: flex-start;
+  width: 100%;
+  min-width: 0;
+}
+
+.dv-document-file-access__icon {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  flex-shrink: 0;
+}
+
+.dv-document-file-access__name {
+  --bs-btn-padding-y: 0;
+  --bs-btn-padding-x: 0;
+  color: rgba(255, 255, 255, 0.95);
+  text-decoration: none;
+  text-align: left;
+  font: inherit;
+  line-height: inherit;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 0 1 auto;
+}
+
+.dv-document-file-access__name:hover,
+.dv-document-file-access__name:focus-visible {
+  color: #ffffff;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.dv-document-file-access__name:disabled {
+  opacity: 0.8;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.dv-document-file-access__download {
+  min-width: 2rem;
+  padding: 0.2rem 0.38rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.dv-document-file-access__download .spinner-border {
+  width: 0.72rem;
+  height: 0.72rem;
+  border-width: 0.12em;
 }
 
 .dv-document-header-card__status .badge {
@@ -442,7 +494,11 @@
   }
 
   .dv-document-header-card__status {
-    align-self: flex-start;
+    align-self: flex-end;
+  }
+
+  .dv-document-file-access {
+    max-width: 100%;
   }
 
   .dv-fields-card__header {

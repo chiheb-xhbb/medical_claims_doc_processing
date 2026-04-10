@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import api from '../services/api';
+import api, { getApiErrorMessage } from '../services/api';
+import { previewDocument, downloadDocument } from '../services/documentAccess';
 import {
   ConfidenceBadge,
   Loader,
@@ -78,6 +79,8 @@ function DocumentValidation() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [businessWarnings, setBusinessWarnings] = useState([]);
   const [clientWarnings, setClientWarnings] = useState([]);
+  const [isOpeningOriginalDocument, setIsOpeningOriginalDocument] = useState(false);
+  const [isDownloadingOriginalDocument, setIsDownloadingOriginalDocument] = useState(false);
 
   useEffect(() => {
     const activeWarnings = [];
@@ -209,6 +212,44 @@ function DocumentValidation() {
     }
   };
 
+  const handlePreviewOriginalDocument = async () => {
+    if (!document?.id || isOpeningOriginalDocument) {
+      return;
+    }
+
+    try {
+      setIsOpeningOriginalDocument(true);
+      await previewDocument(document.id);
+    } catch (error) {
+      const message = error?.response
+        ? getApiErrorMessage(error, 'Failed to open original document.')
+        : error?.message || 'Failed to open original document.';
+
+      toast.error(message);
+    } finally {
+      setIsOpeningOriginalDocument(false);
+    }
+  };
+
+  const handleDownloadOriginalDocument = async () => {
+    if (!document?.id || isDownloadingOriginalDocument) {
+      return;
+    }
+
+    try {
+      setIsDownloadingOriginalDocument(true);
+      await downloadDocument(document.id, document.original_filename);
+    } catch (error) {
+      const message = error?.response
+        ? getApiErrorMessage(error, 'Failed to download original document.')
+        : error?.message || 'Failed to download original document.';
+
+      toast.error(message);
+    } finally {
+      setIsDownloadingOriginalDocument(false);
+    }
+  };
+
   const isLowConfidence = (fieldKey) => {
     const score = confidenceScores[fieldKey];
     return score !== null && score !== undefined && score < LOW_CONFIDENCE_THRESHOLD;
@@ -245,6 +286,7 @@ function DocumentValidation() {
   }
 
   const hasExtraction = document?.latest_extraction && Object.keys(editedFields).length > 0;
+  const displayFilename = document?.original_filename || 'Unnamed document';
 
   return (
     <div className="container py-4 document-validation">
@@ -268,9 +310,34 @@ function DocumentValidation() {
         <div className="card mb-4 dv-document-header-card">
           <div className="card-header bg-primary text-white dv-document-header-card__header">
             <div className="dv-document-header-card__content">
-              <h5 className="mb-1 d-flex align-items-center dv-document-header-card__title">
-                <i className="bi bi-file-earmark me-2" aria-hidden="true"></i>
-                <span className="text-truncate">{document.original_filename || 'Unnamed document'}</span>
+              <h5 className="mb-1 dv-document-header-card__title">
+                <span className="dv-document-file-access">
+                  <i className="bi bi-file-earmark dv-document-file-access__icon" aria-hidden="true"></i>
+                  <button
+                    type="button"
+                    className="btn btn-link dv-document-file-access__name"
+                    onClick={handlePreviewOriginalDocument}
+                    disabled={isOpeningOriginalDocument}
+                    title={displayFilename}
+                  >
+                    {displayFilename}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn btn-outline-light btn-sm dv-document-file-access__download"
+                    onClick={handleDownloadOriginalDocument}
+                    disabled={isDownloadingOriginalDocument}
+                    title="Download original document"
+                    aria-label={'Download ' + displayFilename}
+                  >
+                    {isDownloadingOriginalDocument ? (
+                      <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    ) : (
+                      <i className="bi bi-download" aria-hidden="true"></i>
+                    )}
+                  </button>
+                </span>
               </h5>
 
               <div className="dv-document-header-card__meta">

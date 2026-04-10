@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api, { getApiErrorMessage } from '../services/api';
 import { AUTH_CHANGED_EVENT, getStoredRole, getStoredUser } from '../services/auth';
+import { previewDocument, downloadDocument } from '../services/documentAccess';
 import { USER_ROLES } from '../constants/domainLabels';
 import DocumentUploadModal from '../components/DocumentUploadModal';
 import { StatusBadge, EmptyState, ConfirmationModal, SortableHeader } from '../ui';
@@ -42,6 +43,8 @@ function DocumentsList() {
   const [lastPage, setLastPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [retryingIds, setRetryingIds] = useState([]);
+  const [previewingById, setPreviewingById] = useState({});
+  const [downloadingById, setDownloadingById] = useState({});
   const [accessDeniedMessage, setAccessDeniedMessage] = useState(null);
   const [deleteTargetDocument, setDeleteTargetDocument] = useState(null);
   const [isDeleteConfirming, setIsDeleteConfirming] = useState(false);
@@ -257,6 +260,63 @@ function DocumentsList() {
       toast.error(err.response?.data?.message || 'Failed to retry document.');
     } finally {
       setRetryingIds((prev) => prev.filter((id) => id !== documentId));
+    }
+  };
+
+  const setDocumentAccessPending = (setter, documentId, isPending) => {
+    setter((prev) => {
+      if (isPending) {
+        return {
+          ...prev,
+          [documentId]: true
+        };
+      }
+
+      if (!prev[documentId]) {
+        return prev;
+      }
+
+      const next = { ...prev };
+      delete next[documentId];
+      return next;
+    });
+  };
+
+  const handlePreviewSourceDocument = async (doc) => {
+    if (!doc?.id || previewingById[doc.id]) {
+      return;
+    }
+
+    try {
+      setDocumentAccessPending(setPreviewingById, doc.id, true);
+      await previewDocument(doc.id);
+    } catch (error) {
+      const message = error?.response
+        ? getApiErrorMessage(error, 'Failed to open original document.')
+        : error?.message || 'Failed to open original document.';
+
+      toast.error(message);
+    } finally {
+      setDocumentAccessPending(setPreviewingById, doc.id, false);
+    }
+  };
+
+  const handleDownloadSourceDocument = async (doc) => {
+    if (!doc?.id || downloadingById[doc.id]) {
+      return;
+    }
+
+    try {
+      setDocumentAccessPending(setDownloadingById, doc.id, true);
+      await downloadDocument(doc.id, doc.original_filename);
+    } catch (error) {
+      const message = error?.response
+        ? getApiErrorMessage(error, 'Failed to download original document.')
+        : error?.message || 'Failed to download original document.';
+
+      toast.error(message);
+    } finally {
+      setDocumentAccessPending(setDownloadingById, doc.id, false);
     }
   };
 
@@ -573,14 +633,41 @@ function DocumentsList() {
               <tbody>
                 {documents.length > 0 ? documents.map((doc) => {
                   const formattedError = formatDocumentError(doc.error_message);
+                  const displayFilename = doc.original_filename || `Document #${doc.id}`;
+                  const isPreviewing = Boolean(previewingById[doc.id]);
+                  const isDownloading = Boolean(downloadingById[doc.id]);
 
                   return (
                     <tr key={doc.id}>
                       <td>{doc.id}</td>
 
                       <td>
-                        <i className="bi bi-file-earmark me-2 text-muted"></i>
-                        {doc.original_filename}
+                        <div className="documents-file-access">
+                          <i className="bi bi-file-earmark text-muted documents-file-access__icon" aria-hidden="true"></i>
+                          <button
+                            type="button"
+                            className="btn btn-link documents-file-access__name"
+                            onClick={() => handlePreviewSourceDocument(doc)}
+                            disabled={isPreviewing}
+                            title={displayFilename}
+                          >
+                            {displayFilename}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-outline-secondary btn-sm documents-file-access__download"
+                            onClick={() => handleDownloadSourceDocument(doc)}
+                            disabled={isDownloading}
+                            title="Download original document"
+                            aria-label={`Download ${displayFilename}`}
+                          >
+                            {isDownloading ? (
+                              <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            ) : (
+                              <i className="bi bi-download" aria-hidden="true"></i>
+                            )}
+                          </button>
+                        </div>
                       </td>
 
                       <td>{renderStatusBadge(doc.status)}</td>

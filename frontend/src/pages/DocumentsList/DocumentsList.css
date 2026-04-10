@@ -47,6 +47,56 @@
   margin-right: var(--spacing-2);
 }
 
+.documents-list .documents-file-access {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.documents-list .documents-file-access__icon {
+  flex-shrink: 0;
+}
+
+.documents-list .documents-file-access__name {
+  --bs-btn-padding-y: 0;
+  --bs-btn-padding-x: 0;
+  color: var(--color-text-primary);
+  text-decoration: none;
+  text-align: left;
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.documents-list .documents-file-access__name:hover,
+.documents-list .documents-file-access__name:focus-visible {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.documents-list .documents-file-access__name:disabled {
+  color: var(--color-text-muted);
+  opacity: 0.75;
+}
+
+.documents-list .documents-file-access__download {
+  min-width: 2rem !important;
+  padding: 0.2rem 0.38rem;
+  line-height: 1;
+}
+
+.documents-list .documents-file-access__download .spinner-border {
+  width: 0.72rem;
+  height: 0.72rem;
+  border-width: 0.12em;
+}
+
 .documents-list .pagination-controls .btn {
   min-width: 110px;
 }
