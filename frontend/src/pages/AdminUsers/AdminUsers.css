@@ -23,73 +23,279 @@
   padding-top: var(--spacing-4);
 }
 
-.admin-users-page .table td {
-  padding: var(--spacing-4) var(--spacing-5);
+.admin-users-page .admin-users-table {
+  --admin-users-col-name: 20%;
+  --admin-users-col-email: 22%;
+  --admin-users-col-role: 12%;
+  --admin-users-col-status: 8%;
+  --admin-users-col-created: 15%;
+  --admin-users-col-actions: 23%;
+  margin-bottom: 0;
+  width: 100%;
+  min-width: 1180px;
+  table-layout: fixed;
+  font-size: 0.94rem;
+  line-height: 1.38;
+}
+
+.admin-users-page .admin-users-col--name {
+  width: var(--admin-users-col-name);
+}
+
+.admin-users-page .admin-users-col--email {
+  width: var(--admin-users-col-email);
+}
+
+.admin-users-page .admin-users-col--role {
+  width: var(--admin-users-col-role);
+}
+
+.admin-users-page .admin-users-col--status {
+  width: var(--admin-users-col-status);
+}
+
+.admin-users-page .admin-users-col--created {
+  width: var(--admin-users-col-created);
+}
+
+.admin-users-page .admin-users-col--actions {
+  width: var(--admin-users-col-actions);
+}
+
+.admin-users-page .admin-users-table thead th {
+  padding: 0.62rem 0.72rem;
+  white-space: nowrap;
+  vertical-align: middle;
+  font-size: 0.82rem;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.02em;
+  color: var(--color-gray-600);
+}
+
+.admin-users-page .admin-users-table tbody td {
+  padding: 0.5rem 0.72rem;
   vertical-align: middle;
 }
 
-.admin-users-page .table thead th {
+.admin-users-page .admin-users-head-role,
+.admin-users-page .admin-users-head-status,
+.admin-users-page .admin-users-head-created,
+.admin-users-page .admin-users-head-actions,
+.admin-users-page .admin-users-role-cell,
+.admin-users-page .admin-users-status-cell,
+.admin-users-page .admin-users-created-cell,
+.admin-users-page .admin-users-actions-cell {
+  white-space: nowrap;
+  padding-left: 0.56rem;
+  padding-right: 0.56rem;
+}
+
+.admin-users-page .admin-users-head-status,
+.admin-users-page .admin-users-status-cell {
+  padding-left: 0.42rem;
+  padding-right: 0.42rem;
+}
+
+.admin-users-page .admin-users-head-name,
+.admin-users-page .admin-users-head-email {
+  padding-left: 0.8rem;
+  padding-right: 0.8rem;
+}
+
+.admin-users-page .admin-users-name-cell,
+.admin-users-page .admin-users-email-cell {
+  padding-left: 0.8rem;
+  padding-right: 0.8rem;
+}
+
+.admin-users-page .cell-actions {
+  width: var(--admin-users-col-actions);
+  min-width: var(--admin-users-col-actions);
   white-space: nowrap;
 }
 
+.admin-users-page .admin-users-name-cell {
+  min-width: 170px;
+}
+
 .admin-users-page .admin-users-email-cell {
-  min-width: 220px;
+  min-width: 200px;
   white-space: normal;
   word-break: break-word;
+  line-height: 1.3;
 }
 
 .admin-users-page .admin-users-role-badge,
 .admin-users-page .admin-users-status-badge {
   font-weight: var(--font-weight-semibold);
+  font-size: 0.76rem;
+  line-height: 1.15;
+  letter-spacing: 0.02em;
+  padding: 0.28rem 0.52rem;
+}
+
+.admin-users-page .cell-date {
+  white-space: nowrap;
+  font-size: 0.86rem;
+  color: var(--color-gray-600);
+  font-variant-numeric: tabular-nums;
 }
 
 .admin-users-page .admin-users-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-  min-width: 250px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 0.28rem;
+  width: 100%;
+  max-width: 100%;
+}
+
+.admin-users-page .admin-users-actions__role-row {
+  display: grid;
+  grid-template-columns: minmax(10rem, 1fr) max-content;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
 }
 
 .admin-users-page .admin-users-actions__role-row .btn {
-  min-width: 94px;
+  min-width: 72px;
+  white-space: nowrap;
+  min-height: 1.92rem;
+  line-height: 1.2;
+  font-size: 0.86rem;
+  font-weight: var(--font-weight-semibold);
+  padding-top: 0.24rem;
+  padding-bottom: 0.24rem;
 }
 
 .admin-users-page .admin-users-actions__status-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-2);
-}
-
-.admin-users-page .admin-users-actions__status-label {
-  font-size: var(--font-size-xs);
-  color: var(--color-gray-500);
-  text-transform: uppercase;
-  letter-spacing: 0.055em;
-  font-weight: var(--font-weight-semibold);
+  width: 100%;
 }
 
 .admin-users-page .admin-users-status-toggle {
-  min-width: 108px;
+  min-width: 0;
+  width: 100%;
+  min-height: 1.92rem;
+  line-height: 1.2;
+  font-size: 0.86rem;
+  font-weight: var(--font-weight-semibold);
+  padding-top: 0.24rem;
+  padding-bottom: 0.24rem;
 }
 
 .admin-users-page .admin-users-role-select {
-  min-width: 130px;
+  min-width: 10rem;
+  max-width: none;
+  width: 100%;
+  min-height: 1.92rem;
+  line-height: 1.2;
+  font-size: 0.9rem;
+  padding-top: 0.2rem;
+  padding-bottom: 0.2rem;
 }
 
 @media (max-width: 991.98px) {
+  .admin-users-page .admin-users-table {
+    min-width: 980px;
+    table-layout: auto;
+  }
+
+  .admin-users-page .admin-users-col--name {
+    width: auto;
+  }
+
+  .admin-users-page .admin-users-col--role,
+  .admin-users-page .admin-users-col--status,
+  .admin-users-page .admin-users-col--created,
+  .admin-users-page .admin-users-col--actions {
+    width: auto;
+  }
+
+  .admin-users-page .admin-users-table thead th,
+  .admin-users-page .admin-users-table tbody td {
+    padding-left: 0.66rem;
+    padding-right: 0.66rem;
+  }
+
+  .admin-users-page .cell-actions {
+    width: auto;
+    min-width: 16rem;
+  }
+
+  .admin-users-page .admin-users-head-role,
+  .admin-users-page .admin-users-head-status,
+  .admin-users-page .admin-users-head-created,
+  .admin-users-page .admin-users-head-actions,
+  .admin-users-page .admin-users-role-cell,
+  .admin-users-page .admin-users-status-cell,
+  .admin-users-page .admin-users-created-cell,
+  .admin-users-page .admin-users-actions-cell {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  .admin-users-page .admin-users-head-status,
+  .admin-users-page .admin-users-status-cell {
+    padding-left: 0.4rem;
+    padding-right: 0.4rem;
+  }
+
+  .admin-users-page .admin-users-head-name,
+  .admin-users-page .admin-users-head-email {
+    padding-left: 0.72rem;
+    padding-right: 0.72rem;
+  }
+
+  .admin-users-page .admin-users-name-cell,
+  .admin-users-page .admin-users-email-cell {
+    padding-left: 0.72rem;
+    padding-right: 0.72rem;
+  }
+
   .admin-users-page .admin-users-actions {
-    min-width: 210px;
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-users-page .admin-users-actions__role-row {
+    grid-template-columns: minmax(0, 1fr) max-content;
+  }
+
+  .admin-users-page .admin-users-role-select {
+    min-width: 10rem;
   }
 }
 
 @media (max-width: 767.98px) {
-  .admin-users-page .table td {
+  .admin-users-page .admin-users-table {
+    font-size: 0.9rem;
+  }
+
+  .admin-users-page .admin-users-table thead th,
+  .admin-users-page .admin-users-table tbody td {
     padding-left: var(--spacing-3);
     padding-right: var(--spacing-3);
   }
 
-  .admin-users-page .admin-users-actions {
-    min-width: 180px;
+  .admin-users-page .admin-users-head-role,
+  .admin-users-page .admin-users-head-status,
+  .admin-users-page .admin-users-head-created,
+  .admin-users-page .admin-users-head-actions,
+  .admin-users-page .admin-users-head-name,
+  .admin-users-page .admin-users-head-email,
+  .admin-users-page .admin-users-role-cell,
+  .admin-users-page .admin-users-status-cell,
+  .admin-users-page .admin-users-created-cell,
+  .admin-users-page .admin-users-actions-cell,
+  .admin-users-page .admin-users-name-cell,
+  .admin-users-page .admin-users-email-cell {
+    padding-left: var(--spacing-3);
+    padding-right: var(--spacing-3);
+  }
+
+  .admin-users-page .admin-users-name-cell,
+  .admin-users-page .admin-users-email-cell {
+    min-width: 0;
   }
 }

@@ -572,15 +572,23 @@ function AdminUsers() {
         ) : (
           <>
             <div className="table-responsive">
-              <table className="table table-hover table-striped mb-0 align-middle">
+              <table className="table table-hover table-striped mb-0 align-middle admin-users-table">
+                <colgroup>
+                  <col className="admin-users-col--name" />
+                  <col className="admin-users-col--email" />
+                  <col className="admin-users-col--role" />
+                  <col className="admin-users-col--status" />
+                  <col className="admin-users-col--created" />
+                  <col className="admin-users-col--actions" />
+                </colgroup>
                 <thead className="table-light">
                   <tr>
-                    <th scope="col">Name</th>
-                    <th scope="col">Email</th>
-                    <th scope="col">Role</th>
-                    <th scope="col">Status</th>
-                    <th scope="col">Created</th>
-                    <th scope="col">Actions</th>
+                    <th scope="col" className="admin-users-head-name">Name</th>
+                    <th scope="col" className="admin-users-head-email">Email</th>
+                    <th scope="col" className="admin-users-head-role">Role</th>
+                    <th scope="col" className="admin-users-head-status">Status</th>
+                    <th scope="col" className="admin-users-head-created">Created</th>
+                    <th scope="col" className="admin-users-head-actions">Actions</th>
                   </tr>
                 </thead>
 
@@ -595,20 +603,20 @@ function AdminUsers() {
 
                     return (
                       <tr key={user.id}>
-                        <td className="fw-semibold">{user.name || '-'}</td>
+                        <td className="fw-semibold admin-users-name-cell">{user.name || '-'}</td>
                         <td className="admin-users-email-cell">{user.email || '-'}</td>
-                        <td>
+                        <td className="admin-users-role-cell">
                           <UserRoleBadge role={user.role} className="admin-users-role-badge" />
                         </td>
-                        <td>
+                        <td className="admin-users-status-cell">
                           <AccountStatusBadge isActive={user.is_active} className="admin-users-status-badge" />
                         </td>
-                        <td className="cell-date">{formatDateTime(user.created_at)}</td>
-                        <td className="cell-actions">
+                        <td className="cell-date admin-users-created-cell">{formatDateTime(user.created_at)}</td>
+                        <td className="cell-actions admin-users-actions-cell">
                           <div className="admin-users-actions">
-                            <div className="input-group input-group-sm admin-users-actions__role-row">
+                            <div className="admin-users-actions__role-row">
                               <select
-                                className="form-select admin-users-role-select"
+                                className="form-select form-select-sm admin-users-role-select"
                                 value={selectedRole}
                                 onChange={(event) => handleRoleDraftChange(user.id, event.target.value)}
                                 disabled={isUpdatingRole || isUpdatingStatus}
@@ -621,7 +629,7 @@ function AdminUsers() {
                                 ))}
                               </select>
                               <button
-                                className="btn btn-outline-primary"
+                                className="btn btn-sm btn-outline-primary"
                                 onClick={() => handleUpdateRole(user)}
                                 disabled={!roleChanged || isUpdatingRole || isUpdatingStatus}
                                 type="button"
@@ -631,7 +639,6 @@ function AdminUsers() {
                             </div>
 
                             <div className="admin-users-actions__status-row">
-                              <span className="admin-users-actions__status-label">Account</span>
                               <button
                                 type="button"
                                 className={`btn btn-sm admin-users-status-toggle ${user.is_active ? 'btn-outline-danger' : 'btn-outline-success'}`}
