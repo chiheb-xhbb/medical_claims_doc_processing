@@ -1,15 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getPendingEscalations } from '../services/dossierWorkflow';
+import { formatShortDate } from '../utils/formatters';
 
 const POLL_INTERVAL_MS = 60_000;
-
-const formatShortDate = (value) => {
-  if (!value) return '';
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return '';
-  return parsed.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-};
 
 const truncate = (text, max = 60) => {
   if (!text) return '';
@@ -22,7 +16,6 @@ function SupervisorBellButton() {
   const [total, setTotal] = useState(0);
   const [panelOpen, setPanelOpen] = useState(false);
   const containerRef = useRef(null);
-  const intervalRef = useRef(null);
 
   const fetchEscalations = useCallback(async () => {
     try {
@@ -35,9 +28,15 @@ function SupervisorBellButton() {
   }, []);
 
   useEffect(() => {
-    fetchEscalations();
-    intervalRef.current = setInterval(fetchEscalations, POLL_INTERVAL_MS);
-    return () => clearInterval(intervalRef.current);
+    const intervalId = setInterval(fetchEscalations, POLL_INTERVAL_MS);
+    const initialFetchTimeoutId = setTimeout(() => {
+      fetchEscalations();
+    }, 0);
+
+    return () => {
+      clearInterval(intervalId);
+      clearTimeout(initialFetchTimeoutId);
+    };
   }, [fetchEscalations]);
 
   useEffect(() => {
@@ -116,7 +115,7 @@ function SupervisorBellButton() {
                       <span className="nb-bell-item__assured">{dossier.assured_identifier}</span>
                     )}
                     {dossier.escalated_at && (
-                      <span className="nb-bell-item__date">{formatShortDate(dossier.escalated_at)}</span>
+                      <span className="nb-bell-item__date">{formatShortDate(dossier.escalated_at, '')}</span>
                     )}
                   </span>
                   {dossier.escalation_reason && (

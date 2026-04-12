@@ -14,16 +14,20 @@ function WorkflowActionsCard({
   isProcessingDossier,
   requestProcessDossier
 }) {
-  return (
-    <div className="card mb-4">
-      <div className="card-header d-flex justify-content-between align-items-center">
-        <h6 className="mb-0 d-flex align-items-center">
-          <i className="bi bi-gear me-2"></i>
-          Workflow Actions
-        </h6>
-      </div>
-      <div className="card-body">
-        {(canCreateRubrique && !isFrozen) && (
+  const showCreateForm = canCreateRubrique && !isFrozen;
+  const showSubmitAction = (!canCreateRubrique || isFrozen) && canSubmitDossier && !isFrozen;
+  const showProcessAction = canProcessDossier && !isFrozen;
+
+  if (showCreateForm) {
+    return (
+      <div className="card mb-4">
+        <div className="card-header d-flex justify-content-between align-items-center">
+          <h6 className="mb-0 d-flex align-items-center">
+            <i className="bi bi-gear me-2" />
+            Workflow Actions
+          </h6>
+        </div>
+        <div className="card-body">
           <form className="mb-0" onSubmit={handleCreateRubrique}>
             <div className="row g-2 align-items-start">
               <div className="col-lg-4">
@@ -53,53 +57,52 @@ function WorkflowActionsCard({
               <div className="col-lg-3 d-flex justify-content-lg-end">
                 <div className="d-flex flex-column align-items-stretch gap-2 workflow-actions-stack">
                   <div className="text-muted small fw-semibold text-uppercase mb-0 workflow-actions-label">Workflow</div>
-                  <button type="submit" className="btn btn-primary w-100" disabled={isCreatingRubrique || !rubriqueTitle.trim()}>
+                  <button
+                    type="submit"
+                    className="btn btn-primary w-100"
+                    disabled={isCreatingRubrique || !rubriqueTitle.trim()}
+                  >
                     {isCreatingRubrique ? 'Creating...' : 'Create Section'}
                   </button>
-
                   {canSubmitDossier && !isFrozen && (
-                    <div>
-                      <button
-                        type="button"
-                        className="btn btn-outline-primary w-100"
-                        onClick={requestSubmitDossier}
-                        disabled={isSubmittingDossier}
-                      >
-                        {isSubmittingDossier ? 'Submitting...' : 'Submit Case File'}
-                      </button>
-                      <div className="text-muted small lh-sm mt-1 workflow-actions-helper">
-                        Submits the case file for review and locks preparation edits.
-                      </div>
-                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-outline-primary w-100"
+                      onClick={requestSubmitDossier}
+                      disabled={isSubmittingDossier}
+                    >
+                      {isSubmittingDossier ? 'Submitting...' : 'Submit Case File'}
+                    </button>
                   )}
                 </div>
               </div>
             </div>
           </form>
-        )}
+        </div>
+      </div>
+    );
+  }
 
-        <div className="d-flex flex-wrap gap-2 justify-content-end">
-          {(!canCreateRubrique || isFrozen) && canSubmitDossier && !isFrozen && (
-            <div className="d-flex flex-column align-items-stretch gap-2 workflow-actions-stack">
-              <div className="text-muted small fw-semibold text-uppercase mb-0 workflow-actions-label">Workflow</div>
-              <div>
-                <button
-                  className="btn btn-outline-primary w-100"
-                  onClick={requestSubmitDossier}
-                  disabled={isSubmittingDossier}
-                >
-                  {isSubmittingDossier ? 'Submitting...' : 'Submit Case File'}
-                </button>
-                <div className="text-muted small lh-sm mt-1 workflow-actions-helper">
-                  Submits the case file for review and locks preparation edits.
-                </div>
-              </div>
-            </div>
-          )}
-
-          {canProcessDossier && !isFrozen && (
+  return (
+    <div className="card mb-4">
+      <div className="workflow-action-toolbar">
+        <h6 className="mb-0 d-flex align-items-center workflow-action-toolbar__title">
+          <i className="bi bi-gear me-2" />
+          Workflow Actions
+        </h6>
+        <div className="workflow-action-toolbar__controls">
+          {showSubmitAction && (
             <button
-              className="btn btn-outline-success"
+              className="btn btn-outline-primary workflow-level-action-btn"
+              onClick={requestSubmitDossier}
+              disabled={isSubmittingDossier}
+            >
+              {isSubmittingDossier ? 'Submitting...' : 'Submit Case File'}
+            </button>
+          )}
+          {showProcessAction && (
+            <button
+              className="btn btn-outline-success workflow-level-action-btn"
               onClick={requestProcessDossier}
               disabled={isProcessingDossier}
             >

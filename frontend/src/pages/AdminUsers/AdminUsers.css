@@ -1,22 +1,26 @@
 /* Admin users page styles */
 
 .admin-users-page .card {
-  border: none;
-  border-radius: var(--card-radius);
-  box-shadow: var(--shadow-sm);
   overflow: hidden;
 }
 
-.admin-users-page .admin-users-filters {
-  background-color: var(--color-bg-surface);
+.admin-users-page .admin-users-create-card .card-body {
+  padding-top: var(--spacing-5);
 }
 
-.admin-users-page .admin-users-filters .form-label {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-  text-transform: uppercase;
-  letter-spacing: var(--letter-spacing-widest);
-  color: var(--color-text-muted);
+.admin-users-page .admin-users-create-lead {
+  max-width: 68ch;
+  line-height: 1.5;
+}
+
+.admin-users-page .admin-users-create-grid .form-control,
+.admin-users-page .admin-users-create-grid .form-select {
+  min-height: 42px;
+}
+
+.admin-users-page .admin-users-create-footer {
+  border-top: 1px solid var(--color-gray-200);
+  padding-top: var(--spacing-4);
 }
 
 .admin-users-page .table td {
@@ -37,47 +41,40 @@
 .admin-users-page .admin-users-role-badge,
 .admin-users-page .admin-users-status-badge {
   font-weight: var(--font-weight-semibold);
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  text-transform: uppercase;
 }
 
 .admin-users-page .admin-users-actions {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  min-width: 240px;
+  gap: 0.45rem;
+  min-width: 250px;
+}
+
+.admin-users-page .admin-users-actions__role-row .btn {
+  min-width: 94px;
+}
+
+.admin-users-page .admin-users-actions__status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-2);
+}
+
+.admin-users-page .admin-users-actions__status-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.055em;
+  font-weight: var(--font-weight-semibold);
+}
+
+.admin-users-page .admin-users-status-toggle {
+  min-width: 108px;
 }
 
 .admin-users-page .admin-users-role-select {
   min-width: 130px;
-}
-
-.admin-users-page .pagination-info {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-}
-
-.admin-users-page .pagination-controls .btn {
-  min-width: 110px;
-}
-
-.admin-users-page .dossier-confirmation-modal {
-  width: min(520px, 100%);
-}
-
-.admin-users-page .dossier-confirmation-modal .confirmation-modal-header {
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid var(--color-border-light);
-}
-
-.admin-users-page .dossier-confirmation-modal .confirmation-modal-body {
-  padding-top: 0.25rem;
-}
-
-.admin-users-page .dossier-confirmation-modal .confirmation-modal-footer {
-  border-top: 1px solid var(--color-border-light);
-  padding-top: 0.75rem;
 }
 
 @media (max-width: 991.98px) {
@@ -87,12 +84,9 @@
 }
 
 @media (max-width: 767.98px) {
-  .admin-users-page .admin-users-filters .col-md-3 {
-    width: 100%;
-  }
-
-  .admin-users-page .admin-users-filters .col-md-3 .btn {
-    flex: 1 1 auto;
+  .admin-users-page .table td {
+    padding-left: var(--spacing-3);
+    padding-right: var(--spacing-3);
   }
 
   .admin-users-page .admin-users-actions {

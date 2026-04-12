@@ -6,7 +6,16 @@ import { AUTH_CHANGED_EVENT, getStoredRole, getStoredUser } from '../services/au
 import { previewDocument, downloadDocument } from '../services/documentAccess';
 import { USER_ROLES } from '../constants/domainLabels';
 import DocumentUploadModal from '../components/DocumentUploadModal';
-import { StatusBadge, EmptyState, ConfirmationModal, SortableHeader } from '../ui';
+import {
+  StatusBadge,
+  EmptyState,
+  ConfirmationModal,
+  SortableHeader,
+  FileAccessInline,
+  PageHeader,
+  ListFiltersCard,
+  TablePaginationFooter,
+} from '../ui';
 import {
   normalizeListFilters,
   buildListQueryParams,
@@ -14,6 +23,7 @@ import {
   hasAnyListFilter,
   isDefaultSort
 } from '../utils/listQueryUtils';
+import { formatShortDate } from '../utils/formatters';
 import './DocumentsList/DocumentsList.css';
 
 const DOCUMENT_STATUS_OPTIONS = ['UPLOADED', 'PROCESSING', 'PROCESSED', 'VALIDATED', 'FAILED'];
@@ -385,7 +395,16 @@ function DocumentsList() {
     }
   };
 
-  const renderStatusBadge = (status) => <StatusBadge status={status} context="table" />;
+  const renderStatusBadge = (status) => {
+    const normalizedStatus = (status || '').toLowerCase();
+    return (
+      <StatusBadge
+        status={status}
+        context="table"
+        className={`documents-status-badge documents-status-badge--${normalizedStatus || 'unknown'}`}
+      />
+    );
+  };
 
   const hasActiveFilters = hasAnyListFilter(appliedFilters);
   const hasDraftFilters = hasAnyListFilter(filtersDraft);
@@ -402,7 +421,7 @@ function DocumentsList() {
       case 'PROCESSED':
         primaryAction = (
           <button
-            className="btn btn-primary btn-sm"
+            className="btn btn-primary btn-sm document-action-btn document-action-btn--validate"
             onClick={() => navigate(`/documents/${doc.id}/validate`)}
           >
             Validate
@@ -413,7 +432,7 @@ function DocumentsList() {
       case 'VALIDATED':
         primaryAction = (
           <button
-            className="btn btn-success btn-sm"
+            className="btn btn-success btn-sm document-action-btn document-action-btn--view"
             onClick={() => navigate(`/documents/${doc.id}/validate`)}
           >
             View
@@ -429,7 +448,7 @@ function DocumentsList() {
 
         primaryAction = (
           <button
-            className="btn btn-warning btn-sm"
+            className="btn btn-warning btn-sm document-action-btn"
             onClick={() => handleRetry(doc.id)}
             disabled={isRetrying}
           >
@@ -440,7 +459,7 @@ function DocumentsList() {
 
       case 'PROCESSING':
         primaryAction = (
-          <button className="btn btn-secondary btn-sm" disabled>
+          <button className="btn btn-secondary btn-sm document-action-btn" disabled>
             Processing...
           </button>
         );
@@ -449,7 +468,7 @@ function DocumentsList() {
       case 'UPLOADED':
       default:
         primaryAction = (
-          <button className="btn btn-secondary btn-sm" disabled>
+          <button className="btn btn-secondary btn-sm document-action-btn" disabled>
             Pending...
           </button>
         );
@@ -461,11 +480,11 @@ function DocumentsList() {
     }
 
     return (
-      <div className="d-flex flex-wrap gap-2 align-items-center">
+      <div className="d-flex flex-wrap gap-2 align-items-center document-actions">
         {primaryAction}
         <button
           type="button"
-          className="btn btn-outline-danger btn-sm"
+          className="btn btn-outline-danger btn-sm document-action-btn document-action-btn--delete"
           onClick={() => requestDeleteDocument(doc)}
           disabled={isDeleting || isDeleteConfirming}
         >
@@ -491,32 +510,26 @@ function DocumentsList() {
         </div>
       )}
 
-      <div className="d-flex justify-content-between align-items-start gap-3 mb-4">
-        <div className="min-w-0">
-          <h2 className="mb-1 page-title d-flex align-items-center">
-            <i className="bi bi-files me-2 opacity-75"></i>
-            Documents
-          </h2>
-          <p className="text-muted small mb-0 documents-subtitle">
-            Upload documents and review AI-extracted fields before validation.
-          </p>
-        </div>
+      <PageHeader
+        icon="bi-files"
+        title="Documents"
+        subtitle="Upload documents and review AI-extracted fields before validation."
+        action={
+          canUpload && (
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => setUploadModalOpen(true)}
+            >
+              <i className="bi bi-cloud-upload me-2" aria-hidden="true" />
+              Upload Documents
+            </button>
+          )
+        }
+      />
 
-        {canUpload && (
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => setUploadModalOpen(true)}
-          >
-            <i className="bi bi-cloud-upload me-2"></i>
-            Upload Documents
-          </button>
-        )}
-      </div>
-
-      <div className="card documents-filters-card mb-4">
-        <div className="card-body">
-          <form className="row g-3 align-items-end documents-filters-form" onSubmit={handleApplyFilters}>
+      <ListFiltersCard className="documents-filters-card">
+        <form className="row g-3 align-items-end enterprise-filters-form" onSubmit={handleApplyFilters}>
             <div className="col-12 col-lg-4">
               <label htmlFor="documentsSearch" className="form-label mb-1">Search</label>
               <input
@@ -572,7 +585,7 @@ function DocumentsList() {
               />
             </div>
 
-            <div className="col-12 col-md-6 col-lg-2 d-flex gap-2 documents-filters-actions">
+            <div className="col-12 col-md-6 col-lg-2 d-flex gap-2 enterprise-filters-actions">
               <button type="submit" className="btn btn-primary flex-grow-1" disabled={loading}>
                 <i className="bi bi-funnel"></i>
                 Apply
@@ -586,9 +599,8 @@ function DocumentsList() {
                 Reset
               </button>
             </div>
-          </form>
-        </div>
-      </div>
+        </form>
+      </ListFiltersCard>
 
       <div className="card">
         <div className="table-section-shell">
@@ -639,45 +651,23 @@ function DocumentsList() {
 
                   return (
                     <tr key={doc.id}>
-                      <td>{doc.id}</td>
+                      <td className="documents-id-cell">{doc.id}</td>
 
-                      <td>
-                        <div className="documents-file-access">
-                          <i className="bi bi-file-earmark text-muted documents-file-access__icon" aria-hidden="true"></i>
-                          <button
-                            type="button"
-                            className="btn btn-link documents-file-access__name"
-                            onClick={() => handlePreviewSourceDocument(doc)}
-                            disabled={isPreviewing}
-                            title={displayFilename}
-                          >
-                            {displayFilename}
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-outline-secondary btn-sm documents-file-access__download"
-                            onClick={() => handleDownloadSourceDocument(doc)}
-                            disabled={isDownloading}
-                            title="Download original document"
-                            aria-label={`Download ${displayFilename}`}
-                          >
-                            {isDownloading ? (
-                              <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                            ) : (
-                              <i className="bi bi-download" aria-hidden="true"></i>
-                            )}
-                          </button>
-                        </div>
+                      <td className="documents-file-cell">
+                        <FileAccessInline
+                          filename={displayFilename}
+                          onPreview={() => handlePreviewSourceDocument(doc)}
+                          onDownload={() => handleDownloadSourceDocument(doc)}
+                          isPreviewing={isPreviewing}
+                          isDownloading={isDownloading}
+                        />
                       </td>
 
-                      <td>{renderStatusBadge(doc.status)}</td>
+                      <td className="documents-status-cell">{renderStatusBadge(doc.status)}</td>
 
-                      <td>{new Date(doc.created_at).toLocaleString()}</td>
+                      <td className="cell-date">{formatShortDate(doc.created_at)}</td>
 
-                      <td
-                        className="text-danger small"
-                        style={{ maxWidth: '320px', whiteSpace: 'normal' }}
-                      >
+                      <td className="small text-danger cell-wrap document-error-cell">
                         {doc.status === 'FAILED' ? (
                           <span title={formattedError}>{formattedError}</span>
                         ) : (
@@ -685,7 +675,7 @@ function DocumentsList() {
                         )}
                       </td>
 
-                      <td>{renderActionButton(doc)}</td>
+                      <td className="cell-actions">{renderActionButton(doc)}</td>
                     </tr>
                   );
                 }) : loading ? (
@@ -737,33 +727,13 @@ function DocumentsList() {
             </table>
           </div>
         </div>
-
-        <div className="card-footer bg-white d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-          <span className="pagination-info d-inline-flex align-items-center gap-2">
-            <i className="bi bi-grid-3x3-gap"></i>
-            Page {currentPage} of {lastPage} ({total} total documents)
-          </span>
-
-          <div className="btn-group pagination-controls">
-            <button
-              className="btn btn-outline-primary btn-sm"
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-            >
-              <i className="bi bi-chevron-left me-1"></i>
-              Previous
-            </button>
-
-            <button
-              className="btn btn-outline-primary btn-sm"
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === lastPage}
-            >
-              Next
-              <i className="bi bi-chevron-right ms-1"></i>
-            </button>
-          </div>
-        </div>
+        <TablePaginationFooter
+          currentPage={currentPage}
+          lastPage={lastPage}
+          total={total}
+          summaryLabel="documents"
+          onPageChange={handlePageChange}
+        />
       </div>
 
       <DocumentUploadModal

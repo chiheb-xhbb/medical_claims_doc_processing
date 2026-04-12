@@ -1,9 +1,6 @@
 /* Dossiers list — layout, filters, skeleton, nowrap cells; shared table styles: common.css */
 
 .dossiers-list .card {
-  border: none;
-  border-radius: var(--card-radius);
-  box-shadow: var(--shadow-sm);
   overflow: hidden;
 }
 
@@ -11,154 +8,36 @@
   white-space: nowrap;
 }
 
-.dossiers-list .dossier-status {
-  background: var(--color-primary-subtle) !important;
-  border: 1px solid rgba(37, 99, 235, 0.2);
-  font-weight: var(--font-weight-semibold);
+.dossiers-list .dossiers-action-btn__icon {
+  font-size: 0.82rem;
+  line-height: 1;
 }
 
-.dossiers-list-header {
-  gap: var(--spacing-3);
+.dossiers-list .dossiers-action-btn--details.btn-outline-primary:hover:not(:disabled),
+.dossiers-list .dossiers-action-btn--details.btn-outline-primary:focus-visible:not(:disabled) {
+  box-shadow: 0 0.3rem 0.65rem rgba(37, 99, 235, 0.17);
 }
 
-.dossiers-list .card-footer {
-  background-color: var(--color-white);
-  border-top: 1px solid var(--color-gray-100);
-  padding: var(--spacing-3) var(--spacing-5);
+.dossiers-list .dossiers-action-btn--delete.btn-outline-danger {
+  border-width: 1.5px !important;
 }
 
-.dossiers-list .pagination-info {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
+.dossiers-list .dossiers-action-btn--delete.btn-outline-danger:hover:not(:disabled),
+.dossiers-list .dossiers-action-btn--delete.btn-outline-danger:focus-visible:not(:disabled) {
+  box-shadow: 0 0.3rem 0.65rem rgba(220, 38, 38, 0.2);
 }
 
-.dossiers-list .pagination-controls .btn {
-  min-width: 110px;
+.dossiers-list .dossiers-action-btn:focus-visible {
+  outline: 2px solid rgba(37, 99, 235, 0.3);
+  outline-offset: 1px;
 }
 
-.dossiers-list .inline-empty-state-wrapper {
-  padding: var(--spacing-6) var(--spacing-4);
-}
-
-.dossiers-list .table-section-shell {
-  position: relative;
-}
-
-.dossiers-list .table-loading-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-2);
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(1px);
-  z-index: 3;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-}
-
-.dossiers-list .skeleton-row td {
-  background-color: transparent !important;
-}
-
-.dossiers-list .skeleton-line {
-  height: 0.625rem;
-  border-radius: var(--radius-full);
-  background: linear-gradient(
-    90deg,
-    var(--color-gray-100) 0%,
-    var(--color-gray-200) 50%,
-    var(--color-gray-100) 100%
-  );
-  background-size: 220% 100%;
-  animation: dossiers-list-shimmer 1.3s ease-in-out infinite;
-}
-
-.dossiers-list .skeleton-line-short {
-  width: 2.8rem;
-}
-
-.dossiers-list .skeleton-line-medium {
-  width: 6rem;
-}
-
-@keyframes dossiers-list-shimmer {
-  0% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0 50%;
-  }
-}
-
-.dossiers-list .dossiers-filters-card {
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--card-radius-premium);
-  background: linear-gradient(180deg, #ffffff 0%, var(--color-bg-surface) 100%);
-  box-shadow: var(--card-shadow-premium);
-}
-
-.dossiers-list .dossiers-filters-card .card-body {
-  padding: var(--spacing-5) var(--spacing-6);
-}
-
-.dossiers-list .dossiers-filters-form .form-label {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-  text-transform: uppercase;
-  letter-spacing: var(--letter-spacing-wider);
-}
-
-.dossiers-list .dossiers-filters-form .form-control,
-.dossiers-list .dossiers-filters-form .form-select {
-  min-height: 42px;
-}
-
-.dossiers-list .dossiers-filters-actions .btn {
-  min-height: 42px;
-}
-
-.dossiers-list .dossiers-filters-actions .btn-outline-secondary {
-  min-width: 92px;
-}
-
-.dossiers-list .dossier-confirmation-modal {
-  width: min(520px, 100%);
-}
-
-.dossiers-list .dossier-confirmation-modal .confirmation-modal-header {
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid var(--color-border-light);
-}
-
-.dossiers-list .dossier-confirmation-modal .confirmation-modal-body {
-  padding-top: 0.25rem;
-}
-
-.dossiers-list .dossier-confirmation-modal .confirmation-modal-footer {
-  border-top: 1px solid var(--color-border-light);
-  padding-top: 0.75rem;
+.dossiers-list .dossiers-action-btn:disabled {
+  opacity: 0.55;
 }
 
 @media (max-width: 767.98px) {
-  .dossiers-list-header {
-    flex-direction: column;
-    align-items: flex-start !important;
-  }
-
-  .dossiers-list .dossiers-filters-card .card-body {
-    padding: var(--spacing-4);
-  }
-
-  .dossiers-list .dossiers-filters-actions {
-    width: 100%;
-  }
-
-  .dossiers-list .dossiers-filters-actions .btn {
-    flex: 1 1 auto;
+  .dossiers-list .table td {
+    white-space: normal;
   }
 }

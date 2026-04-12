@@ -1,16 +1,16 @@
 const STATUS_CONFIG = {
   UPLOADED: {
-    className: 'bg-secondary',
+    className: 'bg-warning text-dark',
     label: 'Uploaded',
     icon: 'bi-cloud-upload'
   },
   PROCESSING: {
-    className: 'bg-primary',
+    className: 'bg-warning text-dark',
     label: 'Processing',
     spinner: true
   },
   PROCESSED: {
-    className: 'bg-warning text-dark',
+    className: 'bg-success',
     label: 'Processed',
     icon: 'bi-check2'
   },
@@ -26,14 +26,19 @@ const STATUS_CONFIG = {
   }
 };
 
-function StatusBadge({ status, context = 'default' }) {
+function StatusBadge({ status, context = 'default', className = '' }) {
   const normalizedStatus = status?.toUpperCase();
-  const config = STATUS_CONFIG[normalizedStatus] || STATUS_CONFIG.UPLOADED;
+  const fallbackConfig = {
+    className: 'bg-secondary',
+    label: normalizedStatus ? normalizedStatus.replace(/_/g, ' ') : 'Unknown',
+    icon: 'bi-question-circle',
+  };
+  const config = STATUS_CONFIG[normalizedStatus] || fallbackConfig;
   const contextClass =
     context === 'table' ? 'badge--context-table' : context === 'hero' ? 'badge--context-hero' : '';
 
   return (
-    <span className={['badge', config.className, contextClass].filter(Boolean).join(' ')}>
+    <span className={['badge', 'status-badge', config.className, contextClass, className].filter(Boolean).join(' ')}>
       {config.spinner ? (
         <span
           className="spinner-border spinner-border-sm status-badge-spinner"

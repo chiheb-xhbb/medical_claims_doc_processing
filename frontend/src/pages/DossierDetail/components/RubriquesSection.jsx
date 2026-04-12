@@ -2,7 +2,10 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { getApiErrorMessage } from '../../../services/api';
 import { previewDocument, downloadDocument } from '../../../services/documentAccess';
-import { EmptyState } from '../../../ui';
+import { EmptyState, FileAccessInline, DecisionBadge } from '../../../ui';
+
+const ACCEPTED_DECISION_STATUSES = new Set(['ACCEPTED', 'APPROVED', 'VALIDATED']);
+const REJECTED_DECISION_STATUSES = new Set(['REJECTED', 'FAILED', 'ERROR']);
 
 const getDocumentExtractionTotal = (document) => {
   const extractions = Array.isArray(document?.extractions) ? document.extractions : [];
@@ -22,28 +25,42 @@ const getDocumentExtractionTotal = (document) => {
   return Number.isNaN(numeric) ? null : numeric;
 };
 
-const getDecisionBadgeClass = (decisionStatus) => {
-  if (decisionStatus === 'ACCEPTED') {
-    return 'bg-success-subtle text-success-emphasis decision-status-badge';
-  }
-
-  if (decisionStatus === 'REJECTED') {
-    return 'bg-danger-subtle text-danger-emphasis decision-status-badge';
-  }
-
-  return 'bg-primary-subtle text-primary-emphasis decision-status-badge';
-};
-
 const getDecisionRowClass = (decisionStatus) => {
-  if (decisionStatus === 'REJECTED') {
+  if (REJECTED_DECISION_STATUSES.has(decisionStatus)) {
     return 'document-row-rejected';
   }
 
-  if (decisionStatus === 'ACCEPTED') {
+  if (ACCEPTED_DECISION_STATUSES.has(decisionStatus)) {
     return 'document-row-accepted';
   }
 
   return '';
+};
+
+const mapRubriqueStatusToBadge = (status) => {
+  const normalized = (status || 'PENDING').toString().toUpperCase();
+
+  if (['ACCEPTED', 'APPROVED', 'VALIDATED', 'PROCESSED', 'COMPLETED', 'COMPLETE'].includes(normalized)) {
+    return 'APPROVED';
+  }
+
+  if (['REJECTED', 'FAILED', 'ERROR'].includes(normalized)) {
+    return 'REJECTED';
+  }
+
+  if (normalized.includes('PARTIAL')) {
+    return 'PARTIAL';
+  }
+
+  if (normalized.includes('REVIEW')) {
+    return 'UNDER_REVIEW';
+  }
+
+  if (normalized.includes('PENDING')) {
+    return 'PENDING';
+  }
+
+  return normalized;
 };
 
 function RubriquesSection({
@@ -74,10 +91,7 @@ function RubriquesSection({
   const setDocumentAccessPending = (setter, documentId, isPending) => {
     setter((prev) => {
       if (isPending) {
-        return {
-          ...prev,
-          [documentId]: true
-        };
+        return { ...prev, [documentId]: true };
       }
 
       if (!prev[documentId]) {
@@ -90,7 +104,7 @@ function RubriquesSection({
     });
   };
 
-  const handlePreviewSourceDocument = async (document) => {
+  const handlePreviewDocument = async (document) => {
     const documentId = document?.id;
 
     if (!documentId || previewingById[documentId]) {
@@ -111,7 +125,7 @@ function RubriquesSection({
     }
   };
 
-  const handleDownloadSourceDocument = async (document) => {
+  const handleDownloadDocument = async (document) => {
     const documentId = document?.id;
 
     if (!documentId || downloadingById[documentId]) {
@@ -157,37 +171,53 @@ function RubriquesSection({
               const canShowDeleteRubrique = canDeleteRubrique && !isFrozen && rubriqueDocuments.length === 0;
               const isDeletingRubrique = Boolean(isDeletingRubriqueById[rubrique.id]);
               const isRejectingRubrique = Boolean(isRejectingRubriqueById[rubrique.id]);
-              const hasAcceptedDocs = rubriqueDocuments.some((doc) => {
-                const status = (doc?.decision_status ?? doc?.decisionStatus ?? '').toString().toUpperCase();
-                return status === 'ACCEPTED' || status === 'APPROVED';
-              });
+              const rubriqueStatus = (rubrique.status || 'PENDING').toString().toUpperCase();
+              const rubriqueDecisionStatuses = rubriqueDocuments.map((doc) =>
+                (doc?.decision_status ?? doc?.decisionStatus ?? 'PENDING').toString().toUpperCase()
+              );
+              const hasAcceptedDocs = rubriqueDecisionStatuses.some((status) => ACCEPTED_DECISION_STATUSES.has(status));
+              const hasRejectedDocs = rubriqueDecisionStatuses.some((status) => REJECTED_DECISION_STATUSES.has(status));
+              const hasPendingDocs = rubriqueDecisionStatuses.some((status) => status === 'PENDING' || !status);
+              const isRubriqueRejected = REJECTED_DECISION_STATUSES.has(rubriqueStatus);
+              const isEffectivelyRejected = rubriqueDocuments.length > 0 && hasRejectedDocs && !hasAcceptedDocs && !hasPendingDocs;
+              const isSectionRejectionComplete = isRubriqueRejected || isEffectivelyRejected;
+              const showRejectSectionControl = canRejectRubrique && !isFrozen;
+              const isRejectSectionDisabled =
+                isFrozen ||
+                isRejectingRubrique ||
+                rubriqueDocuments.length === 0 ||
+                hasAcceptedDocs ||
+                isSectionRejectionComplete;
 
               return (
-                <div className="card mb-3" key={rubrique.id}>
-                  <div className="card-header d-flex justify-content-between align-items-center">
-                    <div>
-                      <h6 className="mb-0">{rubrique.title || `Section #${rubrique.id}`}</h6>
-                      <small className="text-muted">
-                        Status: <span className="fw-semibold">{rubrique.status || 'PENDING'}</span>
-                        {' | '}
-                        {rubriqueDocuments.length} {rubriqueDocuments.length === 1 ? 'document' : 'documents'}
-                      </small>
+                <div className="card mb-3 rubrique-card" key={rubrique.id}>
+                  <div className="card-header rubrique-card__header">
+                    <div className="rubrique-card__identity">
+                      <h6 className="mb-1 rubrique-card__title">{rubrique.title || `Section #${rubrique.id}`}</h6>
+                      <div className="rubrique-card__meta text-muted">
+                        <DecisionBadge status={mapRubriqueStatusToBadge(rubriqueStatus)} className="rubrique-card__status-badge" />
+                        <span className="rubrique-card__meta-separator" aria-hidden="true">&bull;</span>
+                        <span className="rubrique-card__count">
+                          {rubriqueDocuments.length} {rubriqueDocuments.length === 1 ? 'document' : 'documents'}
+                        </span>
+                      </div>
                     </div>
 
-                    <div className="d-flex flex-wrap gap-2">
+                    <div className="d-flex flex-wrap gap-2 rubrique-card__actions">
                       {canAttachDocuments && !isFrozen && (
                         <button
-                          className="btn btn-sm btn-outline-primary"
+                          className="btn btn-sm btn-outline-primary rubrique-action-btn"
                           onClick={() => openAttachModal(rubrique)}
                           disabled={Boolean(isAttachingByRubriqueId[rubrique.id])}
                         >
+                          <i className="bi bi-link-45deg" aria-hidden="true"></i>
                           Attach Documents
                         </button>
                       )}
 
                       {canShowDeleteRubrique && (
                         <button
-                          className="btn btn-sm btn-outline-danger"
+                          className="btn btn-sm btn-outline-danger rubrique-action-btn"
                           onClick={() => requestDeleteRubrique(rubrique)}
                           disabled={isDeletingRubrique}
                         >
@@ -195,20 +225,22 @@ function RubriquesSection({
                         </button>
                       )}
 
-                      {canRejectRubrique && !isFrozen && (
-                        <button
-                          className="btn btn-sm btn-outline-danger"
-                          onClick={() => openRejectRubriqueModal(rubrique)}
-                          disabled={isFrozen || isRejectingRubrique || rubriqueDocuments.length === 0 || hasAcceptedDocs}
-                        >
-                          {isRejectingRubrique ? 'Rejecting...' : 'Reject Section'}
-                        </button>
+                      {showRejectSectionControl && (
+                        <div className="rubrique-section-control-slot">
+                          <button
+                            className="btn btn-sm btn-outline-danger rubrique-action-btn rubrique-action-btn--reject-section rubrique-section-control rubrique-section-control--action"
+                            onClick={() => openRejectRubriqueModal(rubrique)}
+                            disabled={isRejectSectionDisabled}
+                          >
+                            {isRejectingRubrique ? 'Rejecting...' : 'Reject Section'}
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
 
                   <div className="card-body">
-                    <p className="mb-3 text-muted">{rubrique.notes || 'No notes for this section.'}</p>
+                    <p className="mb-3 text-muted rubrique-card__notes">{rubrique.notes || 'No notes for this section.'}</p>
 
                     {rubriqueDocuments.length === 0 ? (
                       <div className="rubrique-empty-compact">
@@ -226,10 +258,9 @@ function RubriquesSection({
                         <table className="table table-striped align-middle mb-0 documents-table">
                           <thead>
                             <tr>
-                              <th>ID</th>
-                              <th>Filename</th>
-                              <th>Technical Status</th>
-                              <th>Decision Status</th>
+                              <th>#</th>
+                              <th>Document</th>
+                              <th>Decision</th>
                               <th>Total TTC</th>
                               <th>Decision Note</th>
                               <th>Actions</th>
@@ -254,71 +285,49 @@ function RubriquesSection({
                               const canShowDetachAction = canDetachDocuments && !isFrozen;
                               const showActionsPlaceholder = !canShowDecisionActions && !canShowDetachAction;
                               const actionPlaceholderText = decisionStatus === 'PENDING' ? '-' : 'Decision completed';
-                              const decisionBadgeClass = getDecisionBadgeClass(decisionStatus);
                               const decisionRowClass = getDecisionRowClass(decisionStatus);
 
                               return (
                                 <tr key={documentId} className={decisionRowClass}>
-                                  <td>{documentId}</td>
-                                  <td>
-                                    <div className="dossier-document-file-access">
-                                      <button
-                                        type="button"
-                                        className="btn btn-link dossier-document-file-access__name"
-                                        onClick={() => handlePreviewSourceDocument(document)}
-                                        disabled={isPreviewing}
-                                        title={originalFilename}
-                                      >
-                                        {originalFilename}
-                                      </button>
-                                      <button
-                                        type="button"
-                                        className="btn btn-outline-secondary btn-sm dossier-document-file-access__download"
-                                        onClick={() => handleDownloadSourceDocument(document)}
-                                        disabled={isDownloading}
-                                        title="Download original document"
-                                        aria-label={`Download ${originalFilename}`}
-                                      >
-                                        {isDownloading ? (
-                                          <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                                        ) : (
-                                          <i className="bi bi-download" aria-hidden="true"></i>
-                                        )}
-                                      </button>
-                                    </div>
+                                  <td className="rubrique-doc-id">{documentId}</td>
+                                  <td className="rubrique-doc-file">
+                                    <FileAccessInline
+                                      filename={originalFilename}
+                                      onPreview={() => handlePreviewDocument(document)}
+                                      onDownload={() => handleDownloadDocument(document)}
+                                      isPreviewing={isPreviewing}
+                                      isDownloading={isDownloading}
+                                    />
                                   </td>
-                                  <td>
-                                    <span className="badge bg-secondary">{document.status || '-'}</span>
+                                  <td className="rubrique-doc-decision">
+                                    <DecisionBadge status={decisionStatus} className="decision-status-badge" />
                                   </td>
-                                  <td>
-                                    <span className={`badge ${decisionBadgeClass}`}>{decisionStatus}</span>
-                                  </td>
-                                  <td>{extractionTotal === null ? '-' : formatAmount(extractionTotal)}</td>
-                                  <td>{document.decision_note || '-'}</td>
+                                  <td className="cell-numeric rubrique-doc-total">{extractionTotal === null ? '-' : formatAmount(extractionTotal)}</td>
+                                  <td className="rubrique-doc-note">{document.decision_note || '-'}</td>
                                   <td className="document-actions-cell">
-                                    <div className="d-flex flex-wrap align-items-center gap-1 document-actions-wrap">
+                                    <div className="document-actions-wrap">
                                       {canShowDecisionActions && (
-                                        <>
+                                        <div className="document-decision-actions" role="group" aria-label="Document decision actions">
                                           <button
-                                            className="btn btn-sm btn-outline-success"
+                                            className="btn btn-sm btn-outline-success document-decision-btn document-decision-btn--accept"
                                             onClick={() => handleAcceptDocument(documentId)}
                                             disabled={isBusy}
                                           >
                                             Accept
                                           </button>
                                           <button
-                                            className="btn btn-sm btn-outline-danger"
+                                            className="btn btn-sm btn-outline-danger document-decision-btn document-decision-btn--reject"
                                             onClick={() => openRejectDocumentModal(document)}
                                             disabled={isBusy}
                                           >
                                             Reject
                                           </button>
-                                        </>
+                                        </div>
                                       )}
 
                                       {canShowDetachAction && (
                                         <button
-                                          className="btn btn-sm btn-outline-secondary"
+                                          className="btn btn-sm btn-outline-secondary document-detach-btn"
                                           onClick={() => requestDetachDocument(rubrique.id, documentId)}
                                           disabled={isBusy}
                                         >

@@ -10,7 +10,15 @@ import {
   WarningAlert,
   InfoAlert,
   StatusBadge,
+  FileAccessInline,
+  PageHeader,
 } from '../ui';
+import {
+  normalizeDateInput,
+  formatFileSize,
+  formatShortDate,
+  formatDateTime,
+} from '../utils/formatters';
 import './DocumentValidation/DocumentValidation.css';
 
 const FIELD_LABELS = {
@@ -32,39 +40,6 @@ const FIELD_ICONS = {
 };
 
 const LOW_CONFIDENCE_THRESHOLD = 0.70;
-
-const normalizeDate = (value) => {
-  if (!value) return null;
-
-  const raw = String(value).trim();
-
-  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
-    return raw;
-  }
-
-  const clean = raw.replace(/\//g, '-');
-  const parts = clean.split('-');
-
-  if (parts.length === 3) {
-    const [a, b, c] = parts;
-
-    if (a.length === 2 && c.length === 4) {
-      return `${c}-${b}-${a}`;
-    }
-
-    if (a.length === 4) {
-      return `${a}-${b}-${c}`;
-    }
-  }
-
-  return null;
-};
-
-const formatFileSize = (bytes) => {
-  if (!bytes) return null;
-  if (bytes < 1024) return `${bytes} B`;
-  return `${(bytes / 1024).toFixed(1)} KB`;
-};
 
 function DocumentValidation() {
   const { id } = useParams();
@@ -121,7 +96,7 @@ function DocumentValidation() {
 
         const normalizedFields = {
           ...extraction.fields,
-          invoice_date: normalizeDate(extraction.fields?.invoice_date),
+          invoice_date: normalizeDateInput(extraction.fields?.invoice_date),
         };
 
         setEditedFields(normalizedFields || {});
@@ -287,76 +262,52 @@ function DocumentValidation() {
 
   const hasExtraction = document?.latest_extraction && Object.keys(editedFields).length > 0;
   const displayFilename = document?.original_filename || 'Unnamed document';
+  const fileSizeLabel = formatFileSize(document?.file_size, null);
 
   return (
     <div className="container py-4 document-validation">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="mb-0 page-title d-flex align-items-center">
-          <i className="bi bi-file-earmark-medical me-2 opacity-75"></i>
-          Document Validation
-        </h2>
-
-        <button
-          type="button"
-          className="btn btn-outline-primary page-back-btn"
-          onClick={() => navigate('/documents')}
-        >
-          <i className="bi bi-arrow-left" aria-hidden="true"></i>
-          Back to Documents
-        </button>
-      </div>
+      <PageHeader
+        icon="bi-file-earmark-medical"
+        title="Document Validation"
+        subtitle="Review extracted fields, resolve warnings, and confirm final values for compliant processing."
+        action={
+          <button
+            type="button"
+            className="btn btn-outline-primary page-back-btn"
+            onClick={() => navigate('/documents')}
+          >
+            <i className="bi bi-arrow-left me-2" aria-hidden="true" />
+            Back to Documents
+          </button>
+        }
+      />
 
       {document && (
         <div className="card mb-4 dv-document-header-card">
           <div className="card-header bg-primary text-white dv-document-header-card__header">
             <div className="dv-document-header-card__content">
               <h5 className="mb-1 dv-document-header-card__title">
-                <span className="dv-document-file-access">
-                  <i className="bi bi-file-earmark dv-document-file-access__icon" aria-hidden="true"></i>
-                  <button
-                    type="button"
-                    className="btn btn-link dv-document-file-access__name"
-                    onClick={handlePreviewOriginalDocument}
-                    disabled={isOpeningOriginalDocument}
-                    title={displayFilename}
-                  >
-                    {displayFilename}
-                  </button>
-
-                  <button
-                    type="button"
-                    className="btn btn-outline-light btn-sm dv-document-file-access__download"
-                    onClick={handleDownloadOriginalDocument}
-                    disabled={isDownloadingOriginalDocument}
-                    title="Download original document"
-                    aria-label={'Download ' + displayFilename}
-                  >
-                    {isDownloadingOriginalDocument ? (
-                      <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                    ) : (
-                      <i className="bi bi-download" aria-hidden="true"></i>
-                    )}
-                  </button>
-                </span>
+                <FileAccessInline
+                  filename={displayFilename}
+                  onPreview={handlePreviewOriginalDocument}
+                  onDownload={handleDownloadOriginalDocument}
+                  isPreviewing={isOpeningOriginalDocument}
+                  isDownloading={isDownloadingOriginalDocument}
+                  inverted
+                />
               </h5>
 
               <div className="dv-document-header-card__meta">
-                {formatFileSize(document.file_size) && (
+                {fileSizeLabel && (
                   <span className="dv-document-header-card__meta-item">
                     <i className="bi bi-hdd" aria-hidden="true"></i>
-                    {formatFileSize(document.file_size)}
+                    {fileSizeLabel}
                   </span>
                 )}
 
                 <span className="dv-document-header-card__meta-item">
                   <i className="bi bi-calendar3" aria-hidden="true"></i>
-                  {document.created_at
-                    ? new Date(document.created_at).toLocaleDateString(undefined, {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                      })
-                    : 'N/A'}
+                  {formatShortDate(document.created_at)}
                 </span>
               </div>
             </div>
@@ -423,7 +374,7 @@ function DocumentValidation() {
                 <span>v{document.latest_extraction.version}</span>
                 {document?.latest_extraction?.meta?.processed_at && (
                   <span className="dv-extraction-tag__date">
-                    &mdash; {new Date(document.latest_extraction.meta.processed_at).toLocaleString()}
+                    &mdash; {formatDateTime(document.latest_extraction.meta.processed_at)}
                   </span>
                 )}
               </div>
@@ -434,10 +385,10 @@ function DocumentValidation() {
             <table className="table table-hover align-middle mb-0 dv-fields-table">
               <thead>
                 <tr>
-                  <th style={{ width: '28%' }}>Field</th>
-                  <th style={{ width: '40%' }}>Value</th>
-                  <th className="text-center" style={{ width: '17%' }}>Confidence</th>
-                  <th className="text-center" style={{ width: '15%' }}>Status</th>
+                  <th className="dv-col-field">Field</th>
+                  <th className="dv-col-value">Value</th>
+                  <th className="text-center dv-col-confidence">Confidence</th>
+                  <th className="text-center dv-col-status">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -560,9 +511,7 @@ function DocumentValidation() {
           <span className="dv-timestamps__item">
             <i className="bi bi-clock-history"></i>
             <strong>Created</strong>
-            {document.created_at
-              ? new Date(document.created_at).toLocaleString()
-              : 'N/A'}
+            {formatDateTime(document.created_at)}
           </span>
 
           {document.validated_at && (
@@ -571,7 +520,7 @@ function DocumentValidation() {
               <span className="dv-timestamps__item">
                 <i className="bi bi-shield-check"></i>
                 <strong>Validated</strong>
-                {new Date(document.validated_at).toLocaleString()}
+                {formatDateTime(document.validated_at)}
               </span>
             </>
           )}
@@ -580,9 +529,7 @@ function DocumentValidation() {
           <span className="dv-timestamps__item">
             <i className="bi bi-arrow-repeat"></i>
             <strong>Updated</strong>
-            {document.updated_at
-              ? new Date(document.updated_at).toLocaleString()
-              : 'N/A'}
+            {formatDateTime(document.updated_at)}
           </span>
         </div>
       )}

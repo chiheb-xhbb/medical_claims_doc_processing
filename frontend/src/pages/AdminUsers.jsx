@@ -3,7 +3,17 @@ import toast from 'react-hot-toast';
 import api, { getApiErrorMessage } from '../services/api';
 import { getStoredUser } from '../services/auth';
 import { USER_ROLES, USER_ROLE_LABELS } from '../constants/domainLabels';
-import { ConfirmationModal, EmptyState, Loader } from '../ui';
+import {
+  ConfirmationModal,
+  EmptyState,
+  Loader,
+  PageHeader,
+  ListFiltersCard,
+  TablePaginationFooter,
+  UserRoleBadge,
+  AccountStatusBadge,
+} from '../ui';
+import { formatDateTime } from '../utils/formatters';
 import './AdminUsers/AdminUsers.css';
 
 const ROLE_OPTIONS = [
@@ -22,19 +32,6 @@ const CREATE_USER_INITIAL_FORM = {
   is_active: true
 };
 
-const formatDateTime = (value) => {
-  if (!value) {
-    return '-';
-  }
-
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return '-';
-  }
-
-  return parsed.toLocaleString();
-};
-
 const getFirstErrorMessage = (errorValue) => {
   if (!errorValue) {
     return null;
@@ -42,23 +39,6 @@ const getFirstErrorMessage = (errorValue) => {
 
   return Array.isArray(errorValue) ? errorValue[0] : errorValue;
 };
-
-const getRoleBadgeClass = (role) => {
-  if (role === USER_ROLES.ADMIN) {
-    return 'bg-primary-subtle text-primary-emphasis';
-  }
-
-  if (role === USER_ROLES.CLAIMS_MANAGER) {
-    return 'bg-warning-subtle text-warning-emphasis';
-  }
-
-  if (role === USER_ROLES.SUPERVISOR) {
-    return 'bg-success-subtle text-success-emphasis';
-  }
-
-  return 'bg-info-subtle text-info-emphasis';
-};
-
 function AdminUsers() {
   const currentUserId = Number(getStoredUser()?.id || 0);
 
@@ -369,17 +349,13 @@ function AdminUsers() {
 
   return (
     <div className="container py-4 admin-users-page">
-      <div className="mb-4">
-        <h2 className="mb-1 page-title d-flex align-items-center">
-          <i className="bi bi-people me-2 opacity-75"></i>
-          User Management
-        </h2>
-        <p className="text-muted mb-0">
-          Manage platform users, account roles, and account activation status.
-        </p>
-      </div>
+      <PageHeader
+        icon="bi-people"
+        title="User Management"
+        subtitle="Manage platform users, role assignments, and account activation status."
+      />
 
-      <div className="card mb-4">
+      <div className="card mb-4 admin-users-create-card" id="admin-users-create-form">
         <div className="card-header">
           <h6 className="mb-0 d-flex align-items-center">
             <i className="bi bi-person-plus me-2"></i>
@@ -388,7 +364,11 @@ function AdminUsers() {
         </div>
         <div className="card-body">
           <form onSubmit={handleCreateUser} noValidate>
-            <div className="row g-3">
+            <p className="text-muted mb-3 admin-users-create-lead">
+              Add a platform user account with the appropriate role and activation state.
+            </p>
+
+            <div className="row g-3 admin-users-create-grid">
               <div className="col-md-6">
                 <label htmlFor="newUserName" className="form-label">Name</label>
                 <input
@@ -470,7 +450,7 @@ function AdminUsers() {
               </div>
             </div>
 
-            <div className="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mt-4">
+            <div className="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mt-4 admin-users-create-footer">
               <div className="form-check form-switch m-0">
                 <input
                   id="newUserActive"
@@ -503,72 +483,72 @@ function AdminUsers() {
         </div>
       </div>
 
+      <ListFiltersCard className="admin-users-filters-card">
+        <form className="row g-3 align-items-end enterprise-filters-form" onSubmit={handleSearchSubmit}>
+          <div className="col-12 col-lg-5">
+            <label htmlFor="userSearch" className="form-label mb-1">Search</label>
+            <input
+              id="userSearch"
+              type="text"
+              className="form-control"
+              placeholder="Search by name or email"
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              disabled={loading}
+            />
+          </div>
+
+          <div className="col-12 col-md-6 col-lg-2">
+            <label htmlFor="roleFilter" className="form-label mb-1">Role</label>
+            <select
+              id="roleFilter"
+              className="form-select"
+              value={query.role}
+              onChange={handleRoleFilterChange}
+              disabled={loading}
+            >
+              <option value="">All Roles</option>
+              {ROLE_OPTIONS.map((roleValue) => (
+                <option key={roleValue} value={roleValue}>
+                  {USER_ROLE_LABELS[roleValue]}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="col-12 col-md-6 col-lg-2">
+            <label htmlFor="statusFilter" className="form-label mb-1">Status</label>
+            <select
+              id="statusFilter"
+              className="form-select"
+              value={query.status}
+              onChange={handleStatusFilterChange}
+              disabled={loading}
+            >
+              <option value="">All Statuses</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+
+          <div className="col-12 col-md-6 col-lg-3 d-flex gap-2 enterprise-filters-actions">
+            <button type="submit" className="btn btn-primary flex-grow-1" disabled={loading}>
+              <i className="bi bi-search" aria-hidden="true"></i>
+              Search
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline-secondary"
+              onClick={handleResetFilters}
+              disabled={loading || !hasActiveFilters}
+            >
+              Reset
+            </button>
+          </div>
+        </form>
+      </ListFiltersCard>
+
       <div className="card">
-        <div className="card-header admin-users-filters">
-          <form className="row g-2 align-items-end w-100 m-0" onSubmit={handleSearchSubmit}>
-            <div className="col-md-5">
-              <label htmlFor="userSearch" className="form-label mb-1">Search</label>
-              <input
-                id="userSearch"
-                type="text"
-                className="form-control"
-                placeholder="Search by name or email"
-                value={searchInput}
-                onChange={(event) => setSearchInput(event.target.value)}
-                disabled={loading}
-              />
-            </div>
-
-            <div className="col-md-2">
-              <label htmlFor="roleFilter" className="form-label mb-1">Role</label>
-              <select
-                id="roleFilter"
-                className="form-select"
-                value={query.role}
-                onChange={handleRoleFilterChange}
-                disabled={loading}
-              >
-                <option value="">All</option>
-                {ROLE_OPTIONS.map((roleValue) => (
-                  <option key={roleValue} value={roleValue}>
-                    {USER_ROLE_LABELS[roleValue]}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="col-md-2">
-              <label htmlFor="statusFilter" className="form-label mb-1">Status</label>
-              <select
-                id="statusFilter"
-                className="form-select"
-                value={query.status}
-                onChange={handleStatusFilterChange}
-                disabled={loading}
-              >
-                <option value="">All</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
-            </div>
-
-            <div className="col-md-3 d-flex gap-2">
-              <button type="submit" className="btn btn-outline-primary flex-grow-1" disabled={loading}>
-                <i className="bi bi-search"></i>
-                Search
-              </button>
-              <button
-                type="button"
-                className="btn btn-outline-secondary"
-                onClick={handleResetFilters}
-                disabled={loading || !hasActiveFilters}
-              >
-                Reset
-              </button>
-            </div>
-          </form>
-        </div>
-
         {loading && users.length === 0 ? (
           <div className="card-body">
             <Loader message="Loading users..." size="md" />
@@ -618,19 +598,15 @@ function AdminUsers() {
                         <td className="fw-semibold">{user.name || '-'}</td>
                         <td className="admin-users-email-cell">{user.email || '-'}</td>
                         <td>
-                          <span className={`badge ${getRoleBadgeClass(user.role)} admin-users-role-badge`}>
-                            {USER_ROLE_LABELS[user.role] || user.role || '-'}
-                          </span>
+                          <UserRoleBadge role={user.role} className="admin-users-role-badge" />
                         </td>
                         <td>
-                          <span className={`badge ${user.is_active ? 'bg-success-subtle text-success-emphasis' : 'bg-danger-subtle text-danger-emphasis'} admin-users-status-badge`}>
-                            {user.is_active ? 'Active' : 'Inactive'}
-                          </span>
+                          <AccountStatusBadge isActive={user.is_active} className="admin-users-status-badge" />
                         </td>
-                        <td>{formatDateTime(user.created_at)}</td>
-                        <td>
+                        <td className="cell-date">{formatDateTime(user.created_at)}</td>
+                        <td className="cell-actions">
                           <div className="admin-users-actions">
-                            <div className="input-group input-group-sm">
+                            <div className="input-group input-group-sm admin-users-actions__role-row">
                               <select
                                 className="form-select admin-users-role-select"
                                 value={selectedRole}
@@ -654,19 +630,22 @@ function AdminUsers() {
                               </button>
                             </div>
 
-                            <button
-                              type="button"
-                              className={`btn btn-sm ${user.is_active ? 'btn-outline-danger' : 'btn-outline-success'}`}
-                              onClick={() => openStatusModal(user)}
-                              disabled={isUpdatingRole || isUpdatingStatus || !canDeactivate}
-                              title={!canDeactivate ? 'You cannot deactivate your own account.' : undefined}
-                            >
-                              {isUpdatingStatus
-                                ? 'Saving...'
-                                : user.is_active
-                                  ? 'Deactivate'
-                                  : 'Activate'}
-                            </button>
+                            <div className="admin-users-actions__status-row">
+                              <span className="admin-users-actions__status-label">Account</span>
+                              <button
+                                type="button"
+                                className={`btn btn-sm admin-users-status-toggle ${user.is_active ? 'btn-outline-danger' : 'btn-outline-success'}`}
+                                onClick={() => openStatusModal(user)}
+                                disabled={isUpdatingRole || isUpdatingStatus || !canDeactivate}
+                                title={!canDeactivate ? 'You cannot deactivate your own account.' : undefined}
+                              >
+                                {isUpdatingStatus
+                                  ? 'Saving...'
+                                  : user.is_active
+                                    ? 'Deactivate'
+                                    : 'Activate'}
+                              </button>
+                            </div>
                           </div>
                         </td>
                       </tr>
@@ -675,34 +654,14 @@ function AdminUsers() {
                 </tbody>
               </table>
             </div>
-
-            <div className="card-footer bg-white d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-              <span className="pagination-info d-inline-flex align-items-center gap-2">
-                <i className="bi bi-grid-3x3-gap"></i>
-                Page {pagination.currentPage} of {pagination.lastPage} ({pagination.total} total users)
-              </span>
-
-              <div className="btn-group pagination-controls">
-                <button
-                  className="btn btn-outline-primary btn-sm"
-                  onClick={() => handlePageChange(pagination.currentPage - 1)}
-                  disabled={pagination.currentPage === 1 || loading}
-                  type="button"
-                >
-                  <i className="bi bi-chevron-left me-1"></i>
-                  Previous
-                </button>
-                <button
-                  className="btn btn-outline-primary btn-sm"
-                  onClick={() => handlePageChange(pagination.currentPage + 1)}
-                  disabled={pagination.currentPage === pagination.lastPage || loading}
-                  type="button"
-                >
-                  Next
-                  <i className="bi bi-chevron-right ms-1"></i>
-                </button>
-              </div>
-            </div>
+            <TablePaginationFooter
+              currentPage={pagination.currentPage}
+              lastPage={pagination.lastPage}
+              total={pagination.total}
+              summaryLabel="users"
+              onPageChange={handlePageChange}
+              disabled={loading}
+            />
           </>
         )}
       </div>

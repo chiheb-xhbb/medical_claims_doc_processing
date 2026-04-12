@@ -24,7 +24,8 @@ import {
   returnToClaimsManager,
   requestComplement,
 } from '../services/dossierWorkflow';
-import { Loader, EmptyState, ConfirmationModal } from '../ui';
+import { Loader, EmptyState, ConfirmationModal, PageHeader, WorkflowBanner } from '../ui';
+import { formatAmountTnd, formatDisplayAmountTnd, formatDateTime } from '../utils/formatters';
 import DossierSummaryCard from './DossierDetail/components/DossierSummaryCard';
 import WorkflowActionsCard from './DossierDetail/components/WorkflowActionsCard';
 import RubriquesSection from './DossierDetail/components/RubriquesSection';
@@ -33,6 +34,7 @@ import RejectDocumentModal from './DossierDetail/components/RejectDocumentModal'
 import RejectRubriqueModal from './DossierDetail/components/RejectRubriqueModal';
 import EscalationInfoBlock from './DossierDetail/components/EscalationInfoBlock';
 import SupervisorActionPanel from './DossierDetail/components/SupervisorActionPanel';
+import DossierModalShell from './DossierDetail/components/DossierModalShell';
 import './DossierDetail/DossierDetail.css';
 
 const DOSSIER_FROZEN_STATUSES = [DOSSIER_STATUSES.PROCESSED];
@@ -47,41 +49,6 @@ const INITIAL_CONFIRMATION_MODAL = {
   confirmVariant: 'primary',
   initialFocus: 'confirm',
   payload: null
-};
-
-const formatAmount = (value) => {
-  const amount = Number(value);
-  if (Number.isNaN(amount)) {
-    return '-';
-  }
-
-  return `${amount.toFixed(3)} TND`;
-};
-
-const formatDisplayTotal = (value) => {
-  if (value === null || value === undefined || value === '') {
-    return '-';
-  }
-
-  const numeric = formatAmount(value);
-  if (numeric !== '-') {
-    return numeric;
-  }
-
-  return String(value);
-};
-
-const formatDateTime = (value) => {
-  if (!value) {
-    return '-';
-  }
-
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return '-';
-  }
-
-  return parsed.toLocaleString();
 };
 
 const formatApiError = (error, fallbackMessage) => {
@@ -802,70 +769,77 @@ function DossierDetail() {
 
   return (
     <div className="container py-4 dossier-detail-page" aria-busy={isRefreshingDetail}>
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="mb-0 page-title d-flex align-items-center">
-          <i className="bi bi-folder2-open me-2 opacity-75"></i>
-          Case File Details
-        </h2>
-
-        <button
-          type="button"
-          className="btn btn-outline-primary page-back-btn"
-          onClick={() => navigate('/dossiers')}
-        >
-          <i className="bi bi-arrow-left" aria-hidden="true"></i>
-          Back to Case Files
-        </button>
-      </div>
+      <PageHeader
+        icon="bi-folder2-open"
+        title="Case File Details"
+        subtitle="Review dossier identity, workflow state, escalation history, and section-level document decisions."
+        action={
+          <button
+            type="button"
+            className="btn btn-outline-primary page-back-btn"
+            onClick={() => navigate('/dossiers')}
+          >
+            <i className="bi bi-arrow-left me-2" aria-hidden="true" />
+            Back to Case Files
+          </button>
+        }
+      />
 
       {isFrozen && (
-        <div className="alert alert-warning finalized-banner mb-4">
-          <strong>Finalized case file.</strong> This case file is {dossierStatusLabel} and is now read-only.
-        </div>
+        <WorkflowBanner
+          title="Finalized case file"
+          variant="success"
+          icon="bi-lock-fill"
+        >
+          This case file is {dossierStatusLabel} and is now read-only.
+        </WorkflowBanner>
       )}
 
       {dossierStatus === DOSSIER_STATUSES.IN_ESCALATION && !isSupervisor && (
-        <div className="alert escalation-notice mb-4" role="alert">
-          <i className="bi bi-diagram-3 me-2" aria-hidden="true"></i>
-          <span>
-            <strong>Pending supervisor review.</strong> This case file has been escalated to the Supervisor and is awaiting a decision.
-          </span>
-        </div>
+        <WorkflowBanner
+          title="Pending supervisor review"
+          variant="warning"
+          icon="bi-diagram-3"
+        >
+          This case file has been escalated to the Supervisor and is awaiting a decision.
+        </WorkflowBanner>
       )}
 
       {isReturnedForClaimsReview && canReview && (
-        <div className="alert returned-warning mb-4" role="alert">
-          <div>
-            <i className="bi bi-arrow-return-left me-2" aria-hidden="true"></i>
-            <strong>Returned by Supervisor</strong>
-          </div>
-          <p className="mb-0 mt-2">
-            Re-review mode: previous document decisions are preserved below and can be updated.
-          </p>
+        <WorkflowBanner
+          title="Returned by Supervisor"
+          variant="warning"
+          icon="bi-arrow-return-left"
+        >
+          Re-review mode: previous document decisions are preserved below and can be updated.
           {dossier.chef_decision_note && (
-            <p className="mb-0 mt-2">Supervisor note: {dossier.chef_decision_note}</p>
+            <div className="mt-1">
+              <strong>Note:</strong> {dossier.chef_decision_note}
+            </div>
           )}
-        </div>
+        </WorkflowBanner>
       )}
 
       {isComplementPending && isDossierOwnedByCurrentUser && (
-        <div className="alert complement-alert mb-4" role="alert">
-          <div>
-            <i className="bi bi-file-earmark-plus me-2" aria-hidden="true"></i>
-            <strong>Complement Required</strong>
-          </div>
+        <WorkflowBanner
+          title="Complement Required"
+          variant="warning"
+          icon="bi-file-earmark-plus"
+        >
           {dossier.chef_decision_note && (
-            <p className="mb-0 mt-2">{dossier.chef_decision_note}</p>
+            <div>
+              <strong>Note:</strong> {dossier.chef_decision_note}
+            </div>
           )}
-        </div>
+        </WorkflowBanner>
       )}
 
       <DossierSummaryCard
         dossier={dossier}
         dossierData={dossierData}
-        formatAmount={formatAmount}
+        formatAmount={formatAmountTnd}
         formatDateTime={formatDateTime}
-        formatDisplayTotal={formatDisplayTotal}
+        formatDisplayTotal={formatDisplayAmountTnd}
       />
 
       <EscalationInfoBlock dossier={dossier} formatDateTime={formatDateTime} />
@@ -900,66 +874,70 @@ function DossierDetail() {
 
       {canEscalate && (
         <div className="card mb-4">
-          <div className="card-header d-flex align-items-center gap-2">
-            <i className="bi bi-diagram-3 text-muted" aria-hidden="true"></i>
-            <h6 className="mb-0">Escalation</h6>
-          </div>
-          <div className="card-body">
-            {!escalateModalOpen ? (
-              <div>
-                <p className="text-muted mb-3">
-                  Escalate this case file to the Supervisor for review if standard processing is not applicable.
-                </p>
-                <button
-                  type="button"
-                  className="btn btn-outline-danger"
-                  onClick={() => setEscalateModalOpen(true)}
-                  disabled={isEscalatingDossier}
-                >
-                  <i className="bi bi-diagram-3 me-2" aria-hidden="true"></i>
-                  Escalate to Supervisor
-                </button>
-              </div>
-            ) : (
-              <div style={{ maxWidth: 640 }}>
-                <div className="mb-3">
-                  <label htmlFor="escalation-reason" className="form-label">
-                    Escalation Reason <span className="text-danger">*</span>
-                  </label>
-                  <textarea
-                    id="escalation-reason"
-                    className="form-control"
-                    rows={3}
-                    value={escalationReason}
-                    onChange={(e) => setEscalationReason(e.target.value)}
-                    placeholder="Describe why this case file requires supervisor review..."
-                    disabled={isEscalatingDossier}
-                    autoFocus
-                  />
-                </div>
-                <div className="d-flex gap-2 justify-content-end">
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary"
-                    onClick={() => { setEscalateModalOpen(false); setEscalationReason(''); }}
-                    disabled={isEscalatingDossier}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-danger"
-                    onClick={handleEscalateConfirm}
-                    disabled={isEscalatingDossier || !escalationReason.trim()}
-                  >
-                    {isEscalatingDossier ? 'Escalating...' : 'Confirm Escalation'}
-                  </button>
-                </div>
-              </div>
-            )}
+          <div className="workflow-action-toolbar">
+            <h6 className="mb-0 d-flex align-items-center workflow-action-toolbar__title">
+              <i className="bi bi-diagram-3 me-2" aria-hidden="true" />
+              Escalation
+            </h6>
+            <div className="workflow-action-toolbar__controls">
+              <button
+                type="button"
+                className="btn btn-outline-warning workflow-level-action-btn escalation-panel__trigger"
+                onClick={() => setEscalateModalOpen(true)}
+                disabled={isEscalatingDossier}
+              >
+                <i className="bi bi-diagram-3 me-2" aria-hidden="true" />
+                Escalate to Supervisor
+              </button>
+            </div>
           </div>
         </div>
       )}
+
+      <DossierModalShell
+        isOpen={escalateModalOpen}
+        title="Escalate to Supervisor"
+        onClose={() => { setEscalateModalOpen(false); setEscalationReason(''); }}
+        isBusy={isEscalatingDossier}
+        initialFocus="secondary"
+        className="dossier-decision-modal"
+        footer={
+          <>
+            <button
+              type="button"
+              className="btn btn-outline-secondary"
+              onClick={() => { setEscalateModalOpen(false); setEscalationReason(''); }}
+              disabled={isEscalatingDossier}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn btn-warning"
+              onClick={handleEscalateConfirm}
+              disabled={isEscalatingDossier || !escalationReason.trim()}
+            >
+              {isEscalatingDossier ? 'Escalating...' : 'Confirm Escalation'}
+            </button>
+          </>
+        }
+      >
+        <div>
+          <label htmlFor="escalation-reason" className="form-label workflow-modal-label">
+            Escalation Reason <span className="text-danger">*</span>
+          </label>
+          <textarea
+            id="escalation-reason"
+            className="form-control workflow-modal-textarea"
+            rows={3}
+            value={escalationReason}
+            onChange={(e) => setEscalationReason(e.target.value)}
+            placeholder="Describe why this case file requires supervisor review..."
+            disabled={isEscalatingDossier}
+            autoFocus
+          />
+        </div>
+      </DossierModalShell>
 
       <RubriquesSection
         rubriques={rubriques}
@@ -981,7 +959,7 @@ function DossierDetail() {
         handleAcceptDocument={handleAcceptDocument}
         openRejectDocumentModal={openRejectDocumentModal}
         requestDetachDocument={requestDetachDocument}
-        formatAmount={formatAmount}
+        formatAmount={formatAmountTnd}
       />
 
       <AttachDocumentsModal

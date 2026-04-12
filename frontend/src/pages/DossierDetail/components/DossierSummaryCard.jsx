@@ -1,90 +1,85 @@
-import { DOSSIER_STATUSES, DOSSIER_STATUS_LABELS } from '../../../constants/domainLabels';
-
-function getDossierStatusClass(status) {
-  switch ((status || '').toUpperCase()) {
-    case DOSSIER_STATUSES.IN_ESCALATION: return 'badge dossier-status dossier-status--in-escalation';
-    case DOSSIER_STATUSES.AWAITING_COMPLEMENT: return 'badge dossier-status dossier-status--awaiting-complement';
-    case DOSSIER_STATUSES.PROCESSED: return 'badge dossier-status dossier-status--processed';
-    case DOSSIER_STATUSES.UNDER_REVIEW: return 'badge dossier-status dossier-status--under-review';
-    default: return 'badge bg-primary-subtle text-primary-emphasis dossier-status';
-  }
-}
+import { CaseFileStatusBadge } from '../../../ui';
 
 function DossierSummaryCard({ dossier, dossierData, formatAmount, formatDateTime, formatDisplayTotal }) {
-  const normalizedStatus = (dossier.status || '').toUpperCase();
-
   return (
-    <div className="card mb-4">
+    <div className="card mb-4 dossier-summary-card">
       <div className="card-header bg-primary text-white">
-        <h5 className="mb-0 d-flex align-items-center">
-          <i className="bi bi-briefcase me-2"></i>
-          {dossier.numero_dossier || 'Case File'}
-        </h5>
+        <div className="dossier-summary-card__hero">
+          <div className="dossier-summary-card__hero-id">
+            <i className="bi bi-briefcase me-2" aria-hidden="true" />
+            <span className="dossier-summary-card__case-number">
+              {dossier.numero_dossier || 'Case File'}
+            </span>
+          </div>
+          <div className="dossier-summary-card__status-block" aria-label="Case file status">
+            <CaseFileStatusBadge status={dossier.status} variant="hero" />
+          </div>
+        </div>
+
+        {dossier.assured_identifier && (
+          <div className="dossier-summary-card__assured">
+            <i className="bi bi-person-badge me-2 opacity-75" aria-hidden="true" />
+            Assured: {dossier.assured_identifier}
+          </div>
+        )}
       </div>
+
       <div className="card-body">
-        <div className="row g-4">
-          <div className="col-md-6 col-lg-4">
-            <div className="detail-item">
-              <p className="detail-label mb-1">Assured Identifier</p>
-              <p className="detail-value mb-0">{dossier.assured_identifier || '-'}</p>
+        <div className="row g-2 mb-3 dossier-summary-card__totals-row">
+          <div className="col-sm-6 col-lg-3">
+            <div className="summary-detail-item summary-detail-item--total">
+              <p className="summary-detail-label">Requested Total</p>
+              <p className="summary-detail-value summary-detail-value--total">{formatAmount(dossierData?.requested_total)}</p>
             </div>
           </div>
-          <div className="col-md-6 col-lg-4">
-            <div className="detail-item">
-              <p className="detail-label mb-1">Status</p>
-              <p className="detail-value mb-0">
-                <span className={getDossierStatusClass(dossier.status)}>
-                  {DOSSIER_STATUS_LABELS[normalizedStatus] || normalizedStatus || '-'}
-                </span>
-              </p>
+          <div className="col-sm-6 col-lg-3">
+            <div className="summary-detail-item summary-detail-item--total">
+              <p className="summary-detail-label">Current Total</p>
+              <p className="summary-detail-value summary-detail-value--total">{formatAmount(dossierData?.current_total)}</p>
             </div>
           </div>
-          <div className="col-md-6 col-lg-4">
-            <div className="detail-item">
-              <p className="detail-label mb-1">Stored Total</p>
-              <p className="detail-value mb-0">{formatAmount(dossier.montant_total)}</p>
+          <div className="col-sm-6 col-lg-3">
+            <div className="summary-detail-item summary-detail-item--total">
+              <p className="summary-detail-label">Display Total</p>
+              <p className="summary-detail-value summary-detail-value--total">{formatDisplayTotal(dossierData?.display_total)}</p>
             </div>
           </div>
-          <div className="col-md-6">
-            <div className="detail-item">
-              <p className="detail-label mb-1">Episode Description</p>
-              <p className="detail-value mb-0">{dossier.episode_description || '-'}</p>
+          <div className="col-sm-6 col-lg-3">
+            <div className="summary-detail-item summary-detail-item--total">
+              <p className="summary-detail-label">Stored Total</p>
+              <p className="summary-detail-value summary-detail-value--total">{formatAmount(dossier.montant_total)}</p>
             </div>
           </div>
-          <div className="col-md-6">
-            <div className="detail-item">
-              <p className="detail-label mb-1">Notes</p>
-              <p className="detail-value mb-0">{dossier.notes || '-'}</p>
+        </div>
+
+        <div className="row g-3">
+          {dossier.episode_description && (
+            <div className="col-md-6">
+              <div className="summary-detail-item summary-detail-item--secondary">
+                <p className="summary-detail-label">Episode Description</p>
+                <p className="summary-detail-value">{dossier.episode_description}</p>
+              </div>
             </div>
-          </div>
-          <div className="col-md-6 col-lg-4">
-            <div className="detail-item">
-              <p className="detail-label mb-1">Created At</p>
-              <p className="detail-value mb-0">{formatDateTime(dossier.created_at)}</p>
+          )}
+          {dossier.notes && (
+            <div className="col-md-6">
+              <div className="summary-detail-item summary-detail-item--secondary">
+                <p className="summary-detail-label">Notes</p>
+                <p className="summary-detail-value">{dossier.notes}</p>
+              </div>
             </div>
-          </div>
-          <div className="col-md-6 col-lg-4">
-            <div className="detail-item">
-              <p className="detail-label mb-1">Updated At</p>
-              <p className="detail-value mb-0">{formatDateTime(dossier.updated_at)}</p>
-            </div>
-          </div>
-          <div className="col-md-4">
-            <div className="detail-item">
-              <p className="detail-label mb-1">Requested Total</p>
-              <p className="detail-value mb-0">{formatAmount(dossierData?.requested_total)}</p>
-            </div>
-          </div>
-          <div className="col-md-4">
-            <div className="detail-item">
-              <p className="detail-label mb-1">Current Total</p>
-              <p className="detail-value mb-0">{formatAmount(dossierData?.current_total)}</p>
-            </div>
-          </div>
-          <div className="col-md-4">
-            <div className="detail-item">
-              <p className="detail-label mb-1">Display Total</p>
-              <p className="detail-value mb-0">{formatDisplayTotal(dossierData?.display_total)}</p>
+          )}
+
+          <div className="col-12">
+            <div className="summary-meta-strip">
+              <div className="summary-meta-item">
+                <span className="summary-meta-item__label">Created</span>
+                <span className="summary-meta-item__value">{formatDateTime(dossier.created_at)}</span>
+              </div>
+              <div className="summary-meta-item">
+                <span className="summary-meta-item__label">Updated</span>
+                <span className="summary-meta-item__value">{formatDateTime(dossier.updated_at)}</span>
+              </div>
             </div>
           </div>
         </div>

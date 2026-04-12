@@ -9,7 +9,15 @@ import {
   DOSSIER_STATUS_LABELS
 } from '../constants/domainLabels';
 import DossierCreateModal from '../components/DossierCreateModal';
-import { EmptyState, ConfirmationModal, SortableHeader } from '../ui';
+import {
+  EmptyState,
+  ConfirmationModal,
+  SortableHeader,
+  PageHeader,
+  CaseFileStatusBadge,
+  ListFiltersCard,
+  TablePaginationFooter,
+} from '../ui';
 import {
   normalizeListFilters,
   buildListQueryParams,
@@ -17,6 +25,7 @@ import {
   hasAnyListFilter,
   isDefaultSort
 } from '../utils/listQueryUtils';
+import { formatAmountTnd, formatShortDate } from '../utils/formatters';
 import './DossiersList/DossiersList.css';
 
 const DOSSIER_STATUS_OPTIONS = {
@@ -116,49 +125,6 @@ const getRolePageConfig = (role) => {
     canCreateDossier: false
   };
 };
-
-const formatAmount = (value) => {
-  const amount = Number(value);
-  if (Number.isNaN(amount)) {
-    return '-';
-  }
-
-  return `${amount.toFixed(3)} TND`;
-};
-
-const formatDate = (value) => {
-  if (!value) {
-    return '-';
-  }
-
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return '-';
-  }
-
-  return parsed.toLocaleDateString();
-};
-
-const getDossierStatusBadgeClass = (status) => {
-  switch (status) {
-    case DOSSIER_STATUSES.PROCESSED: return 'bg-success-subtle text-success-emphasis';
-    case DOSSIER_STATUSES.UNDER_REVIEW: return 'bg-warning-subtle text-warning-emphasis';
-    case DOSSIER_STATUSES.IN_ESCALATION: return 'bg-danger-subtle text-danger-emphasis';
-    case DOSSIER_STATUSES.AWAITING_COMPLEMENT: return 'bg-info-subtle text-info-emphasis';
-    case DOSSIER_STATUSES.IN_PROGRESS: return 'bg-primary-subtle text-primary-emphasis';
-    default: return 'bg-secondary-subtle text-secondary-emphasis';
-  }
-};
-
-function DossierStatusBadge({ status }) {
-  const normalizedStatus = (status || '').toString().toUpperCase();
-
-  return (
-    <span className={`badge ${getDossierStatusBadgeClass(normalizedStatus)} dossier-status`}>
-      {DOSSIER_STATUS_LABELS[normalizedStatus] || normalizedStatus || '-'}
-    </span>
-  );
-}
 
 function DossiersList() {
   const navigate = useNavigate();
@@ -404,26 +370,23 @@ function DossiersList() {
 
   return (
     <div className="container py-4 dossiers-list">
-      <div className="d-flex justify-content-between align-items-center mb-4 dossiers-list-header">
-        <div>
-          <h2 className="mb-1 page-title d-flex align-items-center">
-            <i className="bi bi-briefcase me-2 opacity-75"></i>
-            {pageConfig.title}
-          </h2>
-          <p className="text-muted mb-0">{pageConfig.subtitle}</p>
-        </div>
-
-        {pageConfig.canCreateDossier && (
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => setCreateModalOpen(true)}
-          >
-            <i className="bi bi-plus-circle me-2"></i>
-            {pageConfig.createButtonLabel}
-          </button>
-        )}
-      </div>
+      <PageHeader
+        icon="bi-briefcase"
+        title={pageConfig.title}
+        subtitle={pageConfig.subtitle}
+        action={
+          pageConfig.canCreateDossier && (
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => setCreateModalOpen(true)}
+            >
+              <i className="bi bi-plus-circle me-2" aria-hidden="true" />
+              {pageConfig.createButtonLabel}
+            </button>
+          )
+        }
+      />
 
       {accessDeniedMessage && (
         <div className="alert alert-warning d-flex align-items-center mb-3" role="alert">
@@ -432,9 +395,8 @@ function DossiersList() {
         </div>
       )}
 
-      <div className="card dossiers-filters-card mb-4">
-        <div className="card-body">
-          <form className="row g-3 align-items-end dossiers-filters-form" onSubmit={handleApplyFilters}>
+      <ListFiltersCard className="dossiers-filters-card">
+        <form className="row g-3 align-items-end enterprise-filters-form" onSubmit={handleApplyFilters}>
             <div className="col-12 col-lg-4">
               <label htmlFor="dossiersSearch" className="form-label mb-1">Search</label>
               <input
@@ -490,7 +452,7 @@ function DossiersList() {
               />
             </div>
 
-            <div className="col-12 col-md-6 col-lg-2 d-flex gap-2 dossiers-filters-actions">
+            <div className="col-12 col-md-6 col-lg-2 d-flex gap-2 enterprise-filters-actions">
               <button type="submit" className="btn btn-primary flex-grow-1" disabled={loading}>
                 <i className="bi bi-funnel"></i>
                 Apply
@@ -504,9 +466,8 @@ function DossiersList() {
                 Reset
               </button>
             </div>
-          </form>
-        </div>
-      </div>
+        </form>
+      </ListFiltersCard>
 
       <div className="card">
         <div className="table-section-shell">
@@ -571,26 +532,26 @@ function DossiersList() {
                     <tr key={dossier.id} className={rowAccentClass}>
                       <td className="fw-semibold">{dossier.numero_dossier || '-'}</td>
                       <td>{dossier.assured_identifier || '-'}</td>
-                      <td>
-                        <DossierStatusBadge status={dossier.status} />
+                      <td className="dossiers-status-cell">
+                        <CaseFileStatusBadge status={dossier.status} variant="table" />
                       </td>
-                      <td>{formatAmount(dossier.montant_total)}</td>
-                      <td>{documentsCount}</td>
-                      <td>{formatDate(dossier.created_at)}</td>
-                      <td>
-                        <div className="d-flex gap-2 align-items-center">
+                      <td className="cell-numeric">{formatAmountTnd(dossier.montant_total)}</td>
+                      <td className="cell-numeric">{documentsCount}</td>
+                      <td className="cell-date">{formatShortDate(dossier.created_at)}</td>
+                      <td className="cell-actions">
+                        <div className="dossiers-actions-wrap d-flex gap-2 align-items-center">
                           <button
-                            className="btn btn-outline-primary btn-sm"
+                            className="btn btn-outline-primary btn-sm dossiers-action-btn dossiers-action-btn--details"
                             onClick={() => navigate(`/dossiers/${dossier.id}`)}
                           >
-                            <i className="bi bi-eye me-1"></i>
+                            <i className="bi bi-eye dossiers-action-btn__icon" aria-hidden="true"></i>
                             {role === USER_ROLES.SUPERVISOR ? 'Review' : 'Details'}
                           </button>
 
                           {canDeleteDossier(dossier) && (
                             <button
                               type="button"
-                              className="btn btn-outline-danger btn-sm"
+                              className="btn btn-outline-danger btn-sm dossiers-action-btn dossiers-action-btn--delete"
                               onClick={() => requestDeleteDossier(dossier)}
                               disabled={isDeleteConfirming || deletingDossierId === dossier.id}
                             >
@@ -651,33 +612,13 @@ function DossiersList() {
             </table>
           </div>
         </div>
-
-        <div className="card-footer bg-white d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-          <span className="pagination-info d-inline-flex align-items-center gap-2">
-            <i className="bi bi-grid-3x3-gap"></i>
-            Page {currentPage} of {lastPage} ({total} total case files)
-          </span>
-
-          <div className="btn-group pagination-controls">
-            <button
-              className="btn btn-outline-primary btn-sm"
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-            >
-              <i className="bi bi-chevron-left me-1"></i>
-              Previous
-            </button>
-
-            <button
-              className="btn btn-outline-primary btn-sm"
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === lastPage}
-            >
-              Next
-              <i className="bi bi-chevron-right ms-1"></i>
-            </button>
-          </div>
-        </div>
+        <TablePaginationFooter
+          currentPage={currentPage}
+          lastPage={lastPage}
+          total={total}
+          summaryLabel="case files"
+          onPageChange={handlePageChange}
+        />
       </div>
 
       <DossierCreateModal
