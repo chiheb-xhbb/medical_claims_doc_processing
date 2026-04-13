@@ -122,4 +122,22 @@ class AuthController extends Controller
             'is_active' => (bool) $user->is_active,
         ];
     }
+    /** Change the authenticated user's password. */
+    public function changePassword(Request $request)
+    {
+        $validated = $request->validate([
+            'current_password' => ['required', 'current_password'],
+            'password' => ['required', 'string', 'min:8', 'confirmed', 'different:current_password'],
+        ]);
+
+        /** @var User $user */
+        $user = $request->user();
+
+        $user->password = Hash::make($validated['password']);
+        $user->save();
+
+        return response()->json([
+            'message' => 'Password changed successfully.',
+        ], 200);
+    }
 }

@@ -23,6 +23,7 @@ Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
     // Auth
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
+    Route::post('/auth/change-password', [AuthController::class, 'changePassword']);
 
     // Documents
     Route::prefix('documents')->group(function () {

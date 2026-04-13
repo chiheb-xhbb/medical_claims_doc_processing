@@ -240,8 +240,9 @@ function RubriquesSection({
                   </div>
 
                   <div className="card-body">
-                    <p className="mb-3 text-muted rubrique-card__notes">{rubrique.notes || 'No notes for this section.'}</p>
-
+                    {rubrique.notes?.trim() && (
+                      <p className="mb-3 text-muted rubrique-card__notes">{rubrique.notes.trim()}</p>
+                    )}
                     {rubriqueDocuments.length === 0 ? (
                       <div className="rubrique-empty-compact">
                         <div className="d-flex align-items-center gap-2 text-muted rubrique-empty-text">

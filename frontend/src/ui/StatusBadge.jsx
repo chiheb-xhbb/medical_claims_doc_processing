@@ -5,7 +5,7 @@ const STATUS_CONFIG = {
     icon: 'bi-cloud-upload'
   },
   PROCESSING: {
-    className: 'bg-warning text-dark',
+    className: 'bg-secondary',
     label: 'Processing',
     spinner: true
   },

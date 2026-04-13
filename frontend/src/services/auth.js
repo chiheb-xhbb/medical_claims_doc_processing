@@ -4,8 +4,10 @@ import { USER_ROLES } from '../constants/domainLabels';
 
 const AUTH_TOKEN_KEY = 'token';
 const AUTH_USER_KEY = 'auth_user';
+
 export { AUTH_CHANGED_EVENT };
 
+// Normalize the stored user shape, especially the role value.
 const normalizeUser = (user) => {
   if (!user || typeof user !== 'object') {
     return null;
@@ -20,10 +22,12 @@ const normalizeUser = (user) => {
   };
 };
 
+// Notify the app that the authentication state changed.
 const notifyAuthChanged = () => {
   window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
 };
 
+// Save the user in localStorage after normalizing it.
 const storeUser = (user) => {
   const normalized = normalizeUser(user);
 
@@ -36,6 +40,7 @@ const storeUser = (user) => {
   return normalized;
 };
 
+// Read the stored user from localStorage safely.
 export function getStoredUser() {
   const raw = localStorage.getItem(AUTH_USER_KEY);
   if (!raw) {
@@ -50,10 +55,12 @@ export function getStoredUser() {
   }
 }
 
+// Get the current stored role quickly.
 export function getStoredRole() {
   return getStoredUser()?.role || null;
 }
 
+// Read and clear any auth feedback message saved for the login page.
 export function consumeAuthFeedback() {
   const message = sessionStorage.getItem(AUTH_FEEDBACK_KEY);
 
@@ -65,6 +72,7 @@ export function consumeAuthFeedback() {
   return message;
 }
 
+// Return the default page for a given role after login.
 export function getDefaultLandingPath(role = getStoredRole()) {
   if (
     role === USER_ROLES.CLAIMS_MANAGER ||
@@ -77,6 +85,7 @@ export function getDefaultLandingPath(role = getStoredRole()) {
   return '/documents';
 }
 
+// Log in the user, store the token, and persist the user info.
 export async function login(email, password) {
   const response = await api.post('/login', { email, password });
   const { token, user } = response.data;
@@ -87,15 +96,15 @@ export async function login(email, password) {
 
   const normalizedUser = storeUser(user);
   notifyAuthChanged();
-  
+
   return { token, user: normalizedUser };
 }
 
+// Log out the user and clear the local session state.
 export async function logout() {
   try {
     await api.post('/logout');
   } finally {
-    // Clear client session even when /logout errors
     localStorage.removeItem(AUTH_TOKEN_KEY);
     localStorage.removeItem(AUTH_USER_KEY);
     sessionStorage.removeItem(AUTH_FEEDBACK_KEY);
@@ -104,6 +113,7 @@ export async function logout() {
   }
 }
 
+// Refresh the current authenticated user from the backend.
 export async function getCurrentUser() {
   const response = await api.get('/me');
   const user = storeUser(response.data.user);
@@ -111,6 +121,18 @@ export async function getCurrentUser() {
   return user;
 }
 
+// Check whether a token exists in localStorage.
 export function isAuthenticated() {
   return !!localStorage.getItem(AUTH_TOKEN_KEY);
+}
+
+// Let the authenticated user change their own password.
+export async function changePassword(currentPassword, newPassword, newPasswordConfirmation) {
+  const response = await api.post('/auth/change-password', {
+    current_password: currentPassword,
+    password: newPassword,
+    password_confirmation: newPasswordConfirmation,
+  });
+
+  return response.data;
 }
