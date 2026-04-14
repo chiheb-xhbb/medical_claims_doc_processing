@@ -74,5 +74,6 @@ Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
         Route::post('/users', [AdminUserController::class, 'store']);
         Route::patch('/users/{user}/role', [AdminUserController::class, 'updateRole']);
         Route::patch('/users/{user}/status', [AdminUserController::class, 'updateStatus']);
+        Route::patch('/users/{user}/password', [AdminUserController::class, 'resetPassword']);
     });
 });

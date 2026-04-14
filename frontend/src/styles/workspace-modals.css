@@ -35,6 +35,10 @@
   outline: none;
 }
 
+.workspace-modal-dialog--sm {
+  width: min(480px, 100%);
+}
+
 .workspace-modal-dialog--lg {
   width: min(880px, 100%);
 }
@@ -173,4 +177,67 @@
     flex: 1 1 100%;
     min-width: 0;
   }
+}
+
+/* ─── Change Password modal ──────────────────────────────────────────────── */
+
+.chpw-form {
+  max-width: 26rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.chpw-global-error {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: 0.625rem 0.875rem;
+  margin-bottom: var(--spacing-5);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-danger-light);
+  color: var(--color-danger-hover);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+}
+
+.chpw-global-error i {
+  flex-shrink: 0;
+  font-size: 0.9rem;
+}
+
+.chpw-form-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-3);
+  padding-top: var(--spacing-4);
+  border-top: 1px solid var(--color-border-light);
+}
+
+.chpw-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--spacing-8) var(--spacing-6);
+}
+
+.chpw-success__icon {
+  font-size: 2.75rem;
+  color: var(--color-success);
+  line-height: 1;
+  margin-bottom: var(--spacing-4);
+}
+
+.chpw-success__title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--spacing-2);
+}
+
+.chpw-success__sub {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin: 0;
 }

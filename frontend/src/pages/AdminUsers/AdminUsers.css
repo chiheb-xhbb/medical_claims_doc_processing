@@ -1,4 +1,4 @@
-/* Admin users page styles */
+/* Admin users page */
 
 .admin-users-page .card {
   overflow: hidden;
@@ -23,44 +23,29 @@
   padding-top: var(--spacing-4);
 }
 
+/* ── Table layout ───────────────────────────────────────────────────────── */
+
 .admin-users-page .admin-users-table {
-  --admin-users-col-name: 20%;
+  --admin-users-col-name: 19%;
   --admin-users-col-email: 22%;
   --admin-users-col-role: 12%;
-  --admin-users-col-status: 8%;
+  --admin-users-col-status: 9%;
   --admin-users-col-created: 15%;
-  --admin-users-col-actions: 23%;
+  --admin-users-col-actions: 10%;
   margin-bottom: 0;
   width: 100%;
-  min-width: 1180px;
+  min-width: 900px;
   table-layout: fixed;
   font-size: 0.94rem;
   line-height: 1.38;
 }
 
-.admin-users-page .admin-users-col--name {
-  width: var(--admin-users-col-name);
-}
-
-.admin-users-page .admin-users-col--email {
-  width: var(--admin-users-col-email);
-}
-
-.admin-users-page .admin-users-col--role {
-  width: var(--admin-users-col-role);
-}
-
-.admin-users-page .admin-users-col--status {
-  width: var(--admin-users-col-status);
-}
-
-.admin-users-page .admin-users-col--created {
-  width: var(--admin-users-col-created);
-}
-
-.admin-users-page .admin-users-col--actions {
-  width: var(--admin-users-col-actions);
-}
+.admin-users-page .admin-users-col--name    { width: var(--admin-users-col-name); }
+.admin-users-page .admin-users-col--email   { width: var(--admin-users-col-email); }
+.admin-users-page .admin-users-col--role    { width: var(--admin-users-col-role); }
+.admin-users-page .admin-users-col--status  { width: var(--admin-users-col-status); }
+.admin-users-page .admin-users-col--created { width: var(--admin-users-col-created); }
+.admin-users-page .admin-users-col--actions { width: var(--admin-users-col-actions); }
 
 .admin-users-page .admin-users-table thead th {
   padding: 0.62rem 0.72rem;
@@ -90,36 +75,26 @@
   padding-right: 0.56rem;
 }
 
-.admin-users-page .admin-users-head-status,
-.admin-users-page .admin-users-status-cell {
-  padding-left: 0.42rem;
-  padding-right: 0.42rem;
-}
-
 .admin-users-page .admin-users-head-name,
-.admin-users-page .admin-users-head-email {
-  padding-left: 0.8rem;
-  padding-right: 0.8rem;
-}
-
+.admin-users-page .admin-users-head-email,
 .admin-users-page .admin-users-name-cell,
 .admin-users-page .admin-users-email-cell {
   padding-left: 0.8rem;
   padding-right: 0.8rem;
 }
 
-.admin-users-page .cell-actions {
-  width: var(--admin-users-col-actions);
-  min-width: var(--admin-users-col-actions);
-  white-space: nowrap;
+.admin-users-page .admin-users-head-status,
+.admin-users-page .admin-users-status-cell {
+  padding-left: 0.42rem;
+  padding-right: 0.42rem;
 }
 
 .admin-users-page .admin-users-name-cell {
-  min-width: 170px;
+  min-width: 140px;
 }
 
 .admin-users-page .admin-users-email-cell {
-  min-width: 200px;
+  min-width: 180px;
   white-space: normal;
   word-break: break-word;
   line-height: 1.3;
@@ -141,70 +116,100 @@
   font-variant-numeric: tabular-nums;
 }
 
-.admin-users-page .admin-users-actions {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  align-items: start;
-  gap: 0.28rem;
-  width: 100%;
-  max-width: 100%;
+/* ── Action icons ───────────────────────────────────────────────────────── */
+
+.admin-users-page .cell-actions {
+  text-align: center;
 }
 
-.admin-users-page .admin-users-actions__role-row {
-  display: grid;
-  grid-template-columns: minmax(10rem, 1fr) max-content;
+.admin-users-page .user-action-group {
+  display: flex;
   align-items: center;
-  gap: 0.4rem;
-  width: 100%;
+  justify-content: center;
+  gap: 0.25rem;
 }
 
-.admin-users-page .admin-users-actions__role-row .btn {
-  min-width: 72px;
-  white-space: nowrap;
-  min-height: 1.92rem;
-  line-height: 1.2;
-  font-size: 0.86rem;
+.admin-users-page .user-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1.5px solid rgba(37, 99, 235, 0.15); /* Soft primary border */
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-primary);
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast), background-color var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.admin-users-page .user-action-btn i {
+  font-size: 0.875rem;
+  line-height: 1;
+}
+
+/* Toggle icons read better at a slightly larger size */
+.admin-users-page .user-action-btn .bi-toggle-on,
+.admin-users-page .user-action-btn .bi-toggle-off {
+  font-size: 1.125rem;
+}
+
+.admin-users-page .user-action-btn:hover:not(:disabled) {
+  color: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+  background-color: var(--color-primary-subtle);
+}
+
+.admin-users-page .user-action-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+/* ── Admin modal shared styles ──────────────────────────────────────────── */
+
+.admin-modal-target-user {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.75rem 1rem;
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+}
+
+.admin-modal-target-label {
+  font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
-  padding-top: 0.24rem;
-  padding-bottom: 0.24rem;
-}
-
-.admin-users-page .admin-users-actions__status-row {
-  width: 100%;
-}
-
-.admin-users-page .admin-users-status-toggle {
-  min-width: 0;
-  width: 100%;
-  min-height: 1.92rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
   line-height: 1.2;
-  font-size: 0.86rem;
+}
+
+.admin-modal-target-name {
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
-  padding-top: 0.24rem;
-  padding-bottom: 0.24rem;
+  color: var(--color-text-primary);
+  line-height: 1.3;
 }
 
-.admin-users-page .admin-users-role-select {
-  min-width: 10rem;
-  max-width: none;
-  width: 100%;
-  min-height: 1.92rem;
-  line-height: 1.2;
-  font-size: 0.9rem;
-  padding-top: 0.2rem;
-  padding-bottom: 0.2rem;
+.admin-modal-target-email {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  line-height: 1.3;
 }
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
 
 @media (max-width: 991.98px) {
   .admin-users-page .admin-users-table {
-    min-width: 980px;
+    min-width: 780px;
     table-layout: auto;
   }
 
-  .admin-users-page .admin-users-col--name {
-    width: auto;
-  }
-
+  .admin-users-page .admin-users-col--name,
   .admin-users-page .admin-users-col--role,
   .admin-users-page .admin-users-col--status,
   .admin-users-page .admin-users-col--created,
@@ -217,54 +222,6 @@
     padding-left: 0.66rem;
     padding-right: 0.66rem;
   }
-
-  .admin-users-page .cell-actions {
-    width: auto;
-    min-width: 16rem;
-  }
-
-  .admin-users-page .admin-users-head-role,
-  .admin-users-page .admin-users-head-status,
-  .admin-users-page .admin-users-head-created,
-  .admin-users-page .admin-users-head-actions,
-  .admin-users-page .admin-users-role-cell,
-  .admin-users-page .admin-users-status-cell,
-  .admin-users-page .admin-users-created-cell,
-  .admin-users-page .admin-users-actions-cell {
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
-  }
-
-  .admin-users-page .admin-users-head-status,
-  .admin-users-page .admin-users-status-cell {
-    padding-left: 0.4rem;
-    padding-right: 0.4rem;
-  }
-
-  .admin-users-page .admin-users-head-name,
-  .admin-users-page .admin-users-head-email {
-    padding-left: 0.72rem;
-    padding-right: 0.72rem;
-  }
-
-  .admin-users-page .admin-users-name-cell,
-  .admin-users-page .admin-users-email-cell {
-    padding-left: 0.72rem;
-    padding-right: 0.72rem;
-  }
-
-  .admin-users-page .admin-users-actions {
-    width: 100%;
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .admin-users-page .admin-users-actions__role-row {
-    grid-template-columns: minmax(0, 1fr) max-content;
-  }
-
-  .admin-users-page .admin-users-role-select {
-    min-width: 10rem;
-  }
 }
 
 @media (max-width: 767.98px) {
@@ -274,22 +231,6 @@
 
   .admin-users-page .admin-users-table thead th,
   .admin-users-page .admin-users-table tbody td {
-    padding-left: var(--spacing-3);
-    padding-right: var(--spacing-3);
-  }
-
-  .admin-users-page .admin-users-head-role,
-  .admin-users-page .admin-users-head-status,
-  .admin-users-page .admin-users-head-created,
-  .admin-users-page .admin-users-head-actions,
-  .admin-users-page .admin-users-head-name,
-  .admin-users-page .admin-users-head-email,
-  .admin-users-page .admin-users-role-cell,
-  .admin-users-page .admin-users-status-cell,
-  .admin-users-page .admin-users-created-cell,
-  .admin-users-page .admin-users-actions-cell,
-  .admin-users-page .admin-users-name-cell,
-  .admin-users-page .admin-users-email-cell {
     padding-left: var(--spacing-3);
     padding-right: var(--spacing-3);
   }

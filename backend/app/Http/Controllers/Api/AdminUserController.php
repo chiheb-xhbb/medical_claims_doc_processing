@@ -141,6 +141,33 @@ class AdminUserController extends Controller
         ], 200);
     }
 
+    public function resetPassword(Request $request, User $user): JsonResponse
+    {
+        $admin = $this->requireAdmin($request);
+
+        if ($admin instanceof JsonResponse) {
+            return $admin;
+        }
+
+        $validated = $request->validate([
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        DB::transaction(function () use ($user, $validated) {
+            /** @var User $target */
+            $target = User::query()->lockForUpdate()->findOrFail($user->id);
+
+            $target->password = Hash::make($validated['password']);
+            $target->save();
+
+            $target->tokens()->delete();
+        });
+
+        return response()->json([
+            'message' => 'Password reset successfully.',
+        ], 200);
+    }
+
     public function updateStatus(Request $request, User $user): JsonResponse
     {
         $admin = $this->requireAdmin($request);

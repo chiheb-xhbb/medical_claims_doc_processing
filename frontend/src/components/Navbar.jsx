@@ -3,6 +3,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { AUTH_CHANGED_EVENT, getDefaultLandingPath, getStoredRole, getStoredUser, isAuthenticated, logout } from '../services/auth';
 import { USER_ROLES, USER_ROLE_LABELS } from '../constants/domainLabels';
 import SupervisorBellButton from './SupervisorBellButton';
+import ChangePasswordModal from './ChangePasswordModal';
 
 const ROLE_BADGE_CLASS = {
   [USER_ROLES.AGENT]: 'nb-role-badge--agent',
@@ -27,6 +28,7 @@ function Navbar() {
   }));
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -121,7 +123,8 @@ function Navbar() {
   const showDocumentsLink = !isSupervisor;
 
   return (
-    <nav className={`nb-navbar navbar navbar-expand-lg${scrolled ? ' nb-navbar--scrolled' : ''}`} aria-label="Main navigation">
+    <>
+      <nav className={`nb-navbar navbar navbar-expand-lg${scrolled ? ' nb-navbar--scrolled' : ''}`} aria-label="Main navigation">
       <div className="container nb-navbar__inner">
         {/* Brand */}
         <NavLink
@@ -223,6 +226,15 @@ function Navbar() {
                     </div>
                     <div className="nb-dropdown__divider" role="separator"></div>
                     <button
+                      className="nb-dropdown__item"
+                      onClick={() => { setDropdownOpen(false); setChangePasswordOpen(true); }}
+                      role="menuitem"
+                    >
+                      <i className="bi bi-shield-lock" aria-hidden="true"></i>
+                      Change password
+                    </button>
+                    <div className="nb-dropdown__divider" role="separator"></div>
+                    <button
                       className="nb-dropdown__item nb-dropdown__item--danger"
                       onClick={handleLogout}
                       role="menuitem"
@@ -232,6 +244,7 @@ function Navbar() {
                     </button>
                   </div>
                 )}
+
               </div>
             </>
           ) : (
@@ -250,6 +263,14 @@ function Navbar() {
         </div>
       </div>
     </nav>
+
+    {changePasswordOpen && (
+      <ChangePasswordModal
+        isOpen={changePasswordOpen}
+        onClose={() => setChangePasswordOpen(false)}
+      />
+    )}
+    </>
   );
 }
 

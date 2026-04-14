@@ -36,6 +36,14 @@ function WorkspaceModalShell({
   const dialogRef = useRef(null);
   const titleId = useId();
 
+  const isBusyRef = useRef(isBusy);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    isBusyRef.current = isBusy;
+    onCloseRef.current = onClose;
+  }, [isBusy, onClose]);
+
   useEffect(() => {
     if (!isOpen) {
       return undefined;
@@ -56,9 +64,9 @@ function WorkspaceModalShell({
 
     const handleKeyDown = (event) => {
       if (event.key === 'Escape') {
-        if (!isBusy) {
+        if (!isBusyRef.current) {
           event.preventDefault();
-          onClose?.();
+          onCloseRef.current?.();
         }
         return;
       }
@@ -103,7 +111,7 @@ function WorkspaceModalShell({
         previousActiveElement.focus();
       }
     };
-  }, [isBusy, isOpen, onClose]);
+  }, [isOpen]);
 
   if (!isOpen) {
     return null;
@@ -120,9 +128,11 @@ function WorkspaceModalShell({
       ? 'workspace-modal-dialog--xl'
       : size === 'upload'
         ? 'workspace-modal-dialog--upload'
-        : size === 'md'
-          ? ''
-          : 'workspace-modal-dialog--lg';
+        : size === 'sm'
+          ? 'workspace-modal-dialog--sm'
+          : size === 'md'
+            ? ''
+            : 'workspace-modal-dialog--lg';
 
   return (
     <div className="workspace-modal-backdrop" onClick={handleBackdropClick}>

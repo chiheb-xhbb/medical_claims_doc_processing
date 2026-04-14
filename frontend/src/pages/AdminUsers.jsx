@@ -13,6 +13,8 @@ import {
   UserRoleBadge,
   AccountStatusBadge,
 } from '../ui';
+import AdminRoleModal from '../components/AdminRoleModal';
+import AdminPasswordModal from '../components/AdminPasswordModal';
 import { formatDateTime } from '../utils/formatters';
 import './AdminUsers/AdminUsers.css';
 
@@ -20,7 +22,7 @@ const ROLE_OPTIONS = [
   USER_ROLES.AGENT,
   USER_ROLES.CLAIMS_MANAGER,
   USER_ROLES.SUPERVISOR,
-  USER_ROLES.ADMIN
+  USER_ROLES.ADMIN,
 ];
 
 const CREATE_USER_INITIAL_FORM = {
@@ -29,16 +31,16 @@ const CREATE_USER_INITIAL_FORM = {
   password: '',
   password_confirmation: '',
   role: USER_ROLES.AGENT,
-  is_active: true
+  is_active: true,
 };
 
 const getFirstErrorMessage = (errorValue) => {
-  if (!errorValue) {
-    return null;
-  }
-
+  if (!errorValue) return null;
   return Array.isArray(errorValue) ? errorValue[0] : errorValue;
 };
+
+const CLOSED_MODAL = { isOpen: false, user: null };
+
 function AdminUsers() {
   const currentUserId = Number(getStoredUser()?.id || 0);
 
@@ -53,50 +55,40 @@ function AdminUsers() {
     perPage: 10,
     search: '',
     role: '',
-    status: ''
+    status: '',
   });
   const [pagination, setPagination] = useState({
     currentPage: 1,
     lastPage: 1,
-    total: 0
+    total: 0,
   });
 
   const [createForm, setCreateForm] = useState(CREATE_USER_INITIAL_FORM);
   const [createErrors, setCreateErrors] = useState({});
   const [isCreatingUser, setIsCreatingUser] = useState(false);
 
-  const [roleDrafts, setRoleDrafts] = useState({});
-  const [updatingRoleIds, setUpdatingRoleIds] = useState([]);
-  const [updatingStatusIds, setUpdatingStatusIds] = useState([]);
+  // Role modal
+  const [roleModal, setRoleModal] = useState(CLOSED_MODAL);
+  const [roleModalBusy, setRoleModalBusy] = useState(false);
 
-  const [statusModalState, setStatusModalState] = useState({
-    isOpen: false,
-    user: null,
-    nextIsActive: true
-  });
-  const [isConfirmingStatus, setIsConfirmingStatus] = useState(false);
+  // Password reset modal
+  const [passwordModal, setPasswordModal] = useState(CLOSED_MODAL);
+  const [passwordModalBusy, setPasswordModalBusy] = useState(false);
+  const [passwordModalServerErrors, setPasswordModalServerErrors] = useState({});
+
+  // Status confirmation modal
+  const [statusModal, setStatusModal] = useState({ isOpen: false, user: null, nextIsActive: true });
+  const [statusModalBusy, setStatusModalBusy] = useState(false);
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
     setListError(null);
 
     try {
-      const params = {
-        page: query.page,
-        per_page: query.perPage
-      };
-
-      if (query.search) {
-        params.search = query.search;
-      }
-
-      if (query.role) {
-        params.role = query.role;
-      }
-
-      if (query.status) {
-        params.status = query.status;
-      }
+      const params = { page: query.page, per_page: query.perPage };
+      if (query.search) params.search = query.search;
+      if (query.role) params.role = query.role;
+      if (query.status) params.status = query.status;
 
       const response = await api.get('/admin/users', { params });
       const payload = response.data || {};
@@ -106,14 +98,7 @@ function AdminUsers() {
       setPagination({
         currentPage: Number(payload.current_page || 1),
         lastPage: Number(payload.last_page || 1),
-        total: Number(payload.total || list.length)
-      });
-      setRoleDrafts(() => {
-        const nextDrafts = {};
-        list.forEach((user) => {
-          nextDrafts[user.id] = user.role;
-        });
-        return nextDrafts;
+        total: Number(payload.total || list.length),
       });
     } catch (err) {
       const message = getApiErrorMessage(err, 'Failed to load users. Please try again.');
@@ -128,13 +113,12 @@ function AdminUsers() {
     loadUsers();
   }, [loadUsers, reloadToken]);
 
-  const refreshUsers = () => {
-    setReloadToken((prev) => prev + 1);
-  };
+  const refreshUsers = () => setReloadToken((prev) => prev + 1);
+
+  // ── Create form ────────────────────────────────────────────────────────────
 
   const setCreateField = (field, value) => {
     setCreateForm((prev) => ({ ...prev, [field]: value }));
-
     if (createErrors[field]) {
       setCreateErrors((prev) => ({ ...prev, [field]: null }));
     }
@@ -144,9 +128,7 @@ function AdminUsers() {
     const formErrors = {};
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    if (!createForm.name.trim()) {
-      formErrors.name = 'Name is required.';
-    }
+    if (!createForm.name.trim()) formErrors.name = 'Name is required.';
 
     if (!createForm.email.trim()) {
       formErrors.email = 'Email is required.';
@@ -166,9 +148,7 @@ function AdminUsers() {
       formErrors.password_confirmation = 'Password confirmation does not match.';
     }
 
-    if (!ROLE_OPTIONS.includes(createForm.role)) {
-      formErrors.role = 'Please choose a valid role.';
-    }
+    if (!ROLE_OPTIONS.includes(createForm.role)) formErrors.role = 'Please choose a valid role.';
 
     setCreateErrors(formErrors);
     return Object.keys(formErrors).length === 0;
@@ -176,29 +156,22 @@ function AdminUsers() {
 
   const handleCreateUser = async (event) => {
     event.preventDefault();
+    if (!validateCreateForm()) return;
 
-    if (!validateCreateForm()) {
-      return;
-    }
-
+    setIsCreatingUser(true);
     try {
-      setIsCreatingUser(true);
-
       const payload = {
         name: createForm.name.trim(),
         email: createForm.email.trim(),
         password: createForm.password,
         password_confirmation: createForm.password_confirmation,
         role: createForm.role,
-        is_active: Boolean(createForm.is_active)
+        is_active: Boolean(createForm.is_active),
       };
-
       const response = await api.post('/admin/users', payload);
-      const backendMessage = response.data?.message || 'User created successfully.';
-
+      toast.success(response.data?.message || 'User created successfully.');
       setCreateForm(CREATE_USER_INITIAL_FORM);
       setCreateErrors({});
-      toast.success(backendMessage);
 
       if (query.page === 1) {
         refreshUsers();
@@ -213,138 +186,136 @@ function AdminUsers() {
     }
   };
 
+  // ── Filters & pagination ───────────────────────────────────────────────────
+
   const handleSearchSubmit = (event) => {
     event.preventDefault();
-    setQuery((prev) => ({
-      ...prev,
-      page: 1,
-      search: searchInput.trim()
-    }));
+    setQuery((prev) => ({ ...prev, page: 1, search: searchInput.trim() }));
   };
 
   const handleResetFilters = () => {
     setSearchInput('');
-    setQuery((prev) => ({
-      ...prev,
-      page: 1,
-      search: '',
-      role: '',
-      status: ''
-    }));
+    setQuery((prev) => ({ ...prev, page: 1, search: '', role: '', status: '' }));
   };
 
   const handleRoleFilterChange = (event) => {
-    const nextRole = event.target.value;
-    setQuery((prev) => ({
-      ...prev,
-      page: 1,
-      role: nextRole
-    }));
+    setQuery((prev) => ({ ...prev, page: 1, role: event.target.value }));
   };
 
   const handleStatusFilterChange = (event) => {
-    const nextStatus = event.target.value;
-    setQuery((prev) => ({
-      ...prev,
-      page: 1,
-      status: nextStatus
-    }));
+    setQuery((prev) => ({ ...prev, page: 1, status: event.target.value }));
   };
 
   const handlePageChange = (nextPage) => {
-    if (nextPage < 1 || nextPage > pagination.lastPage || nextPage === query.page) {
-      return;
-    }
-
-    setQuery((prev) => ({
-      ...prev,
-      page: nextPage
-    }));
-  };
-
-  const handleRoleDraftChange = (userId, nextRole) => {
-    setRoleDrafts((prev) => ({
-      ...prev,
-      [userId]: nextRole
-    }));
-  };
-
-  const handleUpdateRole = async (user) => {
-    const nextRole = roleDrafts[user.id] || user.role;
-    if (!nextRole || nextRole === user.role) {
-      return;
-    }
-
-    setUpdatingRoleIds((prev) => [...prev, user.id]);
-
-    try {
-      const response = await api.patch(`/admin/users/${user.id}/role`, { role: nextRole });
-      toast.success(response.data?.message || 'User role updated successfully.');
-      refreshUsers();
-    } catch (err) {
-      toast.error(getApiErrorMessage(err, 'Failed to update user role.'));
-    } finally {
-      setUpdatingRoleIds((prev) => prev.filter((id) => id !== user.id));
-    }
-  };
-
-  const openStatusModal = (user) => {
-    setStatusModalState({
-      isOpen: true,
-      user,
-      nextIsActive: !user.is_active
-    });
-  };
-
-  const closeStatusModal = () => {
-    if (isConfirmingStatus) {
-      return;
-    }
-
-    setStatusModalState({
-      isOpen: false,
-      user: null,
-      nextIsActive: true
-    });
-  };
-
-  const handleConfirmStatusChange = async () => {
-    const targetUser = statusModalState.user;
-    if (!targetUser) {
-      return;
-    }
-
-    setIsConfirmingStatus(true);
-    setUpdatingStatusIds((prev) => [...prev, targetUser.id]);
-
-    try {
-      const response = await api.patch(`/admin/users/${targetUser.id}/status`, {
-        is_active: statusModalState.nextIsActive
-      });
-
-      toast.success(response.data?.message || 'User status updated successfully.');
-      setStatusModalState({
-        isOpen: false,
-        user: null,
-        nextIsActive: true
-      });
-      refreshUsers();
-    } catch (err) {
-      toast.error(getApiErrorMessage(err, 'Failed to update user status.'));
-    } finally {
-      setIsConfirmingStatus(false);
-      setUpdatingStatusIds((prev) => prev.filter((id) => id !== targetUser.id));
-    }
+    if (nextPage < 1 || nextPage > pagination.lastPage || nextPage === query.page) return;
+    setQuery((prev) => ({ ...prev, page: nextPage }));
   };
 
   const hasActiveFilters = Boolean(query.search || query.role || query.status);
-  const statusModalTitle = statusModalState.nextIsActive ? 'Activate User' : 'Deactivate User';
-  const statusModalConfirmLabel = statusModalState.nextIsActive ? 'Activate' : 'Deactivate';
-  const statusModalVariant = statusModalState.nextIsActive ? 'success' : 'danger';
-  const statusModalMessage = statusModalState.user
-    ? statusModalState.nextIsActive
-      ? `Activate ${statusModalState.user.name}'s account? They will be able to log in again immediately.`
-      : `Deactivate ${statusModalState.user.name}'s account? If they are currently connected, they will be logged out.`
+
+  // ── Role modal ─────────────────────────────────────────────────────────────
+
+  const openRoleModal = (user) => {
+    setRoleModal({ isOpen: true, user });
+  };
+
+  const closeRoleModal = () => {
+    if (roleModalBusy) return;
+    setRoleModal(CLOSED_MODAL);
+  };
+
+  const handleConfirmRoleChange = async (newRole) => {
+    const target = roleModal.user;
+    if (!target || newRole === target.role || roleModalBusy) return;
+
+    setRoleModalBusy(true);
+    try {
+      const response = await api.patch(`/admin/users/${target.id}/role`, { role: newRole });
+      toast.success(response.data?.message || 'Role updated successfully.');
+      setRoleModal(CLOSED_MODAL);
+      refreshUsers();
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Failed to update role.'));
+    } finally {
+      setRoleModalBusy(false);
+    }
+  };
+
+  // ── Password reset modal ───────────────────────────────────────────────────
+
+  const openPasswordModal = (user) => {
+    setPasswordModalServerErrors({});
+    setPasswordModal({ isOpen: true, user });
+  };
+
+  const closePasswordModal = () => {
+    if (passwordModalBusy) return;
+    setPasswordModal(CLOSED_MODAL);
+    setPasswordModalServerErrors({});
+  };
+
+  const handleConfirmPasswordReset = async (password, passwordConfirmation) => {
+    const target = passwordModal.user;
+    if (!target || passwordModalBusy) return;
+
+    setPasswordModalBusy(true);
+    setPasswordModalServerErrors({});
+    try {
+      const response = await api.patch(`/admin/users/${target.id}/password`, {
+        password,
+        password_confirmation: passwordConfirmation,
+      });
+      toast.success(response.data?.message || 'Password reset successfully.');
+      setPasswordModal(CLOSED_MODAL);
+    } catch (err) {
+      const serverErrors = err.response?.data?.errors;
+      if (serverErrors && typeof serverErrors === 'object') {
+        setPasswordModalServerErrors(serverErrors);
+      } else {
+        toast.error(getApiErrorMessage(err, 'Failed to reset password.'));
+      }
+    } finally {
+      setPasswordModalBusy(false);
+    }
+  };
+
+  // ── Status modal ───────────────────────────────────────────────────────────
+
+  const openStatusModal = (user) => {
+    setStatusModal({ isOpen: true, user, nextIsActive: !user.is_active });
+  };
+
+  const closeStatusModal = () => {
+    if (statusModalBusy) return;
+    setStatusModal({ isOpen: false, user: null, nextIsActive: true });
+  };
+
+  const handleConfirmStatusChange = async () => {
+    const target = statusModal.user;
+    if (!target) return;
+
+    setStatusModalBusy(true);
+    try {
+      const response = await api.patch(`/admin/users/${target.id}/status`, {
+        is_active: statusModal.nextIsActive,
+      });
+      toast.success(response.data?.message || 'Status updated successfully.');
+      setStatusModal({ isOpen: false, user: null, nextIsActive: true });
+      refreshUsers();
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Failed to update status.'));
+    } finally {
+      setStatusModalBusy(false);
+    }
+  };
+
+  const statusModalTitle = statusModal.nextIsActive ? 'Activate User' : 'Deactivate User';
+  const statusModalConfirmLabel = statusModal.nextIsActive ? 'Activate' : 'Deactivate';
+  const statusModalVariant = statusModal.nextIsActive ? 'success' : 'danger';
+  const statusModalMessage = statusModal.user
+    ? statusModal.nextIsActive
+      ? `Activate ${statusModal.user.name}'s account? They will be able to log in again immediately.`
+      : `Deactivate ${statusModal.user.name}'s account? If they are currently connected, they will be logged out.`
     : '';
 
   return (
@@ -594,10 +565,6 @@ function AdminUsers() {
 
                 <tbody>
                   {users.map((user) => {
-                    const isUpdatingRole = updatingRoleIds.includes(user.id);
-                    const isUpdatingStatus = updatingStatusIds.includes(user.id);
-                    const selectedRole = roleDrafts[user.id] || user.role;
-                    const roleChanged = selectedRole !== user.role;
                     const isSelf = Number(user.id) === currentUserId;
                     const canDeactivate = !(isSelf && user.is_active);
 
@@ -613,46 +580,53 @@ function AdminUsers() {
                         </td>
                         <td className="cell-date admin-users-created-cell">{formatDateTime(user.created_at)}</td>
                         <td className="cell-actions admin-users-actions-cell">
-                          <div className="admin-users-actions">
-                            <div className="admin-users-actions__role-row">
-                              <select
-                                className="form-select form-select-sm admin-users-role-select"
-                                value={selectedRole}
-                                onChange={(event) => handleRoleDraftChange(user.id, event.target.value)}
-                                disabled={isUpdatingRole || isUpdatingStatus}
-                                aria-label={`Role for ${user.name}`}
-                              >
-                                {ROLE_OPTIONS.map((roleValue) => (
-                                  <option key={roleValue} value={roleValue}>
-                                    {USER_ROLE_LABELS[roleValue]}
-                                  </option>
-                                ))}
-                              </select>
-                              <button
-                                className="btn btn-sm btn-outline-primary"
-                                onClick={() => handleUpdateRole(user)}
-                                disabled={!roleChanged || isUpdatingRole || isUpdatingStatus}
-                                type="button"
-                              >
-                                {isUpdatingRole ? 'Saving...' : 'Save Role'}
-                              </button>
-                            </div>
+                          <div className="user-action-group">
+                            {/* Change role */}
+                            <button
+                              type="button"
+                              className="user-action-btn"
+                              onClick={() => openRoleModal(user)}
+                              title={`Change role for ${user.name}`}
+                              aria-label={`Change role for ${user.name}`}
+                            >
+                              <i className="bi bi-pencil" aria-hidden="true" />
+                            </button>
 
-                            <div className="admin-users-actions__status-row">
-                              <button
-                                type="button"
-                                className={`btn btn-sm admin-users-status-toggle ${user.is_active ? 'btn-outline-danger' : 'btn-outline-success'}`}
-                                onClick={() => openStatusModal(user)}
-                                disabled={isUpdatingRole || isUpdatingStatus || !canDeactivate}
-                                title={!canDeactivate ? 'You cannot deactivate your own account.' : undefined}
-                              >
-                                {isUpdatingStatus
-                                  ? 'Saving...'
+                            {/* Reset password */}
+                            <button
+                              type="button"
+                              className="user-action-btn"
+                              onClick={() => openPasswordModal(user)}
+                              title={`Reset password for ${user.name}`}
+                              aria-label={`Reset password for ${user.name}`}
+                            >
+                              <i className="bi bi-arrow-clockwise" aria-hidden="true" />
+                            </button>
+
+                            {/* Activate / Deactivate */}
+                            <button
+                              type="button"
+                              className="user-action-btn"
+                              onClick={() => openStatusModal(user)}
+                              disabled={!canDeactivate}
+                              title={
+                                !canDeactivate
+                                  ? 'You cannot deactivate your own account.'
                                   : user.is_active
-                                    ? 'Deactivate'
-                                    : 'Activate'}
-                              </button>
-                            </div>
+                                    ? `Deactivate ${user.name}`
+                                    : `Activate ${user.name}`
+                              }
+                              aria-label={
+                                user.is_active
+                                  ? `Deactivate ${user.name}`
+                                  : `Activate ${user.name}`
+                              }
+                            >
+                              {user.is_active
+                                ? <i className="bi bi-toggle-on" aria-hidden="true" />
+                                : <i className="bi bi-toggle-off" aria-hidden="true" />
+                              }
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -673,14 +647,31 @@ function AdminUsers() {
         )}
       </div>
 
+      <AdminRoleModal
+        isOpen={roleModal.isOpen}
+        user={roleModal.user}
+        onClose={closeRoleModal}
+        onConfirm={handleConfirmRoleChange}
+        isBusy={roleModalBusy}
+      />
+
+      <AdminPasswordModal
+        isOpen={passwordModal.isOpen}
+        user={passwordModal.user}
+        onClose={closePasswordModal}
+        onConfirm={handleConfirmPasswordReset}
+        isBusy={passwordModalBusy}
+        serverErrors={passwordModalServerErrors}
+      />
+
       <ConfirmationModal
-        isOpen={statusModalState.isOpen}
+        isOpen={statusModal.isOpen}
         title={statusModalTitle}
         message={statusModalMessage}
         confirmLabel={statusModalConfirmLabel}
         confirmingLabel="Applying..."
         confirmVariant={statusModalVariant}
-        isConfirming={isConfirmingStatus}
+        isConfirming={statusModalBusy}
         onCancel={closeStatusModal}
         onConfirm={handleConfirmStatusChange}
       />
