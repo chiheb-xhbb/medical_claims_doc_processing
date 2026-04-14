@@ -48,6 +48,7 @@ class RubriqueController extends Controller
         ]);
 
         $rubrique = DB::transaction(function () use ($dossier, $user, $validated) {
+            /** @var Dossier $lockedDossier */
             $lockedDossier = Dossier::query()
                 ->whereKey($dossier->id)
                 ->lockForUpdate()
@@ -162,11 +163,13 @@ class RubriqueController extends Controller
         }
 
         DB::transaction(function () use ($rubrique, $dossier, $user) {
+            /** @var Rubrique $lockedRubrique */
             $lockedRubrique = Rubrique::query()
                 ->whereKey($rubrique->id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
+            /** @var Dossier $lockedDossier */
             $lockedDossier = Dossier::query()
                 ->whereKey($dossier->id)
                 ->lockForUpdate()
@@ -231,11 +234,13 @@ class RubriqueController extends Controller
             ->values();
 
         DB::transaction(function () use ($rubrique, $dossier, $user, $documentIds) {
+            /** @var Rubrique $lockedRubrique */
             $lockedRubrique = Rubrique::query()
                 ->whereKey($rubrique->id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
+            /** @var Dossier $lockedDossier */
             $lockedDossier = Dossier::query()
                 ->whereKey($dossier->id)
                 ->lockForUpdate()
@@ -340,16 +345,19 @@ class RubriqueController extends Controller
         }
 
         DB::transaction(function () use ($rubrique, $dossier, $document, $user) {
+            /** @var Rubrique $lockedRubrique */
             $lockedRubrique = Rubrique::query()
                 ->whereKey($rubrique->id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
+            /** @var Dossier $lockedDossier */
             $lockedDossier = Dossier::query()
                 ->whereKey($dossier->id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
+            /** @var Document $lockedDocument */
             $lockedDocument = Document::query()
                 ->whereKey($document->id)
                 ->lockForUpdate()
@@ -401,9 +409,9 @@ class RubriqueController extends Controller
             ], 404);
         }
 
-        if (! $this->canReviewDossiers($user)) {
+        if (! $this->canDecideRubrique($user, $dossier)) {
             return response()->json([
-                'message' => 'You are not allowed to reject this rubrique.',
+                'message' => $this->resolveDecisionForbiddenMessage($user, $dossier),
             ], 403);
         }
 
@@ -413,9 +421,9 @@ class RubriqueController extends Controller
             ], 422);
         }
 
-        if ($dossier->status !== DossierStatus::UNDER_REVIEW) {
+        if (! $this->isDecisionWorkflowStatus($dossier)) {
             return response()->json([
-                'message' => 'A rubrique can only be rejected while the dossier is under review.',
+                'message' => 'A rubrique can only be rejected while the dossier is under review or in escalation.',
             ], 422);
         }
 
@@ -424,26 +432,28 @@ class RubriqueController extends Controller
         ]);
 
         DB::transaction(function () use ($rubrique, $dossier, $user, $validated) {
+            /** @var Rubrique $lockedRubrique */
             $lockedRubrique = Rubrique::query()
                 ->whereKey($rubrique->id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
+            /** @var Dossier $lockedDossier */
             $lockedDossier = Dossier::query()
                 ->whereKey($dossier->id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if (! $this->canReviewDossiers($user)) {
-                $this->forbidden('You are not allowed to reject this rubrique.');
+            if (! $this->canDecideRubrique($user, $lockedDossier)) {
+                $this->forbidden($this->resolveDecisionForbiddenMessage($user, $lockedDossier));
             }
 
             if ($lockedDossier->isFrozen()) {
                 $this->unprocessable('This dossier is frozen and cannot be modified.');
             }
 
-            if ($lockedDossier->status !== DossierStatus::UNDER_REVIEW) {
-                $this->unprocessable('A rubrique can only be rejected while the dossier is under review.');
+            if (! $this->isDecisionWorkflowStatus($lockedDossier)) {
+                $this->unprocessable('A rubrique can only be rejected while the dossier is under review or in escalation.');
             }
 
             $documents = Document::query()
@@ -460,6 +470,8 @@ class RubriqueController extends Controller
                 $user->id,
                 $validated['decision_note'] ?? null
             );
+
+            $lockedDossier->updateTotal();
         });
 
         return response()->json([
@@ -473,11 +485,6 @@ class RubriqueController extends Controller
         return $this->hasRole($user, UserRole::AGENT, UserRole::CLAIMS_MANAGER, UserRole::ADMIN);
     }
 
-    private function canReviewDossiers(User $user): bool
-    {
-        return $this->hasRole($user, UserRole::CLAIMS_MANAGER, UserRole::ADMIN);
-    }
-
     private function canManagePreparationDossier(User $user, Dossier $dossier): bool
     {
         if ($this->hasRole($user, UserRole::ADMIN)) {
@@ -488,6 +495,27 @@ class RubriqueController extends Controller
             && (int) $dossier->created_by === (int) $user->id;
     }
 
+    private function canDecideRubrique(User $user, Dossier $dossier): bool
+    {
+        if ($this->hasRole($user, UserRole::ADMIN)) {
+            return true;
+        }
+
+        if ($dossier->status === DossierStatus::IN_ESCALATION) {
+            return $this->hasRole($user, UserRole::SUPERVISOR);
+        }
+
+        if ($dossier->status === DossierStatus::UNDER_REVIEW) {
+            if ($this->isReturnedFromSupervisor($dossier)) {
+                return false;
+            }
+
+            return $this->hasRole($user, UserRole::CLAIMS_MANAGER);
+        }
+
+        return false;
+    }
+
     private function isPreparationPhase(Dossier $dossier): bool
     {
         return in_array($dossier->status, [
@@ -495,6 +523,41 @@ class RubriqueController extends Controller
             DossierStatus::IN_PROGRESS,
             DossierStatus::AWAITING_COMPLEMENT,
         ], true);
+    }
+
+    private function isDecisionWorkflowStatus(Dossier $dossier): bool
+    {
+        return in_array($dossier->status, [
+            DossierStatus::UNDER_REVIEW,
+            DossierStatus::IN_ESCALATION,
+        ], true);
+    }
+
+    private function isReturnedFromSupervisor(Dossier $dossier): bool
+    {
+        return $dossier->status === DossierStatus::UNDER_REVIEW
+            && ($dossier->chef_decision_type ?? null) === 'RETURNED';
+    }
+
+    private function resolveDecisionForbiddenMessage(User $user, Dossier $dossier): string
+    {
+        if ($this->hasRole($user, UserRole::ADMIN)) {
+            return 'You are not allowed to reject this rubrique.';
+        }
+
+        if ($dossier->status === DossierStatus::IN_ESCALATION) {
+            return 'Only the supervisor can modify rubrique decisions during escalation.';
+        }
+
+        if ($this->isReturnedFromSupervisor($dossier)) {
+            return 'Rubrique decisions are locked after a supervisor return. You can only process the dossier or escalate it again.';
+        }
+
+        if ($dossier->status === DossierStatus::UNDER_REVIEW) {
+            return 'You are not allowed to reject this rubrique.';
+        }
+
+        return 'Rubrique decisions are not allowed in the current dossier workflow state.';
     }
 
     private function hasRole(User $user, UserRole ...$roles): bool

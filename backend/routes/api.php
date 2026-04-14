@@ -48,6 +48,7 @@ Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
         Route::delete('/{dossier}', [DossierController::class, 'destroy']);
         Route::post('/{dossier}/submit', [DossierController::class, 'submit']);
         Route::post('/{dossier}/process', [DossierController::class, 'process']);
+        Route::post('/{dossier}/return-to-preparation', [DossierController::class, 'returnToPreparation']);
 
         // Hierarchical escalation workflow
         Route::post('/{dossier}/escalate', [DossierEscalationController::class, 'escalate']);

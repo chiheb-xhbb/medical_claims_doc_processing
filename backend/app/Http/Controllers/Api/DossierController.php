@@ -6,12 +6,14 @@ use App\Enums\DocumentDecisionStatus;
 use App\Enums\DossierStatus;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ClaimsManagerReturnRequest;
 use App\Http\Requests\StoreDossierRequest;
 use App\Http\Requests\UpdateDossierRequest;
 use App\Models\Dossier;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class DossierController extends Controller
 {
@@ -62,7 +64,6 @@ class DossierController extends Controller
         } elseif ($this->hasRole($user, UserRole::SUPERVISOR)) {
             $query->whereIn('status', [
                 DossierStatus::IN_ESCALATION->value,
-                DossierStatus::AWAITING_COMPLEMENT->value,
                 DossierStatus::PROCESSED->value,
             ]);
         } elseif (! $this->hasRole($user, UserRole::ADMIN)) {
@@ -128,6 +129,7 @@ class DossierController extends Controller
             'processor',
             'escalator',
             'chefDecisionMaker',
+            'returnedToPreparationBy',
         ]);
 
         return response()->json([
@@ -156,6 +158,7 @@ class DossierController extends Controller
             'processor',
             'escalator',
             'chefDecisionMaker',
+            'returnedToPreparationBy',
             'rubriques.creator',
             'rubriques.rejector',
             'rubriques.documents.extractions',
@@ -220,6 +223,7 @@ class DossierController extends Controller
             'processor',
             'escalator',
             'chefDecisionMaker',
+            'returnedToPreparationBy',
         ]);
 
         return response()->json([
@@ -299,6 +303,7 @@ class DossierController extends Controller
             'processor',
             'escalator',
             'chefDecisionMaker',
+            'returnedToPreparationBy',
         ]);
 
         return response()->json([
@@ -361,6 +366,7 @@ class DossierController extends Controller
             'processor',
             'escalator',
             'chefDecisionMaker',
+            'returnedToPreparationBy',
         ]);
 
         return response()->json([
@@ -370,6 +376,68 @@ class DossierController extends Controller
             'current_total' => $dossier->getCurrentTotal(),
             'display_total' => $dossier->getDisplayTotal(),
         ], 200);
+    }
+
+    public function returnToPreparation(ClaimsManagerReturnRequest $request, Dossier $dossier): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        if (! $this->canReviewDossiers($user)) {
+            return response()->json([
+                'message' => 'You are not allowed to return this dossier to preparation.',
+            ], 403);
+        }
+
+        return DB::transaction(function () use ($request, $dossier, $user) {
+            /** @var Dossier $lockedDossier */
+            $lockedDossier = Dossier::query()
+                ->whereKey($dossier->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($lockedDossier->isFrozen()) {
+                return response()->json([
+                    'message' => 'This dossier is already frozen.',
+                ], 422);
+            }
+
+            if ($lockedDossier->status !== DossierStatus::UNDER_REVIEW) {
+                return response()->json([
+                    'message' => 'Only dossiers in UNDER_REVIEW status can be returned to preparation.',
+                    'current_status' => $lockedDossier->status?->value ?? $lockedDossier->status,
+                ], 422);
+            }
+
+            if (($lockedDossier->chef_decision_type ?? null) === 'RETURNED') {
+                return response()->json([
+                    'message' => 'A dossier returned by the supervisor cannot be sent back to preparation.',
+                ], 422);
+            }
+
+            $lockedDossier->status = DossierStatus::AWAITING_COMPLEMENT;
+            $lockedDossier->returned_to_preparation_by = $user->id;
+            $lockedDossier->returned_to_preparation_at = now();
+            $lockedDossier->returned_to_preparation_note = $request->validated('return_note');
+            $lockedDossier->save();
+
+            $lockedDossier = $lockedDossier->fresh([
+                'creator',
+                'submitter',
+                'processor',
+                'escalator',
+                'chefDecisionMaker',
+                'returnedToPreparationBy',
+            ]);
+
+            return response()->json([
+                'message' => 'Dossier returned to preparation successfully.',
+                'dossier' => $this->formatDossierDetail($lockedDossier),
+                'requested_total' => $lockedDossier->getRequestedTotal(),
+                'current_total' => $lockedDossier->getCurrentTotal(),
+                'display_total' => $lockedDossier->getDisplayTotal(),
+            ], 200);
+        });
     }
 
     private function formatDossierSummary(Dossier $dossier): array
@@ -389,6 +457,7 @@ class DossierController extends Controller
             'processed_by' => $dossier->processed_by,
             'escalated_by' => $dossier->escalated_by,
             'chef_decision_by' => $dossier->chef_decision_by,
+            'returned_to_preparation_by' => $dossier->returned_to_preparation_by,
 
             'submitted_at' => $dossier->submitted_at,
             'processed_at' => $dossier->processed_at,
@@ -397,6 +466,8 @@ class DossierController extends Controller
             'chef_decision_type' => $dossier->chef_decision_type,
             'chef_decision_at' => $dossier->chef_decision_at,
             'chef_decision_note' => $dossier->chef_decision_note,
+            'returned_to_preparation_at' => $dossier->returned_to_preparation_at,
+            'returned_to_preparation_note' => $dossier->returned_to_preparation_note,
 
             'created_at' => $dossier->created_at,
             'updated_at' => $dossier->updated_at,
@@ -419,6 +490,7 @@ class DossierController extends Controller
             'processed_by' => $dossier->processed_by,
             'escalated_by' => $dossier->escalated_by,
             'chef_decision_by' => $dossier->chef_decision_by,
+            'returned_to_preparation_by' => $dossier->returned_to_preparation_by,
 
             'submitted_at' => $dossier->submitted_at,
             'processed_at' => $dossier->processed_at,
@@ -427,6 +499,8 @@ class DossierController extends Controller
             'chef_decision_type' => $dossier->chef_decision_type,
             'chef_decision_at' => $dossier->chef_decision_at,
             'chef_decision_note' => $dossier->chef_decision_note,
+            'returned_to_preparation_at' => $dossier->returned_to_preparation_at,
+            'returned_to_preparation_note' => $dossier->returned_to_preparation_note,
 
             'creator' => $dossier->creator ? [
                 'id' => $dossier->creator->id,
@@ -456,6 +530,12 @@ class DossierController extends Controller
                 'id' => $dossier->chefDecisionMaker->id,
                 'name' => $dossier->chefDecisionMaker->name,
                 'email' => $dossier->chefDecisionMaker->email,
+            ] : null,
+
+            'returned_to_preparation_user' => $dossier->returnedToPreparationBy ? [
+                'id' => $dossier->returnedToPreparationBy->id,
+                'name' => $dossier->returnedToPreparationBy->name,
+                'email' => $dossier->returnedToPreparationBy->email,
             ] : null,
 
             'created_at' => $dossier->created_at,
@@ -563,7 +643,6 @@ class DossierController extends Controller
         if ($this->hasRole($user, UserRole::SUPERVISOR)) {
             return in_array($dossier->status->value, [
                 DossierStatus::IN_ESCALATION->value,
-                DossierStatus::AWAITING_COMPLEMENT->value,
                 DossierStatus::PROCESSED->value,
             ], true);
         }

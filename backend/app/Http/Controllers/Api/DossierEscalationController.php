@@ -3,278 +3,231 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\DocumentDecisionStatus;
+use App\Enums\DocumentStatus;
 use App\Enums\DossierStatus;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\ChefApproveRequest;
-use App\Http\Requests\ChefComplementRequest;
-use App\Http\Requests\ChefReturnRequest;
-use App\Http\Requests\EscalateDossierRequest;
+use App\Models\Document;
 use App\Models\Dossier;
+use App\Models\Rubrique;
 use App\Models\User;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-class DossierEscalationController extends Controller
+class DocumentDecisionController extends Controller
 {
-    public function escalate(EscalateDossierRequest $request, Dossier $dossier): JsonResponse
+    public function accept(Request $request, Document $document): JsonResponse
     {
+        $validated = $request->validate([
+            'decision_note' => ['nullable', 'string'],
+        ]);
+
+        return $this->decide(
+            request: $request,
+            document: $document,
+            decisionStatus: DocumentDecisionStatus::ACCEPTED,
+            successMessage: 'Document accepted successfully.',
+            forbiddenMessage: 'You are not allowed to accept this document.',
+            invalidStatusMessage: 'Only validated documents can be accepted.',
+            decisionNote: $validated['decision_note'] ?? null,
+        );
+    }
+
+    public function reject(Request $request, Document $document): JsonResponse
+    {
+        $validated = $request->validate([
+            'decision_note' => ['nullable', 'string'],
+        ]);
+
+        return $this->decide(
+            request: $request,
+            document: $document,
+            decisionStatus: DocumentDecisionStatus::REJECTED,
+            successMessage: 'Document rejected successfully.',
+            forbiddenMessage: 'You are not allowed to reject this document.',
+            invalidStatusMessage: 'Only validated documents can be rejected.',
+            decisionNote: $validated['decision_note'] ?? null,
+        );
+    }
+
+    private function decide(
+        Request $request,
+        Document $document,
+        DocumentDecisionStatus $decisionStatus,
+        string $successMessage,
+        string $forbiddenMessage,
+        string $invalidStatusMessage,
+        ?string $decisionNote = null
+    ): JsonResponse {
         /** @var User $user */
         $user = $request->user();
 
-        if (! $this->canEscalateDossiers($user)) {
+        $document->loadMissing('rubrique.dossier');
+
+        $rubrique = $document->rubrique;
+        if (! $rubrique) {
             return response()->json([
-                'message' => 'You are not allowed to escalate this dossier.',
+                'message' => 'This document is not attached to any rubrique.',
+            ], 422);
+        }
+
+        $dossier = $rubrique->dossier;
+        if (! $dossier) {
+            return response()->json([
+                'message' => 'Parent dossier not found.',
+            ], 404);
+        }
+
+        if (! $this->canDecideDocuments($user, $dossier)) {
+            return response()->json([
+                'message' => $this->resolveForbiddenMessage($user, $dossier, $forbiddenMessage),
             ], 403);
         }
 
-        $updatedDossier = DB::transaction(function () use ($dossier, $user, $request) {
+        if ($dossier->isFrozen()) {
+            return response()->json([
+                'message' => 'This dossier is frozen and cannot be modified.',
+            ], 422);
+        }
+
+        if (! $this->isDecisionWorkflowStatus($dossier)) {
+            return response()->json([
+                'message' => 'Documents can only be decided while the dossier is under review or in escalation.',
+            ], 422);
+        }
+
+        if ($document->status !== DocumentStatus::VALIDATED) {
+            return response()->json([
+                'message' => $invalidStatusMessage,
+            ], 422);
+        }
+
+        DB::transaction(function () use (
+            $dossier,
+            $rubrique,
+            $document,
+            $user,
+            $decisionStatus,
+            $decisionNote,
+            $forbiddenMessage,
+            $invalidStatusMessage
+        ) {
             /** @var Dossier $lockedDossier */
             $lockedDossier = Dossier::query()
                 ->whereKey($dossier->id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if (! $this->canEscalateDossiers($user)) {
-                $this->forbidden('You are not allowed to escalate this dossier.');
-            }
-
-            if ($lockedDossier->isFrozen()) {
-                $this->unprocessable('This dossier is frozen and cannot be escalated.');
-            }
-
-            if ($lockedDossier->status !== DossierStatus::UNDER_REVIEW) {
-                $this->unprocessable('Only dossiers in UNDER_REVIEW status can be escalated.');
-            }
-
-            if ($this->hasPendingDecisionDocuments($lockedDossier)) {
-                $this->unprocessable('All document decisions must be completed before escalation.');
-            }
-
-            $lockedDossier->status = DossierStatus::IN_ESCALATION;
-            $lockedDossier->escalated_by = $user->id;
-            $lockedDossier->escalated_at = now();
-            $lockedDossier->escalation_reason = $request->validated('escalation_reason');
-
-            $lockedDossier->chef_decision_type = null;
-            $lockedDossier->chef_decision_by = null;
-            $lockedDossier->chef_decision_at = null;
-            $lockedDossier->chef_decision_note = null;
-
-            $lockedDossier->save();
-
-            return $lockedDossier->fresh([
-                'creator',
-                'submitter',
-                'processor',
-                'escalator',
-                'chefDecisionMaker',
-            ]);
-        });
-
-        return response()->json([
-            'message' => 'Dossier escalated successfully.',
-            'dossier' => $this->formatDossierPayload($updatedDossier),
-            'requested_total' => $updatedDossier->getRequestedTotal(),
-            'current_total' => $updatedDossier->getCurrentTotal(),
-            'display_total' => $updatedDossier->getDisplayTotal(),
-        ], 200);
-    }
-
-    public function approveDerogation(ChefApproveRequest $request, Dossier $dossier): JsonResponse
-    {
-        /** @var User $user */
-        $user = $request->user();
-
-        if (! $this->canChefReviewDossiers($user)) {
-            return response()->json([
-                'message' => 'You are not allowed to approve this dossier.',
-            ], 403);
-        }
-
-        $updatedDossier = DB::transaction(function () use ($dossier, $user, $request) {
-            /** @var Dossier $lockedDossier */
-            $lockedDossier = Dossier::query()
-                ->whereKey($dossier->id)
+            /** @var Rubrique $lockedRubrique */
+            $lockedRubrique = Rubrique::query()
+                ->whereKey($rubrique->id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if (! $this->canChefReviewDossiers($user)) {
-                $this->forbidden('You are not allowed to approve this dossier.');
-            }
-
-            if ($lockedDossier->isFrozen()) {
-                $this->unprocessable('This dossier is already frozen.');
-            }
-
-            if ($lockedDossier->status !== DossierStatus::IN_ESCALATION) {
-                $this->unprocessable('Only dossiers in IN_ESCALATION status can be approved by the supervisor.');
-            }
-
-            if ($this->hasPendingDecisionDocuments($lockedDossier)) {
-                $this->unprocessable('All document decisions must be completed before final approval.');
-            }
-
-            $lockedDossier->status = DossierStatus::PROCESSED;
-            $lockedDossier->montant_total = $lockedDossier->getCurrentTotal();
-            $lockedDossier->processed_by = $user->id;
-            $lockedDossier->processed_at = now();
-
-            $lockedDossier->chef_decision_type = 'APPROVED';
-            $lockedDossier->chef_decision_by = $user->id;
-            $lockedDossier->chef_decision_at = now();
-            $lockedDossier->chef_decision_note = $request->validated('decision_note');
-
-            $lockedDossier->save();
-
-            return $lockedDossier->fresh([
-                'creator',
-                'submitter',
-                'processor',
-                'escalator',
-                'chefDecisionMaker',
-            ]);
-        });
-
-        return response()->json([
-            'message' => 'Escalation approved successfully.',
-            'dossier' => $this->formatDossierPayload($updatedDossier),
-            'requested_total' => $updatedDossier->getRequestedTotal(),
-            'current_total' => $updatedDossier->getCurrentTotal(),
-            'display_total' => $updatedDossier->getDisplayTotal(),
-        ], 200);
-    }
-
-    public function returnToGestionnaire(ChefReturnRequest $request, Dossier $dossier): JsonResponse
-    {
-        /** @var User $user */
-        $user = $request->user();
-
-        if (! $this->canChefReviewDossiers($user)) {
-            return response()->json([
-                'message' => 'You are not allowed to return this dossier.',
-            ], 403);
-        }
-
-        $updatedDossier = DB::transaction(function () use ($dossier, $user, $request) {
-            /** @var Dossier $lockedDossier */
-            $lockedDossier = Dossier::query()
-                ->whereKey($dossier->id)
+            /** @var Document $lockedDocument */
+            $lockedDocument = Document::query()
+                ->whereKey($document->id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if (! $this->canChefReviewDossiers($user)) {
-                $this->forbidden('You are not allowed to return this dossier.');
+            if (! $this->canDecideDocuments($user, $lockedDossier)) {
+                $this->forbidden(
+                    $this->resolveForbiddenMessage($user, $lockedDossier, $forbiddenMessage)
+                );
             }
 
             if ($lockedDossier->isFrozen()) {
-                $this->unprocessable('This dossier is already frozen.');
+                $this->unprocessable('This dossier is frozen and cannot be modified.');
             }
 
-            if ($lockedDossier->status !== DossierStatus::IN_ESCALATION) {
-                $this->unprocessable('Only dossiers in IN_ESCALATION status can be returned to the claims manager.');
+            if (! $this->isDecisionWorkflowStatus($lockedDossier)) {
+                $this->unprocessable('Documents can only be decided while the dossier is under review or in escalation.');
             }
 
-            $lockedDossier->status = DossierStatus::UNDER_REVIEW;
+            if ((int) $lockedRubrique->dossier_id !== (int) $lockedDossier->id) {
+                $this->unprocessable('This rubrique does not belong to the expected dossier.');
+            }
 
-            $lockedDossier->chef_decision_type = 'RETURNED';
-            $lockedDossier->chef_decision_by = $user->id;
-            $lockedDossier->chef_decision_at = now();
-            $lockedDossier->chef_decision_note = $request->validated('decision_note');
+            if ((int) $lockedDocument->rubrique_id !== (int) $lockedRubrique->id) {
+                $this->unprocessable('This document does not belong to the expected rubrique.');
+            }
 
-            $lockedDossier->save();
+            if ($lockedDocument->status !== DocumentStatus::VALIDATED) {
+                $this->unprocessable($invalidStatusMessage);
+            }
 
-            return $lockedDossier->fresh([
-                'creator',
-                'submitter',
-                'processor',
-                'escalator',
-                'chefDecisionMaker',
-            ]);
+            $lockedDocument->decision_status = $decisionStatus;
+            $lockedDocument->decision_by = $user->id;
+            $lockedDocument->decision_at = now();
+            $lockedDocument->decision_note = $decisionNote;
+            $lockedDocument->save();
+
+            $lockedRubrique->refreshStatusFromDocuments();
+            $lockedDossier->updateTotal();
         });
 
         return response()->json([
-            'message' => 'Dossier returned to the claims manager successfully.',
-            'dossier' => $this->formatDossierPayload($updatedDossier),
-            'requested_total' => $updatedDossier->getRequestedTotal(),
-            'current_total' => $updatedDossier->getCurrentTotal(),
-            'display_total' => $updatedDossier->getDisplayTotal(),
+            'message' => $successMessage,
+            'document' => $document->fresh(['rubrique']),
         ], 200);
     }
 
-    public function requestComplement(ChefComplementRequest $request, Dossier $dossier): JsonResponse
+    private function canDecideDocuments(User $user, Dossier $dossier): bool
     {
-        /** @var User $user */
-        $user = $request->user();
-
-        if (! $this->canChefReviewDossiers($user)) {
-            return response()->json([
-                'message' => 'You are not allowed to request complement for this dossier.',
-            ], 403);
+        if ($this->hasRole($user, UserRole::ADMIN)) {
+            return true;
         }
 
-        $updatedDossier = DB::transaction(function () use ($dossier, $user, $request) {
-            /** @var Dossier $lockedDossier */
-            $lockedDossier = Dossier::query()
-                ->whereKey($dossier->id)
-                ->lockForUpdate()
-                ->firstOrFail();
+        if ($dossier->status === DossierStatus::IN_ESCALATION) {
+            return $this->hasRole($user, UserRole::SUPERVISOR);
+        }
 
-            if (! $this->canChefReviewDossiers($user)) {
-                $this->forbidden('You are not allowed to request complement for this dossier.');
+        if ($dossier->status === DossierStatus::UNDER_REVIEW) {
+            if ($this->isReturnedFromSupervisor($dossier)) {
+                return false;
             }
 
-            if ($lockedDossier->isFrozen()) {
-                $this->unprocessable('This dossier is already frozen.');
-            }
+            return $this->hasRole($user, UserRole::CLAIMS_MANAGER);
+        }
 
-            if ($lockedDossier->status !== DossierStatus::IN_ESCALATION) {
-                $this->unprocessable('Only dossiers in IN_ESCALATION status can receive a complement request.');
-            }
-
-            $lockedDossier->status = DossierStatus::AWAITING_COMPLEMENT;
-
-            $lockedDossier->chef_decision_type = 'COMPLEMENT_REQUESTED';
-            $lockedDossier->chef_decision_by = $user->id;
-            $lockedDossier->chef_decision_at = now();
-            $lockedDossier->chef_decision_note = $request->validated('decision_note');
-
-            $lockedDossier->save();
-
-            return $lockedDossier->fresh([
-                'creator',
-                'submitter',
-                'processor',
-                'escalator',
-                'chefDecisionMaker',
-            ]);
-        });
-
-        return response()->json([
-            'message' => 'Complement requested successfully.',
-            'dossier' => $this->formatDossierPayload($updatedDossier),
-            'requested_total' => $updatedDossier->getRequestedTotal(),
-            'current_total' => $updatedDossier->getCurrentTotal(),
-            'display_total' => $updatedDossier->getDisplayTotal(),
-        ], 200);
+        return false;
     }
 
-    private function canEscalateDossiers(User $user): bool
+    private function isDecisionWorkflowStatus(Dossier $dossier): bool
     {
-        return $this->hasRole($user, UserRole::CLAIMS_MANAGER, UserRole::ADMIN);
+        return in_array($dossier->status, [
+            DossierStatus::UNDER_REVIEW,
+            DossierStatus::IN_ESCALATION,
+        ], true);
     }
 
-    private function canChefReviewDossiers(User $user): bool
+    private function isReturnedFromSupervisor(Dossier $dossier): bool
     {
-        return $this->hasRole($user, UserRole::SUPERVISOR, UserRole::ADMIN);
+        return $dossier->status === DossierStatus::UNDER_REVIEW
+            && ($dossier->chef_decision_type ?? null) === 'RETURNED';
     }
 
-    private function hasPendingDecisionDocuments(Dossier $dossier): bool
+    private function resolveForbiddenMessage(User $user, Dossier $dossier, string $defaultMessage): string
     {
-        return $dossier->documents()
-            ->where('documents.decision_status', DocumentDecisionStatus::PENDING->value)
-            ->exists();
+        if ($this->hasRole($user, UserRole::ADMIN)) {
+            return $defaultMessage;
+        }
+
+        if ($dossier->status === DossierStatus::IN_ESCALATION) {
+            return 'Only the supervisor can modify document decisions during escalation.';
+        }
+
+        if ($this->isReturnedFromSupervisor($dossier)) {
+            return 'Document decisions are locked after a supervisor return. You can only process the dossier or escalate it again.';
+        }
+
+        if ($dossier->status === DossierStatus::UNDER_REVIEW) {
+            return $defaultMessage;
+        }
+
+        return 'Document decisions are not allowed in the current dossier workflow state.';
     }
 
     private function hasRole(User $user, UserRole ...$roles): bool
@@ -302,65 +255,5 @@ class DossierEscalationController extends Controller
         throw new HttpResponseException(
             response()->json(['message' => $message], 422)
         );
-    }
-
-    private function formatDossierPayload(Dossier $dossier): array
-    {
-        return [
-            'id' => $dossier->id,
-            'numero_dossier' => $dossier->numero_dossier,
-            'assured_identifier' => $dossier->assured_identifier,
-            'status' => $dossier->status->value,
-            'montant_total' => $dossier->montant_total,
-            'episode_description' => $dossier->episode_description,
-            'notes' => $dossier->notes,
-
-            'created_by' => $dossier->created_by,
-            'submitted_by' => $dossier->submitted_by,
-            'processed_by' => $dossier->processed_by,
-            'escalated_by' => $dossier->escalated_by,
-            'chef_decision_by' => $dossier->chef_decision_by,
-
-            'submitted_at' => $dossier->submitted_at,
-            'processed_at' => $dossier->processed_at,
-            'escalated_at' => $dossier->escalated_at,
-            'escalation_reason' => $dossier->escalation_reason,
-            'chef_decision_type' => $dossier->chef_decision_type,
-            'chef_decision_at' => $dossier->chef_decision_at,
-            'chef_decision_note' => $dossier->chef_decision_note,
-
-            'creator' => $dossier->creator ? [
-                'id' => $dossier->creator->id,
-                'name' => $dossier->creator->name,
-                'email' => $dossier->creator->email,
-            ] : null,
-
-            'submitter' => $dossier->submitter ? [
-                'id' => $dossier->submitter->id,
-                'name' => $dossier->submitter->name,
-                'email' => $dossier->submitter->email,
-            ] : null,
-
-            'processor' => $dossier->processor ? [
-                'id' => $dossier->processor->id,
-                'name' => $dossier->processor->name,
-                'email' => $dossier->processor->email,
-            ] : null,
-
-            'escalator' => $dossier->escalator ? [
-                'id' => $dossier->escalator->id,
-                'name' => $dossier->escalator->name,
-                'email' => $dossier->escalator->email,
-            ] : null,
-
-            'chef_decision_maker' => $dossier->chefDecisionMaker ? [
-                'id' => $dossier->chefDecisionMaker->id,
-                'name' => $dossier->chefDecisionMaker->name,
-                'email' => $dossier->chefDecisionMaker->email,
-            ] : null,
-
-            'created_at' => $dossier->created_at,
-            'updated_at' => $dossier->updated_at,
-        ];
     }
 }

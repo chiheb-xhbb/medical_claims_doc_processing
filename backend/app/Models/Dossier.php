@@ -23,6 +23,9 @@ class Dossier extends Model
         'created_by',
         'status',
         'notes',
+        'returned_to_preparation_by',
+        'returned_to_preparation_at',
+        'returned_to_preparation_note',
     ];
 
     protected $casts = [
@@ -32,6 +35,7 @@ class Dossier extends Model
         'processed_at' => 'datetime',
         'escalated_at' => 'datetime',
         'chef_decision_at' => 'datetime',
+        'returned_to_preparation_at' => 'datetime',
     ];
 
     protected static function boot(): void
@@ -79,6 +83,11 @@ class Dossier extends Model
     public function chefDecisionMaker(): BelongsTo
     {
         return $this->belongsTo(User::class, 'chef_decision_by');
+    }
+
+    public function returnedToPreparationBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'returned_to_preparation_by');
     }
 
     public function isFrozen(): bool

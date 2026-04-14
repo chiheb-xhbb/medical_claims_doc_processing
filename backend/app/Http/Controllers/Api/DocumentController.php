@@ -356,7 +356,6 @@ class DocumentController extends Controller
 
             return in_array($statusValue, [
                 DossierStatus::IN_ESCALATION->value,
-                DossierStatus::AWAITING_COMPLEMENT->value,
                 DossierStatus::PROCESSED->value,
             ], true);
         }
