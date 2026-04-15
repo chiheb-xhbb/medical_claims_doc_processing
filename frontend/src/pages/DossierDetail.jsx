@@ -23,6 +23,7 @@ import {
   approveEscalation,
   returnToClaimsManager,
   requestComplement,
+  returnDossierToPreparation,
 } from '../services/dossierWorkflow';
 import { Loader, EmptyState, ConfirmationModal, PageHeader, WorkflowBanner } from '../ui';
 import { formatAmountTnd, formatDisplayAmountTnd, formatDateTime } from '../utils/formatters';
@@ -119,6 +120,10 @@ function DossierDetail() {
   const [isProcessingDossier, setIsProcessingDossier] = useState(false);
   const [isEscalatingDossier, setIsEscalatingDossier] = useState(false);
   const [isSupervisorActing, setIsSupervisorActing] = useState(false);
+  const [isReturningToPreparation, setIsReturningToPreparation] = useState(false);
+
+  const [returnToPreparationModalOpen, setReturnToPreparationModalOpen] = useState(false);
+  const [returnToPreparationNote, setReturnToPreparationNote] = useState('');
   const [isAttachingByRubriqueId, setIsAttachingByRubriqueId] = useState({});
   const [isDeletingRubriqueById, setIsDeletingRubriqueById] = useState({});
   const [isRejectingRubriqueById, setIsRejectingRubriqueById] = useState({});
@@ -229,19 +234,36 @@ function DossierDetail() {
     dossierStatus === DOSSIER_STATUSES.IN_PROGRESS ||
     dossierStatus === DOSSIER_STATUSES.AWAITING_COMPLEMENT
   );
-  const canDecideDocuments = canReview && dossierStatus === DOSSIER_STATUSES.UNDER_REVIEW;
-  const canProcessDossier = canReview && dossierStatus === DOSSIER_STATUSES.UNDER_REVIEW;
-  const canRejectRubrique = canReview && dossierStatus === DOSSIER_STATUSES.UNDER_REVIEW;
-
-  const canEscalate = (role === USER_ROLES.CLAIMS_MANAGER || role === USER_ROLES.ADMIN) && dossierStatus === DOSSIER_STATUSES.UNDER_REVIEW;
-
-  const canSupervisorAct = isSupervisorReviewer && dossierStatus === DOSSIER_STATUSES.IN_ESCALATION;
-
-  const showWorkflowActions = !isFrozen && !isSupervisor && (canCreateRubrique || canSubmitDossier || canProcessDossier);
-
   const isReturnedForClaimsReview =
     dossierStatus === DOSSIER_STATUSES.UNDER_REVIEW &&
     dossier?.chef_decision_type === 'RETURNED';
+
+  // Claims Manager decides only PENDING documents in normal (non-returned) UNDER_REVIEW.
+  const canClaimsManagerDecidePendingDocuments =
+    canReview && dossierStatus === DOSSIER_STATUSES.UNDER_REVIEW && !isReturnedForClaimsReview;
+  const canProcessDossier = canReview && dossierStatus === DOSSIER_STATUSES.UNDER_REVIEW;
+  const canRejectRubrique =
+    canReview && dossierStatus === DOSSIER_STATUSES.UNDER_REVIEW && !isReturnedForClaimsReview;
+
+  const canEscalate =
+    (role === USER_ROLES.CLAIMS_MANAGER || role === USER_ROLES.ADMIN) &&
+    dossierStatus === DOSSIER_STATUSES.UNDER_REVIEW;
+
+  const canReturnToPreparation =
+    (role === USER_ROLES.CLAIMS_MANAGER || role === USER_ROLES.ADMIN) &&
+    dossierStatus === DOSSIER_STATUSES.UNDER_REVIEW &&
+    !isReturnedForClaimsReview;
+
+  // Supervisor/Admin can override any document decision (pending or already decided) in IN_ESCALATION.
+  const canSupervisorOverrideDocumentDecisions =
+    isSupervisorReviewer && dossierStatus === DOSSIER_STATUSES.IN_ESCALATION;
+
+  const canSupervisorAct = isSupervisorReviewer && dossierStatus === DOSSIER_STATUSES.IN_ESCALATION;
+
+  const showWorkflowActions =
+    !isFrozen &&
+    !isSupervisor &&
+    (canCreateRubrique || canSubmitDossier || canProcessDossier || canEscalate || canReturnToPreparation);
 
   const isComplementPending = dossierStatus === DOSSIER_STATUSES.AWAITING_COMPLEMENT;
 
@@ -529,6 +551,27 @@ function DossierDetail() {
     }
   };
 
+  const handleReturnToPreparationConfirm = async () => {
+    const trimmedNote = returnToPreparationNote.trim();
+    if (!trimmedNote) {
+      toast.error('A return note is required.');
+      return;
+    }
+
+    try {
+      setIsReturningToPreparation(true);
+      const response = await returnDossierToPreparation(id, trimmedNote);
+      toast.success(response?.message || 'Case file returned to preparation.');
+      setReturnToPreparationModalOpen(false);
+      setReturnToPreparationNote('');
+      await refreshDetailSilently();
+    } catch (error) {
+      toast.error(formatApiError(error, 'Failed to return case file to preparation.'));
+    } finally {
+      setIsReturningToPreparation(false);
+    }
+  };
+
   const requestDetachDocument = (rubriqueId, documentId) => {
     openConfirmationModal({
       action: 'detach',
@@ -591,14 +634,10 @@ function DossierDetail() {
       return;
     }
 
-    const acceptMessage = isReturnedForClaimsReview
-      ? 'Accept this document for the returned case file review? This will update the current decision.'
-      : 'Accept this document as valid? This decision is final for the current review.';
-
     openConfirmationModal({
       action: 'accept_document',
       title: 'Accept Document',
-      message: acceptMessage,
+      message: 'Accept this document as valid? This decision is final for the current review.',
       confirmLabel: 'Accept Document',
       cancelLabel: 'Cancel',
       confirmingLabel: 'Accepting...',
@@ -811,10 +850,10 @@ function DossierDetail() {
           variant="warning"
           icon="bi-arrow-return-left"
         >
-          Re-review mode: previous document decisions are preserved below and can be updated.
+          Document decisions are locked. You may process this case file or escalate again.
           {dossier.chef_decision_note && (
             <div className="mt-1">
-              <strong>Note:</strong> {dossier.chef_decision_note}
+              <strong>Supervisor note:</strong> {dossier.chef_decision_note}
             </div>
           )}
         </WorkflowBanner>
@@ -822,11 +861,16 @@ function DossierDetail() {
 
       {isComplementPending && isDossierOwnedByCurrentUser && (
         <WorkflowBanner
-          title="Complement Required"
+          title="Preparation Reopened"
           variant="warning"
-          icon="bi-file-earmark-plus"
+          icon="bi-arrow-return-left"
         >
-          {dossier.chef_decision_note && (
+          {dossier.returned_to_preparation_note && (
+            <div>
+              <strong>Return note:</strong> {dossier.returned_to_preparation_note}
+            </div>
+          )}
+          {!dossier.returned_to_preparation_note && dossier.chef_decision_note && (
             <div>
               <strong>Note:</strong> {dossier.chef_decision_note}
             </div>
@@ -869,29 +913,13 @@ function DossierDetail() {
           canProcessDossier={canProcessDossier}
           isProcessingDossier={isProcessingDossier}
           requestProcessDossier={requestProcessDossier}
+          canEscalate={canEscalate}
+          isEscalatingDossier={isEscalatingDossier}
+          onOpenEscalateModal={() => setEscalateModalOpen(true)}
+          canReturnToPreparation={canReturnToPreparation}
+          isReturningToPreparation={isReturningToPreparation}
+          onOpenReturnToPreparationModal={() => setReturnToPreparationModalOpen(true)}
         />
-      )}
-
-      {canEscalate && (
-        <div className="card mb-4">
-          <div className="workflow-action-toolbar">
-            <h6 className="mb-0 d-flex align-items-center workflow-action-toolbar__title">
-              <i className="bi bi-diagram-3 me-2" aria-hidden="true" />
-              Escalation
-            </h6>
-            <div className="workflow-action-toolbar__controls">
-              <button
-                type="button"
-                className="btn btn-outline-warning workflow-level-action-btn escalation-panel__trigger"
-                onClick={() => setEscalateModalOpen(true)}
-                disabled={isEscalatingDossier}
-              >
-                <i className="bi bi-diagram-3 me-2" aria-hidden="true" />
-                Escalate to Supervisor
-              </button>
-            </div>
-          </div>
-        </div>
       )}
 
       <DossierModalShell
@@ -944,8 +972,8 @@ function DossierDetail() {
         canAttachDocuments={canAttachDocuments}
         canDeleteRubrique={canDeleteRubrique}
         canRejectRubrique={canRejectRubrique}
-        canDecideDocuments={canDecideDocuments}
-        isReturnedForClaimsReview={isReturnedForClaimsReview}
+        canClaimsManagerDecidePendingDocuments={canClaimsManagerDecidePendingDocuments}
+        canSupervisorOverrideDocumentDecisions={canSupervisorOverrideDocumentDecisions}
         canDetachDocuments={canDetachDocuments}
         isFrozen={isFrozen}
         isAttachingByRubriqueId={isAttachingByRubriqueId}
@@ -1008,6 +1036,51 @@ function DossierDetail() {
         onCancel={closeConfirmationModal}
         onConfirm={handleConfirmationAction}
       />
+
+      <DossierModalShell
+        isOpen={returnToPreparationModalOpen}
+        title="Return to Preparation"
+        onClose={() => { if (!isReturningToPreparation) { setReturnToPreparationModalOpen(false); setReturnToPreparationNote(''); } }}
+        isBusy={isReturningToPreparation}
+        initialFocus="secondary"
+        className="dossier-decision-modal"
+        footer={
+          <>
+            <button
+              type="button"
+              className="btn btn-outline-secondary"
+              onClick={() => { setReturnToPreparationModalOpen(false); setReturnToPreparationNote(''); }}
+              disabled={isReturningToPreparation}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={handleReturnToPreparationConfirm}
+              disabled={isReturningToPreparation || !returnToPreparationNote.trim()}
+            >
+              {isReturningToPreparation ? 'Returning...' : 'Return to Preparation'}
+            </button>
+          </>
+        }
+      >
+        <div>
+          <label htmlFor="return-to-preparation-note" className="form-label workflow-modal-label">
+            Return Note <span className="text-danger">*</span>
+          </label>
+          <textarea
+            id="return-to-preparation-note"
+            className="form-control workflow-modal-textarea"
+            rows={3}
+            value={returnToPreparationNote}
+            onChange={(e) => setReturnToPreparationNote(e.target.value)}
+            placeholder="Explain what needs to be completed or corrected..."
+            disabled={isReturningToPreparation}
+            autoFocus
+          />
+        </div>
+      </DossierModalShell>
     </div>
   );
 }

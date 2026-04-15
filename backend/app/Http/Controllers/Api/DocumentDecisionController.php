@@ -64,6 +64,8 @@ class DocumentDecisionController extends Controller
         /** @var User $user */
         $user = $request->user();
 
+        $document->loadMissing('rubrique.dossier');
+
         $rubrique = $document->rubrique;
         if (! $rubrique) {
             return response()->json([
@@ -78,9 +80,9 @@ class DocumentDecisionController extends Controller
             ], 404);
         }
 
-        if (! $this->canReviewDossiers($user)) {
+        if (! $this->canDecideDocuments($user, $dossier, $document)) {
             return response()->json([
-                'message' => $forbiddenMessage,
+                'message' => $this->resolveForbiddenMessage($user, $dossier, $document, $forbiddenMessage),
             ], 403);
         }
 
@@ -90,9 +92,9 @@ class DocumentDecisionController extends Controller
             ], 422);
         }
 
-        if ($dossier->status !== DossierStatus::UNDER_REVIEW) {
+        if (! $this->isDecisionWorkflowStatus($dossier)) {
             return response()->json([
-                'message' => 'Documents can only be decided while the dossier is under review.',
+                'message' => 'Documents can only be decided while the dossier is under review or in escalation.',
             ], 422);
         }
 
@@ -112,33 +114,36 @@ class DocumentDecisionController extends Controller
             $forbiddenMessage,
             $invalidStatusMessage
         ) {
-            // Lock from top to bottom to reduce deadlock risk:
-            // dossier -> rubrique -> document
+            /** @var Dossier $lockedDossier */
             $lockedDossier = Dossier::query()
                 ->whereKey($dossier->id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
+            /** @var Rubrique $lockedRubrique */
             $lockedRubrique = Rubrique::query()
                 ->whereKey($rubrique->id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
+            /** @var Document $lockedDocument */
             $lockedDocument = Document::query()
                 ->whereKey($document->id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if (! $this->canReviewDossiers($user)) {
-                $this->forbidden($forbiddenMessage);
+            if (! $this->canDecideDocuments($user, $lockedDossier, $lockedDocument)) {
+                $this->forbidden(
+                    $this->resolveForbiddenMessage($user, $lockedDossier, $lockedDocument, $forbiddenMessage)
+                );
             }
 
             if ($lockedDossier->isFrozen()) {
                 $this->unprocessable('This dossier is frozen and cannot be modified.');
             }
 
-            if ($lockedDossier->status !== DossierStatus::UNDER_REVIEW) {
-                $this->unprocessable('Documents can only be decided while the dossier is under review.');
+            if (! $this->isDecisionWorkflowStatus($lockedDossier)) {
+                $this->unprocessable('Documents can only be decided while the dossier is under review or in escalation.');
             }
 
             if ((int) $lockedRubrique->dossier_id !== (int) $lockedDossier->id) {
@@ -169,9 +174,72 @@ class DocumentDecisionController extends Controller
         ], 200);
     }
 
-    private function canReviewDossiers(User $user): bool
+    private function canDecideDocuments(User $user, Dossier $dossier, Document $document): bool
     {
-        return $this->hasRole($user, UserRole::CLAIMS_MANAGER, UserRole::ADMIN);
+        if ($this->hasRole($user, UserRole::ADMIN)) {
+            return true;
+        }
+
+        if ($dossier->status === DossierStatus::IN_ESCALATION) {
+            return $this->hasRole($user, UserRole::SUPERVISOR);
+        }
+
+        if ($dossier->status === DossierStatus::UNDER_REVIEW) {
+            if ($this->isReturnedFromSupervisor($dossier)) {
+                return false;
+            }
+
+            if (! $this->hasRole($user, UserRole::CLAIMS_MANAGER)) {
+                return false;
+            }
+
+            return $document->decision_status === DocumentDecisionStatus::PENDING;
+        }
+
+        return false;
+    }
+
+    private function isDecisionWorkflowStatus(Dossier $dossier): bool
+    {
+        return in_array($dossier->status, [
+            DossierStatus::UNDER_REVIEW,
+            DossierStatus::IN_ESCALATION,
+        ], true);
+    }
+
+    private function isReturnedFromSupervisor(Dossier $dossier): bool
+    {
+        return $dossier->status === DossierStatus::UNDER_REVIEW
+            && ($dossier->chef_decision_type ?? null) === 'RETURNED';
+    }
+
+    private function resolveForbiddenMessage(
+        User $user,
+        Dossier $dossier,
+        Document $document,
+        string $defaultMessage
+    ): string {
+        if ($this->hasRole($user, UserRole::ADMIN)) {
+            return $defaultMessage;
+        }
+
+        if ($dossier->status === DossierStatus::IN_ESCALATION) {
+            return 'Only the supervisor can modify document decisions during escalation.';
+        }
+
+        if ($this->isReturnedFromSupervisor($dossier)) {
+            return 'Document decisions are locked after a supervisor return. You can only process the dossier or escalate it again.';
+        }
+
+        if ($dossier->status === DossierStatus::UNDER_REVIEW && $document->decision_status !== DocumentDecisionStatus::PENDING) {
+            return 'Only pending documents can be decided during normal review.';
+        }
+
+        if ($dossier->status === DossierStatus::UNDER_REVIEW) {
+            return $defaultMessage;
+        }
+
+        return 'Document decisions are not allowed in the current dossier workflow state.';
     }
 
     private function hasRole(User $user, UserRole ...$roles): bool

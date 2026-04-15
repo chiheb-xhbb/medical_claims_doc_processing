@@ -12,7 +12,13 @@ function WorkflowActionsCard({
   requestSubmitDossier,
   canProcessDossier,
   isProcessingDossier,
-  requestProcessDossier
+  requestProcessDossier,
+  canEscalate,
+  isEscalatingDossier,
+  onOpenEscalateModal,
+  canReturnToPreparation,
+  isReturningToPreparation,
+  onOpenReturnToPreparationModal,
 }) {
   const showCreateForm = canCreateRubrique && !isFrozen;
   const showSubmitAction = (!canCreateRubrique || isFrozen) && canSubmitDossier && !isFrozen;
@@ -107,6 +113,28 @@ function WorkflowActionsCard({
               disabled={isProcessingDossier}
             >
               {isProcessingDossier ? 'Processing...' : 'Process Case File'}
+            </button>
+          )}
+          {canEscalate && (
+            <button
+              type="button"
+              className="btn btn-outline-warning workflow-level-action-btn"
+              onClick={onOpenEscalateModal}
+              disabled={isEscalatingDossier}
+            >
+              <i className="bi bi-diagram-3 me-2" aria-hidden="true" />
+              Escalate to Supervisor
+            </button>
+          )}
+          {canReturnToPreparation && (
+            <button
+              type="button"
+              className="btn btn-outline-secondary workflow-level-action-btn"
+              onClick={onOpenReturnToPreparationModal}
+              disabled={isReturningToPreparation}
+            >
+              <i className="bi bi-arrow-return-left me-2" aria-hidden="true" />
+              Return to Preparation
             </button>
           )}
         </div>

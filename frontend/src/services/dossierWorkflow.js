@@ -123,3 +123,11 @@ export async function getPendingEscalations() {
   const items = Array.isArray(payload.data) ? payload.data : [];
   return { items, total: Number(payload.total ?? items.length) };
 }
+
+export async function returnDossierToPreparation(id, returnNote) {
+  const response = await api.post(`/dossiers/${id}/return-to-preparation`, {
+    return_note: returnNote,
+  });
+
+  return response.data;
+}

@@ -68,8 +68,8 @@ function RubriquesSection({
   canAttachDocuments,
   canDeleteRubrique,
   canRejectRubrique,
-  canDecideDocuments,
-  isReturnedForClaimsReview,
+  canClaimsManagerDecidePendingDocuments,
+  canSupervisorOverrideDocumentDecisions,
   canDetachDocuments,
   isFrozen,
   isAttachingByRubriqueId,
@@ -275,14 +275,14 @@ function RubriquesSection({
                               const originalFilename = document.original_filename || `Document #${documentId}`;
                               const isPreviewing = Boolean(previewingById[documentId]);
                               const isDownloading = Boolean(downloadingById[documentId]);
-                              const technicalStatus = (document.status || '').toString().toUpperCase();
                               const isDecided = decisionStatus === 'ACCEPTED' || decisionStatus === 'REJECTED' || decisionStatus === 'APPROVED';
-                              const canReDecideReturnedDocument = isReturnedForClaimsReview && isDecided;
+                              // Claims Manager: only PENDING in normal UNDER_REVIEW.
+                              // Supervisor/Admin: both PENDING and already-decided in IN_ESCALATION.
                               const canDecideCurrentDocument =
-                                decisionStatus === 'PENDING' ||
-                                (canReDecideReturnedDocument && technicalStatus === 'VALIDATED');
+                                (canClaimsManagerDecidePendingDocuments && decisionStatus === 'PENDING') ||
+                                (canSupervisorOverrideDocumentDecisions && (decisionStatus === 'PENDING' || isDecided));
                               const isBusy = Boolean(isDecidingByDocumentId[documentId] || isDetachingByDocumentId[documentId]);
-                              const canShowDecisionActions = canDecideDocuments && !isFrozen && canDecideCurrentDocument;
+                              const canShowDecisionActions = !isFrozen && canDecideCurrentDocument;
                               const canShowDetachAction = canDetachDocuments && !isFrozen;
                               const showActionsPlaceholder = !canShowDecisionActions && !canShowDetachAction;
                               const actionPlaceholderText = decisionStatus === 'PENDING' ? '-' : 'Decision completed';
