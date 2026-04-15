@@ -859,24 +859,33 @@ function DossierDetail() {
         </WorkflowBanner>
       )}
 
-      {isComplementPending && isDossierOwnedByCurrentUser && (
-        <WorkflowBanner
-          title="Preparation Reopened"
-          variant="warning"
-          icon="bi-arrow-return-left"
-        >
-          {dossier.returned_to_preparation_note && (
-            <div>
-              <strong>Return note:</strong> {dossier.returned_to_preparation_note}
+      {isComplementPending && isDossierOwnedByCurrentUser && (() => {
+        const isSupervisorRequest = dossier.awaiting_complement_source === 'SUPERVISOR_COMPLEMENT_REQUEST';
+        const sourceLabel = isSupervisorRequest ? 'Complement requested by Supervisor' : 'Returned by Claims Manager';
+        const noteLabel = isSupervisorRequest ? 'Supervisor note' : 'Return note';
+        return (
+          <WorkflowBanner
+            title="Preparation Reopened"
+            variant="warning"
+            icon="bi-arrow-return-left"
+          >
+            <div className="d-flex flex-column gap-1">
+              <div className="text-muted small fw-normal lh-sm mb-0">
+                {sourceLabel}
+                {dossier.awaiting_complement_user?.name && (
+                  <> &bull; {dossier.awaiting_complement_user.name}</>
+                )}
+                {dossier.awaiting_complement_at && <> &bull; {formatDateTime(dossier.awaiting_complement_at)}</>}
+              </div>
+              {dossier.awaiting_complement_note && (
+                <div className="text-dark fw-medium lh-sm mb-0">
+                  <strong>{noteLabel}:</strong> {dossier.awaiting_complement_note}
+                </div>
+              )}
             </div>
-          )}
-          {!dossier.returned_to_preparation_note && dossier.chef_decision_note && (
-            <div>
-              <strong>Note:</strong> {dossier.chef_decision_note}
-            </div>
-          )}
-        </WorkflowBanner>
-      )}
+          </WorkflowBanner>
+        );
+      })()}
 
       <DossierSummaryCard
         dossier={dossier}

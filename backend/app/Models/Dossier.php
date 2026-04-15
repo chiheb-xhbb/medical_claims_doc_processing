@@ -26,6 +26,10 @@ class Dossier extends Model
         'returned_to_preparation_by',
         'returned_to_preparation_at',
         'returned_to_preparation_note',
+        'awaiting_complement_source',
+        'awaiting_complement_by',
+        'awaiting_complement_at',
+        'awaiting_complement_note',
     ];
 
     protected $casts = [
@@ -36,6 +40,7 @@ class Dossier extends Model
         'escalated_at' => 'datetime',
         'chef_decision_at' => 'datetime',
         'returned_to_preparation_at' => 'datetime',
+        'awaiting_complement_at' => 'datetime',
     ];
 
     protected static function boot(): void
@@ -88,6 +93,11 @@ class Dossier extends Model
     public function returnedToPreparationBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'returned_to_preparation_by');
+    }
+    
+    public function awaitingComplementBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'awaiting_complement_by');
     }
 
     public function isFrozen(): bool
@@ -197,4 +207,5 @@ class Dossier extends Model
             $this->saveQuietly();
         }
     }
+
 }
