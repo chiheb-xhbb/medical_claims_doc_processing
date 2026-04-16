@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { getDefaultLandingPath, consumeAuthFeedback } from '../services/auth';
 import { useAuth } from '../context/AuthContext';
-import { ErrorAlert } from '../ui';
+import { ErrorAlert, SuccessAlert } from '../ui';
+import './Login/Login.css';
+
+const LOGIN_SUCCESS_FEEDBACK_PREFIX = 'success:';
 
 function Login() {
   const { login } = useAuth();
@@ -15,12 +18,17 @@ function Login() {
   const [error, setError] = useState(null);
 
   // Validation state
+  const [successMessage, setSuccessMessage] = useState('');
   const [validationErrors, setValidationErrors] = useState({});
 
   useEffect(() => {
     const authFeedback = consumeAuthFeedback();
     if (authFeedback) {
-      setError(authFeedback);
+      if (authFeedback.startsWith(LOGIN_SUCCESS_FEEDBACK_PREFIX)) {
+        setSuccessMessage(authFeedback.slice(LOGIN_SUCCESS_FEEDBACK_PREFIX.length));
+      } else {
+        setError(authFeedback);
+      }
     }
   }, []);
 
@@ -52,8 +60,8 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+    setSuccessMessage('');
 
-    // Validate form
     if (!validateForm()) {
       return;
     }
@@ -86,23 +94,23 @@ function Login() {
   };
 
   return (
-    <div className="min-vh-100 d-flex align-items-center justify-content-center">
+    <div className="login-page">
       <div className="container">
         <div className="row justify-content-center">
           <div className="col-md-6 col-lg-5 col-xl-4">
-            <div className="card shadow-lg">
+            <div className="card shadow-lg login-card">
               {/* Header */}
               <div className="card-header bg-primary text-white text-center py-4">
-                <h4 className="mb-1 d-flex align-items-center justify-content-center">
+                <h4 className="mb-1 d-flex align-items-center justify-content-center brand-title">
                   <i className="bi bi-file-medical me-2"></i>
                   MedDocs
                 </h4>
-                <small className="text-white">Medical Document Processing</small>
+                <small className="text-white brand-subtitle">Internal Claims Workspace</small>
               </div>
 
               {/* Body */}
-              <div className="card-body p-4">
-                <h5 className="text-center mb-4 text-secondary">Sign In</h5>
+              <div className="card-body">
+                <h5 className="form-title">Sign In</h5>
 
                 {/* Error Alert */}
                 {error && (
@@ -111,10 +119,15 @@ function Login() {
                   </div>
                 )}
 
-                {/* Login Form */}
+                {successMessage && (
+                  <div className="mb-3">
+                    <SuccessAlert message={successMessage} title="" />
+                  </div>
+                )}
+
                 <form onSubmit={handleSubmit} noValidate>
                   {/* Email Field */}
-                  <div className="mb-3">
+                  <div className="form-group">
                     <label htmlFor="email" className="form-label">
                       <i className="bi bi-envelope me-1"></i>
                       Email Address
@@ -141,7 +154,7 @@ function Login() {
                   </div>
 
                   {/* Password Field */}
-                  <div className="mb-4">
+                  <div className="form-group form-group--password">
                     <label htmlFor="password" className="form-label">
                       <i className="bi bi-lock me-1"></i>
                       Password
@@ -166,10 +179,15 @@ function Login() {
                     )}
                   </div>
 
-                  {/* Submit Button */}
+                  <div className="forgot-password-row">
+                    <Link to="/forgot-password" className="forgot-password-link">
+                      Forgot password?
+                    </Link>
+                  </div>
+
                   <button
                     type="submit"
-                    className="btn btn-primary w-100 py-2"
+                    className="btn btn-primary submit-btn"
                     disabled={loading}
                   >
                     {loading ? (
@@ -184,7 +202,7 @@ function Login() {
                     ) : (
                       <>
                         <i className="bi bi-box-arrow-in-right me-2"></i>
-                        Login
+                        Sign In
                       </>
                     )}
                   </button>
@@ -192,8 +210,8 @@ function Login() {
               </div>
 
               {/* Footer */}
-              <div className="card-footer bg-white text-center py-3">
-                <small className="text-muted">
+              <div className="card-footer">
+                <small>
                   <i className="bi bi-shield-lock me-1"></i>
                   Internal use only - Contact admin for access
                 </small>

@@ -5,6 +5,8 @@ import DossiersList from './pages/DossiersList';
 import DossierDetail from './pages/DossierDetail';
 import AdminUsers from './pages/AdminUsers';
 import Login from './pages/Login';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import ProtectedRoute from './components/ProtectedRoute';
 import { MainLayout } from './layout';
 import { getDefaultLandingPath } from './services/auth';
@@ -33,6 +35,24 @@ function App() {
               token
                 ? <Navigate to={getDefaultLandingPath()} replace />
                 : <Login />
+            }
+          />
+
+          <Route
+            path="/forgot-password"
+            element={
+              token
+                ? <Navigate to={getDefaultLandingPath()} replace />
+                : <ForgotPassword />
+            }
+          />
+
+          <Route
+            path="/reset-password"
+            element={
+              token
+                ? <Navigate to={getDefaultLandingPath()} replace />
+                : <ResetPassword />
             }
           />
 

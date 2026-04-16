@@ -22,7 +22,7 @@
   box-shadow: var(--shadow-lg);
   overflow: hidden;
   width: 100%;
-  max-width: 400px;
+  max-width: 460px;
 }
 
 /* Card header with branding */
@@ -30,7 +30,7 @@
   background-color: var(--color-primary);
   color: var(--color-white);
   text-align: center;
-  padding: var(--spacing-8) var(--spacing-6);
+  padding: var(--spacing-6) var(--spacing-6);
 }
 
 .login-card .brand-title {
@@ -59,13 +59,17 @@
   text-align: center;
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-semibold);
-  color: var(--color-text-primary);
+  color: var(--color-text-secondary);
   margin-bottom: var(--spacing-6);
 }
 
 /* Form fields */
 .login-card .form-group {
   margin-bottom: var(--spacing-5);
+}
+
+.login-card .form-group--password {
+  margin-bottom: var(--spacing-2);
 }
 
 .login-card .form-label {
@@ -76,7 +80,6 @@
 }
 
 .login-card .form-control {
-  padding: var(--spacing-3) var(--spacing-4);
   border-radius: var(--radius-md);
   transition: var(--transition-all);
 }
@@ -89,11 +92,29 @@
 /* Submit button */
 .login-card .submit-btn {
   width: 100%;
+  min-height: 44px;
   padding: var(--spacing-3) var(--spacing-4);
   font-weight: var(--font-weight-semibold);
   font-size: var(--font-size-md);
   border-radius: var(--radius-md);
   transition: var(--transition-all);
+}
+
+.login-card .forgot-password-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--spacing-4);
+}
+
+.login-card .forgot-password-link {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.login-card .forgot-password-link:hover {
+  color: var(--color-primary-hover);
 }
 
 .login-card .submit-btn:hover:not(:disabled) {

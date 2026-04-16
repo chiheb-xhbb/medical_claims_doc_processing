@@ -1,9 +1,11 @@
 import { useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 
+const AUTH_LAYOUT_ROUTES = new Set(['/login', '/forgot-password', '/reset-password']);
+
 function MainLayout({ children }) {
   const location = useLocation();
-  const isLoginPage = location.pathname === '/login';
+  const isAuthPage = AUTH_LAYOUT_ROUTES.has(location.pathname);
 
   return (
     <div
@@ -13,11 +15,11 @@ function MainLayout({ children }) {
         backgroundColor: 'var(--color-bg-page)',
       }}
     >
-      <Navbar />
+      {!isAuthPage && <Navbar />}
 
       <main
         className="flex-grow-1"
-        style={{ paddingTop: isLoginPage ? 0 : 'var(--navbar-height)' }}
+        style={{ paddingTop: isAuthPage ? 0 : 'var(--navbar-height)' }}
       >
         {children}
       </main>

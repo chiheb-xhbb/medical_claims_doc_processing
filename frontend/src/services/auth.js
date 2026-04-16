@@ -136,3 +136,20 @@ export async function changePassword(currentPassword, newPassword, newPasswordCo
 
   return response.data;
 }
+
+// Start the forgot password flow by sending a reset link to the user's email.
+export async function forgotPassword(email) {
+  const response = await api.post('/forgot-password', { email });
+  return response.data;
+}
+
+export async function resetPassword({ token, email, password, passwordConfirmation }) {
+  const response = await api.post('/reset-password', {
+    token,
+    email,
+    password,
+    password_confirmation: passwordConfirmation,
+  });
+
+  return response.data;
+}
