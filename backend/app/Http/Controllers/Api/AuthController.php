@@ -8,17 +8,12 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    /**
-     * Register a new user.
-     *
-     * Note:
-     * The public register route can remain disabled in routes/api.php
-     * if you are now moving to an admin-created closed platform model.
-     */
     public function register(Request $request)
     {
         $validated = $request->validate([
@@ -44,9 +39,6 @@ class AuthController extends Controller
         ], 201);
     }
 
-    /**
-     * Login user and create token.
-     */
     public function login(Request $request)
     {
         $validated = $request->validate([
@@ -80,9 +72,6 @@ class AuthController extends Controller
         ], 200);
     }
 
-    /**
-     * Logout current user (revoke current token only).
-     */
     public function logout(Request $request)
     {
         $token = $request->user()?->currentAccessToken();
@@ -96,9 +85,6 @@ class AuthController extends Controller
         ], 200);
     }
 
-    /**
-     * Get authenticated user.
-     */
     public function me(Request $request)
     {
         /** @var User $user */
@@ -109,20 +95,63 @@ class AuthController extends Controller
         ], 200);
     }
 
-    /**
-     * Format user payload returned to frontend.
-     */
-    private function formatUser(User $user): array
+    public function forgotPassword(Request $request)
     {
-        return [
-            'id' => $user->id,
-            'name' => $user->name,
-            'email' => $user->email,
-            'role' => $user->role?->value ?? $user->role,
-            'is_active' => (bool) $user->is_active,
-        ];
+        $request->validate([
+            'email' => ['required', 'email'],
+        ]);
+
+        Password::sendResetLink([
+            'email' => $request->input('email'),
+        ]);
+
+        return response()->json([
+            'message' => 'If this email is registered, a password reset link has been sent.',
+        ], 200);
     }
-    /** Change the authenticated user's password. */
+
+    public function resetPassword(Request $request)
+    {
+        $validated = $request->validate([
+            'token' => ['required', 'string'],
+            'email' => ['required', 'email'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $status = Password::reset(
+            [
+                'email' => $validated['email'],
+                'password' => $validated['password'],
+                'password_confirmation' => $request->input('password_confirmation'),
+                'token' => $validated['token'],
+            ],
+            function (User $user, string $password) {
+                $user->forceFill([
+                    'password' => Hash::make($password),
+                    'remember_token' => Str::random(60),
+                ])->save();
+
+                $user->tokens()->delete();
+            }
+        );
+
+        if ($status === Password::PASSWORD_RESET) {
+            return response()->json([
+                'message' => 'Password reset successfully. You can now sign in.',
+            ], 200);
+        }
+
+        if (in_array($status, [Password::INVALID_TOKEN, Password::INVALID_USER], true)) {
+            return response()->json([
+                'message' => 'This password reset link is invalid or expired.',
+            ], 400);
+        }
+
+        return response()->json([
+            'message' => 'Failed to reset password.',
+        ], 400);
+    }
+
     public function changePassword(Request $request)
     {
         $validated = $request->validate([
@@ -139,5 +168,16 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Password changed successfully.',
         ], 200);
+    }
+
+    private function formatUser(User $user): array
+    {
+        return [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $user->role?->value ?? $user->role,
+            'is_active' => (bool) $user->is_active,
+        ];
     }
 }

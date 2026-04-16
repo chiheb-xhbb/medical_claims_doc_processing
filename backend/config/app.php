@@ -53,7 +53,7 @@ return [
     | your application so that it is used when running Artisan tasks.
     |
     */
-
+    'frontend_url' => env('FRONTEND_URL', 'http://localhost:5173'),
     'url' => env('APP_URL', 'http://localhost'),
 
     'asset_url' => env('ASSET_URL', '/'),
