@@ -272,7 +272,10 @@ class RubriqueController extends Controller
                 /** @var Document $document */
                 $document = $documents->get($documentId);
 
-                if ((int) $document->user_id !== (int) $user->id && ! $this->hasRole($user, UserRole::ADMIN)) {
+                if (
+                    $this->hasRole($user, UserRole::AGENT)
+                    && (int) $document->user_id !== (int) $user->id
+                ) {
                     $this->forbidden('One or more selected documents do not belong to you.');
                 }
 
@@ -482,7 +485,13 @@ class RubriqueController extends Controller
 
     private function canPrepareDossiers(User $user): bool
     {
-        return $this->hasRole($user, UserRole::AGENT, UserRole::CLAIMS_MANAGER, UserRole::ADMIN);
+        return $this->hasRole(
+            $user,
+            UserRole::AGENT,
+            UserRole::CLAIMS_MANAGER,
+            UserRole::SUPERVISOR,
+            UserRole::ADMIN
+        );
     }
 
     private function canManagePreparationDossier(User $user, Dossier $dossier): bool
@@ -491,8 +500,12 @@ class RubriqueController extends Controller
             return true;
         }
 
-        return $this->hasRole($user, UserRole::AGENT, UserRole::CLAIMS_MANAGER)
-            && (int) $dossier->created_by === (int) $user->id;
+        return $this->hasRole(
+            $user,
+            UserRole::AGENT,
+            UserRole::CLAIMS_MANAGER,
+            UserRole::SUPERVISOR
+        ) && (int) $dossier->created_by === (int) $user->id;
     }
 
     private function canDecideRubrique(User $user, Dossier $dossier): bool

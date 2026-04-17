@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api, { getApiErrorMessage } from '../services/api';
 import { previewDocument, downloadDocument } from '../services/documentAccess';
+import { getStoredRole, getStoredUser } from '../services/auth';
+import { USER_ROLES } from '../constants/domainLabels';
 import {
   ConfidenceBadge,
   Loader,
@@ -46,6 +48,8 @@ function DocumentValidation() {
   const navigate = useNavigate();
 
   const [document, setDocument] = useState(null);
+  const [role] = useState(() => getStoredRole());
+  const [currentUserId] = useState(() => Number(getStoredUser()?.id || 0));
   const [editedFields, setEditedFields] = useState({});
   const [confidenceScores, setConfidenceScores] = useState({});
   const [warnings, setWarnings] = useState([]);
@@ -231,6 +235,24 @@ function DocumentValidation() {
   };
 
   const isValidated = document?.status?.toUpperCase() === 'VALIDATED';
+
+  const canValidate = (() => {
+    if (
+      role === USER_ROLES.CLAIMS_MANAGER ||
+      role === USER_ROLES.SUPERVISOR ||
+      role === USER_ROLES.ADMIN
+    ) {
+      return true;
+    }
+
+    if (role === USER_ROLES.AGENT) {
+      return Number(document?.user_id) === currentUserId;
+    }
+
+    return false;
+  })();
+
+  const isReadOnly = isValidated;
 
   if (isLoading) {
     return (
@@ -432,7 +454,7 @@ function DocumentValidation() {
                             handleFieldChange(fieldKey, v);
                           }}
                           step={fieldType === 'number' ? '0.01' : undefined}
-                          disabled={isValidated}
+                          disabled={isReadOnly}
                         />
                       </td>
 
@@ -479,7 +501,7 @@ function DocumentValidation() {
               type="button"
               className={`btn btn-lg dv-validate-btn${isValidated ? ' btn-success' : ' btn-primary'}`}
               onClick={handleValidate}
-              disabled={isSubmitting || isValidated}
+              disabled={isSubmitting || isReadOnly || !canValidate}
             >
               {isSubmitting ? (
                 <>

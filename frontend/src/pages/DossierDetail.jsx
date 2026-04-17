@@ -206,7 +206,7 @@ function DossierDetail() {
 
   const isSupervisor = role === USER_ROLES.SUPERVISOR;
   const isSupervisorReviewer = role === USER_ROLES.SUPERVISOR || role === USER_ROLES.ADMIN;
-  const canPrepare = !isSupervisor && (role === USER_ROLES.AGENT || role === USER_ROLES.CLAIMS_MANAGER || role === USER_ROLES.ADMIN);
+  const canPrepare = role === USER_ROLES.AGENT || role === USER_ROLES.CLAIMS_MANAGER || role === USER_ROLES.SUPERVISOR || role === USER_ROLES.ADMIN;
   const canManagePreparation = role === USER_ROLES.ADMIN || isDossierOwnedByCurrentUser;
   const canReview = role === USER_ROLES.CLAIMS_MANAGER || role === USER_ROLES.ADMIN;
 
@@ -262,7 +262,6 @@ function DossierDetail() {
 
   const showWorkflowActions =
     !isFrozen &&
-    !isSupervisor &&
     (canCreateRubrique || canSubmitDossier || canProcessDossier || canEscalate || canReturnToPreparation);
 
   const isComplementPending = dossierStatus === DOSSIER_STATUSES.AWAITING_COMPLEMENT;
@@ -294,7 +293,8 @@ function DossierDetail() {
         return false;
       }
 
-      if (role !== USER_ROLES.ADMIN && Number(document.user_id) !== Number(currentUserId)) {
+      const isOwnerScopedRole = role === USER_ROLES.AGENT;
+      if (isOwnerScopedRole && Number(document.user_id) !== Number(currentUserId)) {
         return false;
       }
 

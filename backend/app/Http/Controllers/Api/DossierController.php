@@ -62,10 +62,14 @@ class DossierController extends Controller
                     ]);
             });
         } elseif ($this->hasRole($user, UserRole::SUPERVISOR)) {
-            $query->whereIn('status', [
-                DossierStatus::IN_ESCALATION->value,
-                DossierStatus::PROCESSED->value,
-            ]);
+            $query->where(function ($scope) use ($user) {
+                $scope->where('created_by', $user->id)
+                    ->orWhereIn('status', [
+                        DossierStatus::UNDER_REVIEW->value,
+                        DossierStatus::IN_ESCALATION->value,
+                        DossierStatus::PROCESSED->value,
+                    ]);
+            });
         } elseif (! $this->hasRole($user, UserRole::ADMIN)) {
             return response()->json([
                 'message' => 'You are not allowed to view dossiers.',
@@ -624,7 +628,7 @@ class DossierController extends Controller
 
     private function canPrepareDossiers(User $user): bool
     {
-        return $this->hasRole($user, UserRole::AGENT, UserRole::CLAIMS_MANAGER, UserRole::ADMIN);
+        return $this->hasRole($user, UserRole::AGENT, UserRole::CLAIMS_MANAGER, UserRole::SUPERVISOR, UserRole::ADMIN);
     }
 
     private function canReviewDossiers(User $user): bool
@@ -638,7 +642,7 @@ class DossierController extends Controller
             return true;
         }
 
-        return $this->hasRole($user, UserRole::AGENT, UserRole::CLAIMS_MANAGER)
+        return $this->hasRole($user, UserRole::AGENT, UserRole::CLAIMS_MANAGER, UserRole::SUPERVISOR)
             && (int) $dossier->created_by === (int) $user->id;
     }
 
@@ -648,7 +652,7 @@ class DossierController extends Controller
             return true;
         }
 
-        return $this->hasRole($user, UserRole::AGENT, UserRole::CLAIMS_MANAGER)
+        return $this->hasRole($user, UserRole::AGENT, UserRole::CLAIMS_MANAGER, UserRole::SUPERVISOR)
             && (int) $dossier->created_by === (int) $user->id;
     }
 
@@ -676,7 +680,12 @@ class DossierController extends Controller
         }
 
         if ($this->hasRole($user, UserRole::SUPERVISOR)) {
+            if ((int) $dossier->created_by === (int) $user->id) {
+                return true;
+            }
+
             return in_array($dossier->status->value, [
+                DossierStatus::UNDER_REVIEW->value,
                 DossierStatus::IN_ESCALATION->value,
                 DossierStatus::PROCESSED->value,
             ], true);

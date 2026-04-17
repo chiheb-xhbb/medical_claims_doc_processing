@@ -45,7 +45,11 @@ const DOSSIER_STATUS_OPTIONS = {
     DOSSIER_STATUSES.PROCESSED
   ],
   [USER_ROLES.SUPERVISOR]: [
+    DOSSIER_STATUSES.RECEIVED,
+    DOSSIER_STATUSES.IN_PROGRESS,
+    DOSSIER_STATUSES.UNDER_REVIEW,
     DOSSIER_STATUSES.IN_ESCALATION,
+    DOSSIER_STATUSES.AWAITING_COMPLEMENT,
     DOSSIER_STATUSES.PROCESSED
   ],
   [USER_ROLES.ADMIN]: [
@@ -96,11 +100,11 @@ const getRolePageConfig = (role) => {
   if (role === USER_ROLES.SUPERVISOR) {
     return {
       title: 'Case Files',
-      subtitle: 'Review escalated case files requiring supervisor decisions.',
-      emptyTitle: 'No Escalated Case Files',
-      emptyDescription: 'No case file is currently pending supervisor review.',
-      createButtonLabel: '',
-      canCreateDossier: false
+      subtitle: 'Prepare case files or review escalated ones requiring supervisor decisions.',
+      emptyTitle: 'No Case Files Found',
+      emptyDescription: 'Create a new case file or wait for escalated ones.',
+      createButtonLabel: 'New Case File',
+      canCreateDossier: true
     };
   }
 
@@ -306,7 +310,7 @@ function DossiersList() {
       return true;
     }
 
-    if (role === USER_ROLES.AGENT || role === USER_ROLES.CLAIMS_MANAGER) {
+    if (role === USER_ROLES.AGENT || role === USER_ROLES.CLAIMS_MANAGER || role === USER_ROLES.SUPERVISOR) {
       return Number(dossier.created_by) === Number(currentUserId);
     }
 

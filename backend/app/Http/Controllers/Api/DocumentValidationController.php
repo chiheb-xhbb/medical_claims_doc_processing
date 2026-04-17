@@ -211,12 +211,15 @@ class DocumentValidationController extends Controller
 
     private function canValidateDocument(User $user, Document $document): bool
     {
-        if ($this->hasRole($user, UserRole::CLAIMS_MANAGER, UserRole::ADMIN)) {
+        if ($this->hasRole($user, UserRole::CLAIMS_MANAGER, UserRole::SUPERVISOR, UserRole::ADMIN)) {
             return true;
         }
 
-        return $this->hasRole($user, UserRole::AGENT)
-            && (int) $document->user_id === (int) $user->id;
+        if ($this->hasRole($user, UserRole::AGENT)) {
+            return (int) $document->user_id === (int) $user->id;
+        }
+
+        return false;
     }
 
     private function hasRole(User $user, UserRole ...$roles): bool

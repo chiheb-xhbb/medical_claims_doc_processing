@@ -120,7 +120,6 @@ function Navbar() {
   const roleLabel = USER_ROLE_LABELS[authSnapshot.role] || authSnapshot.role || '';
 
   const isSupervisor = authSnapshot.role === USER_ROLES.SUPERVISOR;
-  const showDocumentsLink = !isSupervisor;
 
   return (
     <>
@@ -156,18 +155,16 @@ function Navbar() {
             <>
               {/* Primary nav links */}
               <ul className="navbar-nav nb-nav-links mx-auto">
-                {showDocumentsLink && (
-                  <li className="nav-item">
-                    <NavLink
-                      className={() => `nb-nav-link nav-link${isActive('/documents') ? ' active' : ''}`}
-                      to="/documents"
-                      end
-                    >
-                      <i className="bi bi-files" aria-hidden="true"></i>
-                      Documents
-                    </NavLink>
-                  </li>
-                )}
+                <li className="nav-item">
+                  <NavLink
+                    className={() => `nb-nav-link nav-link${isActive('/documents') ? ' active' : ''}`}
+                    to="/documents"
+                    end
+                  >
+                    <i className="bi bi-files" aria-hidden="true"></i>
+                    Documents
+                  </NavLink>
+                </li>
 
                 <li className="nav-item">
                   <NavLink

@@ -45,7 +45,7 @@ function DocumentsList() {
   const location = useLocation();
   const [role, setRole] = useState(() => getStoredRole());
   const [currentUserId, setCurrentUserId] = useState(() => Number(getStoredUser()?.id || 0));
-  const canUpload = role === USER_ROLES.AGENT || role === USER_ROLES.CLAIMS_MANAGER || role === USER_ROLES.ADMIN;
+  const canUpload = role === USER_ROLES.AGENT || role === USER_ROLES.CLAIMS_MANAGER || role === USER_ROLES.SUPERVISOR || role === USER_ROLES.ADMIN;
 
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -338,7 +338,11 @@ function DocumentsList() {
       return false;
     }
 
-    if (role === USER_ROLES.ADMIN || role === USER_ROLES.CLAIMS_MANAGER) {
+    if (
+      role === USER_ROLES.ADMIN ||
+      role === USER_ROLES.CLAIMS_MANAGER ||
+      role === USER_ROLES.SUPERVISOR
+    ) {
       return true;
     }
 
@@ -418,16 +422,33 @@ function DocumentsList() {
     let primaryAction;
 
     switch (doc.status) {
-      case 'PROCESSED':
+      case 'PROCESSED': {
+        const canValidate = (() => {
+          if (
+            role === USER_ROLES.CLAIMS_MANAGER ||
+            role === USER_ROLES.SUPERVISOR ||
+            role === USER_ROLES.ADMIN
+          ) {
+            return true;
+          }
+
+          if (role === USER_ROLES.AGENT) {
+            return Number(doc.user_id) === Number(currentUserId);
+          }
+
+          return false;
+        })();
+
         primaryAction = (
           <button
-            className="btn btn-primary btn-sm document-action-btn document-action-btn--validate"
+            className={`btn btn-${canValidate ? 'primary' : 'success'} btn-sm document-action-btn document-action-btn--${canValidate ? 'validate' : 'view'}`}
             onClick={() => navigate(`/documents/${doc.id}/validate`)}
           >
-            Validate
+            {canValidate ? 'Validate' : 'View'}
           </button>
         );
         break;
+      }
 
       case 'VALIDATED':
         primaryAction = (

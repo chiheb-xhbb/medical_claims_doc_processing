@@ -22,6 +22,7 @@ class StoreDocumentRequest extends FormRequest
         return in_array($currentRole, [
             UserRole::AGENT,
             UserRole::CLAIMS_MANAGER,
+            UserRole::SUPERVISOR,
             UserRole::ADMIN,
         ], true);
     }

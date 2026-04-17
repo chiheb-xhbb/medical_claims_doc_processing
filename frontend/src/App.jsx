@@ -18,6 +18,7 @@ function App() {
   const documentWorkspaceRoles = [
     USER_ROLES.AGENT,
     USER_ROLES.CLAIMS_MANAGER,
+    USER_ROLES.SUPERVISOR,
     USER_ROLES.ADMIN,
   ];
 

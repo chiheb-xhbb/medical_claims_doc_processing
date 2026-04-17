@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\DocumentStatus;
-use App\Enums\DossierStatus;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreDocumentRequest;
@@ -20,7 +19,8 @@ class DocumentController extends Controller
 {
     public function __construct(
         private DocumentService $documentService
-    ) {}
+    ) {
+    }
 
     public function store(StoreDocumentRequest $request): JsonResponse
     {
@@ -102,6 +102,7 @@ class DocumentController extends Controller
             fn (DocumentStatus $case) => $case->value,
             DocumentStatus::cases()
         );
+
         $allowedSortFields = ['id', 'status', 'created_at'];
         $allowedSortDirections = ['asc', 'desc'];
 
@@ -117,7 +118,7 @@ class DocumentController extends Controller
 
         if ($this->hasRole($user, UserRole::AGENT)) {
             $query->where('user_id', $user->id);
-        } elseif (! $this->hasRole($user, UserRole::CLAIMS_MANAGER, UserRole::ADMIN)) {
+        } elseif (! $this->hasRole($user, UserRole::CLAIMS_MANAGER, UserRole::SUPERVISOR, UserRole::ADMIN)) {
             return response()->json([
                 'message' => 'You are not allowed to view documents.',
             ], 403);
@@ -217,42 +218,47 @@ class DocumentController extends Controller
         ], 200);
     }
 
-    public function retry(Document $document): JsonResponse
+    public function retry(Request $request, Document $document): JsonResponse
     {
-        if ($document->user_id !== auth()->id()) {
+        /** @var User $user */
+        $user = $request->user();
+
+        if (! $this->canRetryDocument($user, $document)) {
             abort(403, 'Unauthorized retry attempt.');
         }
 
         return DB::transaction(function () use ($document) {
-            $document = Document::whereKey($document->id)
+            /** @var Document $lockedDocument */
+            $lockedDocument = Document::query()
+                ->whereKey($document->id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if ($document->status !== DocumentStatus::FAILED) {
+            if ($lockedDocument->status !== DocumentStatus::FAILED) {
                 return response()->json([
                     'message' => 'Only FAILED documents can be retried.',
-                    'current_status' => $document->status->value,
+                    'current_status' => $lockedDocument->status->value,
                 ], 400);
             }
 
-            if (! Storage::disk('local')->exists($document->file_path)) {
+            if (! Storage::disk('local')->exists($lockedDocument->file_path)) {
                 return response()->json([
                     'message' => 'Cannot retry this document because the source file is missing.',
                 ], 422);
             }
 
-            $document->update([
+            $lockedDocument->update([
                 'status' => DocumentStatus::UPLOADED,
                 'error_message' => null,
             ]);
 
-            ProcessDocumentJob::dispatch($document->id)->afterCommit();
+            ProcessDocumentJob::dispatch($lockedDocument->id)->afterCommit();
 
             return response()->json([
                 'message' => 'Document queued for reprocessing.',
                 'document' => [
-                    'id' => $document->id,
-                    'status' => $document->status->value,
+                    'id' => $lockedDocument->id,
+                    'status' => $lockedDocument->status->value,
                 ],
             ], 202);
         });
@@ -316,7 +322,7 @@ class DocumentController extends Controller
 
     private function canViewDocument(User $user, Document $document): bool
     {
-        if ($this->hasRole($user, UserRole::CLAIMS_MANAGER, UserRole::ADMIN)) {
+        if ($this->hasRole($user, UserRole::ADMIN, UserRole::CLAIMS_MANAGER, UserRole::SUPERVISOR)) {
             return true;
         }
 
@@ -326,7 +332,7 @@ class DocumentController extends Controller
 
     private function canAccessDocumentFile(User $user, Document $document): bool
     {
-        if ($this->hasRole($user, UserRole::ADMIN)) {
+        if ($this->hasRole($user, UserRole::ADMIN, UserRole::CLAIMS_MANAGER, UserRole::SUPERVISOR)) {
             return true;
         }
 
@@ -334,39 +340,27 @@ class DocumentController extends Controller
             return (int) $document->user_id === (int) $user->id;
         }
 
-        if ($this->hasRole($user, UserRole::CLAIMS_MANAGER)) {
-            return true;
-        }
-
-        if ($this->hasRole($user, UserRole::SUPERVISOR)) {
-            $document->loadMissing([
-                'rubrique.dossier',
-                'dossier',
-            ]);
-
-            $dossier = $document->rubrique?->dossier ?? $document->dossier;
-
-            if (! $dossier || ! $dossier->status) {
-                return false;
-            }
-
-            $statusValue = $dossier->status instanceof DossierStatus
-                ? $dossier->status->value
-                : (string) $dossier->status;
-
-            return in_array($statusValue, [
-                DossierStatus::IN_ESCALATION->value,
-                DossierStatus::PROCESSED->value,
-            ], true);
-        }
-
         return false;
     }
 
     private function canDeleteDocument(User $user, Document $document): bool
     {
+        if ($this->hasRole($user, UserRole::ADMIN, UserRole::CLAIMS_MANAGER, UserRole::SUPERVISOR)) {
+            return true;
+        }
+
+        return $this->hasRole($user, UserRole::AGENT)
+            && (int) $document->user_id === (int) $user->id;
+    }
+
+    private function canRetryDocument(User $user, Document $document): bool
+    {
         if ($this->hasRole($user, UserRole::ADMIN, UserRole::CLAIMS_MANAGER)) {
             return true;
+        }
+
+        if ($this->hasRole($user, UserRole::SUPERVISOR)) {
+            return (int) $document->user_id === (int) $user->id;
         }
 
         return $this->hasRole($user, UserRole::AGENT)
