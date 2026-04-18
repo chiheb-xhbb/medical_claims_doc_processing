@@ -4,6 +4,7 @@ import { AUTH_CHANGED_EVENT, getDefaultLandingPath, getStoredRole, getStoredUser
 import { USER_ROLES, USER_ROLE_LABELS } from '../constants/domainLabels';
 import SupervisorBellButton from './SupervisorBellButton';
 import ChangePasswordModal from './ChangePasswordModal';
+import companyLogo from '../assets/logo.svg';
 
 const ROLE_BADGE_CLASS = {
   [USER_ROLES.AGENT]: 'nb-role-badge--agent',
@@ -110,9 +111,13 @@ function Navbar() {
   };
 
   // Hide navbar on login page
-  if (location.pathname === '/login') {
-    return null;
-  }
+if (
+  location.pathname === '/login' ||
+  location.pathname === '/forgot-password' ||
+  location.pathname === '/reset-password'
+) {
+  return null;
+}
 
   const userDisplayName = authSnapshot.user?.name || authSnapshot.user?.email || 'User';
   const userInitial = userDisplayName.charAt(0).toUpperCase();
@@ -129,12 +134,14 @@ function Navbar() {
         <NavLink
           className="navbar-brand nb-brand"
           to={authSnapshot.authenticated ? getDefaultLandingPath(authSnapshot.role) : '/login'}
-          aria-label="MedDocs home"
+          aria-label="CARTE home"
         >
-          <span className="nb-brand__icon" aria-hidden="true">
-            <i className="bi bi-file-medical"></i>
-          </span>
-          <span className="nb-brand__text">MedDocs</span>
+          <img
+            src={companyLogo}
+            alt="CARTE Assurances"
+            className="nb-brand__logo"
+          />
+          <span className="nb-brand__wordmark">CARTE</span>
         </NavLink>
 
         {/* Mobile toggler */}

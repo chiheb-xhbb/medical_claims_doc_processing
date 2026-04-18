@@ -75,12 +75,9 @@ body {
 .nb-brand {
   display: flex;
   align-items: center;
-  gap: var(--spacing-2);
+  gap: 0.55rem;
   padding: 0;
-  font-weight: var(--font-weight-bold);
-  font-size: var(--font-size-md);
-  letter-spacing: var(--letter-spacing-tight);
-  color: rgba(255, 255, 255, 0.96) !important;
+  min-width: 150px;
   text-decoration: none;
   transition: opacity var(--transition-fast);
   flex-shrink: 0;
@@ -91,16 +88,35 @@ body {
   color: rgba(255, 255, 255, 0.96) !important;
 }
 
-.nb-brand__icon {
-  display: flex;
-  align-items: center;
-  font-size: 1.2rem;
-  opacity: 0.92;
+.nb-brand__logo {
+  height: 37px;
+  width: auto;
+  display: block;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
-.nb-brand__text {
-  font-size: 0.9375rem;
-  font-weight: var(--font-weight-bold);
+.nb-brand__wordmark {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.96);
+  white-space: nowrap;
+}
+
+@media (max-width: 991.98px) {
+  .nb-brand {
+    min-width: 0;
+  }
+
+  .nb-brand__logo {
+    height: 32px;
+  }
+
+  .nb-brand__wordmark {
+    font-size: 0.9375rem;
+  }
 }
 
 /* ─── Mobile toggler ─────────────────────────────────────────────────────── */
