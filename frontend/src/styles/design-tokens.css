@@ -277,4 +277,25 @@
   /* Heading styles */
   --heading-letter-spacing: -0.02em;
   --heading-line-height: 1.2;
+
+  /* Toast tokens */
+  --toast-success-border: #bbf7d0;
+  --toast-success-bg: #f0fdf4;
+  --toast-success-text: #166534;
+  --toast-success-icon: #16a34a;
+
+  --toast-danger-border: #fecaca;
+  --toast-danger-bg: #fff1f2;
+  --toast-danger-text: #991b1b;
+  --toast-danger-icon: #dc2626;
+
+  --toast-workflow-border: #bfdbfe;
+  --toast-workflow-bg: #eff6ff;
+  --toast-workflow-text: #1d4ed8;
+  --toast-workflow-icon: #2563eb;
+
+  --toast-error-border: #fecaca;
+  --toast-error-bg: #fef2f2;
+  --toast-error-text: #991b1b;
+  --toast-error-icon: #dc2626;
 }

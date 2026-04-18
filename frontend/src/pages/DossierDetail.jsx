@@ -1,11 +1,17 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
+import {
+  getToastMessage,
+  notifySuccess,
+  notifyDangerSuccess,
+  notifyWorkflowSuccess,
+  notifyError,
+} from '../utils/toast';
 import { getStoredRole, getStoredUser, AUTH_CHANGED_EVENT } from '../services/auth';
 import {
   USER_ROLES,
   DOSSIER_STATUSES,
-  DOSSIER_STATUS_LABELS
+  DOSSIER_STATUS_LABELS,
 } from '../constants/domainLabels';
 import {
   getDossierDetail,
@@ -39,6 +45,7 @@ import DossierModalShell from './DossierDetail/components/DossierModalShell';
 import './DossierDetail/DossierDetail.css';
 
 const DOSSIER_FROZEN_STATUSES = [DOSSIER_STATUSES.PROCESSED];
+
 const INITIAL_CONFIRMATION_MODAL = {
   isOpen: false,
   action: null,
@@ -49,7 +56,7 @@ const INITIAL_CONFIRMATION_MODAL = {
   confirmingLabel: 'Processing...',
   confirmVariant: 'primary',
   initialFocus: 'confirm',
-  payload: null
+  payload: null,
 };
 
 const formatApiError = (error, fallbackMessage) => {
@@ -82,6 +89,7 @@ const formatApiError = (error, fallbackMessage) => {
   return backendMessage || fallbackMessage;
 };
 
+// Normalize backend detail payload so the page can rely on one stable shape.
 const mapDossierDetailResponse = (apiResponse) => {
   const payload = apiResponse || {};
   const dossier = payload.dossier || payload;
@@ -95,11 +103,11 @@ const mapDossierDetailResponse = (apiResponse) => {
     dossier: dossier || null,
     rubriques: rubriques.map((rubrique) => ({
       ...rubrique,
-      documents: Array.isArray(rubrique?.documents) ? rubrique.documents : []
+      documents: Array.isArray(rubrique?.documents) ? rubrique.documents : [],
     })),
     requested_total: payload.requested_total ?? dossier?.requested_total ?? 0,
     current_total: payload.current_total ?? dossier?.current_total ?? 0,
-    display_total: payload.display_total ?? dossier?.display_total ?? null
+    display_total: payload.display_total ?? dossier?.display_total ?? null,
   };
 };
 
@@ -145,10 +153,10 @@ function DossierDetail() {
   const [rejectRubriqueNote, setRejectRubriqueNote] = useState('');
   const [confirmationModal, setConfirmationModal] = useState(INITIAL_CONFIRMATION_MODAL);
 
-  // Escalation modal state
   const [escalateModalOpen, setEscalateModalOpen] = useState(false);
   const [escalationReason, setEscalationReason] = useState('');
 
+  // Main detail load with blocking loader.
   const refreshDetail = useCallback(async () => {
     setIsLoadingDetail(true);
     setLoadErrorMessage(null);
@@ -160,13 +168,14 @@ function DossierDetail() {
     } catch (error) {
       const message = formatApiError(error, 'Failed to load case file details. Please try again.');
       setLoadErrorMessage(message);
-      toast.error(message);
+      notifyError(message);
       setDossierData(null);
     } finally {
       setIsLoadingDetail(false);
     }
   }, [id]);
 
+  // Silent refresh keeps the page stable after successful mutations.
   const refreshDetailSilently = useCallback(async () => {
     setIsRefreshingDetail(true);
 
@@ -176,7 +185,7 @@ function DossierDetail() {
       setDossierData(normalized);
     } catch (error) {
       const message = formatApiError(error, 'Failed to load case file details. Please try again.');
-      toast.error(message);
+      notifyError(message);
     } finally {
       setIsRefreshingDetail(false);
     }
@@ -189,11 +198,13 @@ function DossierDetail() {
   const [role, setRole] = useState(() => getStoredRole());
   const [currentUserId, setCurrentUserId] = useState(() => Number(getStoredUser()?.id || 0));
 
+  // Keep role/session state aligned with auth changes from elsewhere in the app.
   useEffect(() => {
     const syncRole = () => {
       setRole(getStoredRole());
       setCurrentUserId(Number(getStoredUser()?.id || 0));
     };
+
     window.addEventListener(AUTH_CHANGED_EVENT, syncRole);
     return () => window.removeEventListener(AUTH_CHANGED_EVENT, syncRole);
   }, []);
@@ -206,41 +217,54 @@ function DossierDetail() {
 
   const isSupervisor = role === USER_ROLES.SUPERVISOR;
   const isSupervisorReviewer = role === USER_ROLES.SUPERVISOR || role === USER_ROLES.ADMIN;
-  const canPrepare = role === USER_ROLES.AGENT || role === USER_ROLES.CLAIMS_MANAGER || role === USER_ROLES.SUPERVISOR || role === USER_ROLES.ADMIN;
+  const canPrepare =
+    role === USER_ROLES.AGENT ||
+    role === USER_ROLES.CLAIMS_MANAGER ||
+    role === USER_ROLES.SUPERVISOR ||
+    role === USER_ROLES.ADMIN;
+
   const canManagePreparation = role === USER_ROLES.ADMIN || isDossierOwnedByCurrentUser;
   const canReview = role === USER_ROLES.CLAIMS_MANAGER || role === USER_ROLES.ADMIN;
 
   const isFrozen = DOSSIER_FROZEN_STATUSES.includes(dossierStatus);
 
+  // These gates keep the page aligned with the dossier state machine and RBAC.
   const canCreateRubrique = canPrepare && canManagePreparation && (
     dossierStatus === DOSSIER_STATUSES.RECEIVED ||
     dossierStatus === DOSSIER_STATUSES.IN_PROGRESS ||
     dossierStatus === DOSSIER_STATUSES.AWAITING_COMPLEMENT
   );
+
   const canDeleteRubrique = canPrepare && canManagePreparation && (
     dossierStatus === DOSSIER_STATUSES.RECEIVED ||
     dossierStatus === DOSSIER_STATUSES.IN_PROGRESS ||
     dossierStatus === DOSSIER_STATUSES.AWAITING_COMPLEMENT
   );
+
   const canAttachDocuments = canPrepare && canManagePreparation && (
     dossierStatus === DOSSIER_STATUSES.IN_PROGRESS ||
     dossierStatus === DOSSIER_STATUSES.AWAITING_COMPLEMENT
   );
+
   const canDetachDocuments = canPrepare && canManagePreparation && (
     dossierStatus === DOSSIER_STATUSES.IN_PROGRESS ||
     dossierStatus === DOSSIER_STATUSES.AWAITING_COMPLEMENT
   );
+
   const canSubmitDossier = canPrepare && canManagePreparation && (
     dossierStatus === DOSSIER_STATUSES.IN_PROGRESS ||
     dossierStatus === DOSSIER_STATUSES.AWAITING_COMPLEMENT
   );
+
   const isReturnedForClaimsReview =
     dossierStatus === DOSSIER_STATUSES.UNDER_REVIEW &&
     dossier?.chef_decision_type === 'RETURNED';
 
-  // Claims Manager decides only PENDING documents in normal (non-returned) UNDER_REVIEW.
   const canClaimsManagerDecidePendingDocuments =
-    canReview && dossierStatus === DOSSIER_STATUSES.UNDER_REVIEW && !isReturnedForClaimsReview;
+    canReview &&
+    dossierStatus === DOSSIER_STATUSES.UNDER_REVIEW &&
+    !isReturnedForClaimsReview;
+
   const canProcessDossier = canReview && dossierStatus === DOSSIER_STATUSES.UNDER_REVIEW;
   const canRejectRubrique =
     canReview && dossierStatus === DOSSIER_STATUSES.UNDER_REVIEW && !isReturnedForClaimsReview;
@@ -254,11 +278,11 @@ function DossierDetail() {
     dossierStatus === DOSSIER_STATUSES.UNDER_REVIEW &&
     !isReturnedForClaimsReview;
 
-  // Supervisor/Admin can override any document decision (pending or already decided) in IN_ESCALATION.
   const canSupervisorOverrideDocumentDecisions =
     isSupervisorReviewer && dossierStatus === DOSSIER_STATUSES.IN_ESCALATION;
 
-  const canSupervisorAct = isSupervisorReviewer && dossierStatus === DOSSIER_STATUSES.IN_ESCALATION;
+  const canSupervisorAct =
+    isSupervisorReviewer && dossierStatus === DOSSIER_STATUSES.IN_ESCALATION;
 
   const showWorkflowActions =
     !isFrozen &&
@@ -269,9 +293,12 @@ function DossierDetail() {
   const isConfirmingAction =
     (confirmationModal.action === 'submit' && isSubmittingDossier) ||
     (confirmationModal.action === 'process' && isProcessingDossier) ||
-    (confirmationModal.action === 'detach' && Boolean(isDetachingByDocumentId[confirmationModal.payload?.documentId])) ||
-    (confirmationModal.action === 'delete_rubrique' && Boolean(isDeletingRubriqueById[confirmationModal.payload?.rubriqueId])) ||
-    (confirmationModal.action === 'accept_document' && Boolean(isDecidingByDocumentId[confirmationModal.payload?.documentId]));
+    (confirmationModal.action === 'detach' &&
+      Boolean(isDetachingByDocumentId[confirmationModal.payload?.documentId])) ||
+    (confirmationModal.action === 'delete_rubrique' &&
+      Boolean(isDeletingRubriqueById[confirmationModal.payload?.rubriqueId])) ||
+    (confirmationModal.action === 'accept_document' &&
+      Boolean(isDecidingByDocumentId[confirmationModal.payload?.documentId]));
 
   const allAttachedDocumentIds = useMemo(() => {
     const ids = new Set();
@@ -326,7 +353,7 @@ function DossierDetail() {
       const documents = await getValidatedDocuments();
       setValidatedDocuments(Array.isArray(documents) ? documents : []);
     } catch (error) {
-      toast.error(formatApiError(error, 'Failed to load validated documents.'));
+      notifyError(formatApiError(error, 'Failed to load validated documents.'));
       setValidatedDocuments([]);
     } finally {
       setIsLoadingValidatedDocuments(false);
@@ -356,7 +383,7 @@ function DossierDetail() {
     setConfirmationModal({
       ...INITIAL_CONFIRMATION_MODAL,
       isOpen: true,
-      ...configuration
+      ...configuration,
     });
   };
 
@@ -368,10 +395,11 @@ function DossierDetail() {
     setConfirmationModal(INITIAL_CONFIRMATION_MODAL);
   };
 
+  // Small helper to update per-item pending maps without repeating spread logic.
   const withMapPending = (setter, key, value) => {
     setter((previous) => ({
       ...previous,
-      [key]: value
+      [key]: value,
     }));
   };
 
@@ -379,7 +407,7 @@ function DossierDetail() {
     event.preventDefault();
 
     if (!rubriqueTitle.trim()) {
-      toast.error('Section title is required.');
+      notifyError('Section title is required.');
       return;
     }
 
@@ -388,15 +416,15 @@ function DossierDetail() {
 
       const response = await createRubrique(id, {
         title: rubriqueTitle.trim(),
-        notes: rubriqueNotes.trim() || null
+        notes: rubriqueNotes.trim() || null,
       });
 
       setRubriqueTitle('');
       setRubriqueNotes('');
-      toast.success(response?.message || 'Section created successfully.');
+      notifySuccess(getToastMessage(response, 'Section created successfully.'));
       await refreshDetailSilently();
     } catch (error) {
-      toast.error(formatApiError(error, 'Failed to create section.'));
+      notifyError(formatApiError(error, 'Failed to create section.'));
     } finally {
       setIsCreatingRubrique(false);
     }
@@ -408,7 +436,7 @@ function DossierDetail() {
     }
 
     if (selectedDocumentIds.length === 0) {
-      toast.error('Select at least one validated document to attach.');
+      notifyError('Select at least one validated document to attach.');
       return;
     }
 
@@ -417,11 +445,11 @@ function DossierDetail() {
 
       const response = await attachDocuments(attachTargetRubrique.id, selectedDocumentIds);
 
-      toast.success(response?.message || 'Documents attached successfully.');
+      notifySuccess(getToastMessage(response, 'Documents attached successfully.'));
       closeAttachModal();
       await refreshDetailSilently();
     } catch (error) {
-      toast.error(formatApiError(error, 'Failed to attach documents.'));
+      notifyError(formatApiError(error, 'Failed to attach documents.'));
     } finally {
       withMapPending(setIsAttachingByRubriqueId, attachTargetRubrique.id, false);
     }
@@ -436,10 +464,10 @@ function DossierDetail() {
       withMapPending(setIsDetachingByDocumentId, documentId, true);
 
       const response = await detachDocument(rubriqueId, documentId);
-      toast.success(response?.message || 'Document detached successfully.');
+      notifyDangerSuccess(getToastMessage(response, 'Document detached successfully.'));
       await refreshDetailSilently();
     } catch (error) {
-      toast.error(formatApiError(error, 'Failed to detach document.'));
+      notifyError(formatApiError(error, 'Failed to detach document.'));
     } finally {
       withMapPending(setIsDetachingByDocumentId, documentId, false);
     }
@@ -454,10 +482,10 @@ function DossierDetail() {
       withMapPending(setIsDeletingRubriqueById, rubriqueId, true);
 
       const response = await deleteRubrique(rubriqueId);
-      toast.success(response?.message || 'Section deleted successfully.');
+      notifyDangerSuccess(getToastMessage(response, 'Section deleted successfully.'));
       await refreshDetailSilently();
     } catch (error) {
-      toast.error(formatApiError(error, 'Failed to delete section.'));
+      notifyError(formatApiError(error, 'Failed to delete section.'));
     } finally {
       withMapPending(setIsDeletingRubriqueById, rubriqueId, false);
     }
@@ -468,10 +496,10 @@ function DossierDetail() {
       setIsSubmittingDossier(true);
 
       const response = await submitDossier(id);
-      toast.success(response?.message || 'Case file submitted successfully.');
+      notifySuccess(getToastMessage(response, 'Case file submitted successfully.'));
       await refreshDetailSilently();
     } catch (error) {
-      toast.error(formatApiError(error, 'Failed to submit case file.'));
+      notifyError(formatApiError(error, 'Failed to submit case file.'));
     } finally {
       setIsSubmittingDossier(false);
     }
@@ -482,10 +510,10 @@ function DossierDetail() {
       setIsProcessingDossier(true);
 
       const response = await processDossier(id);
-      toast.success(response?.message || 'Case file processed successfully.');
+      notifySuccess(getToastMessage(response, 'Case file processed successfully.'));
       await refreshDetailSilently();
     } catch (error) {
-      toast.error(formatApiError(error, 'Failed to process case file.'));
+      notifyError(formatApiError(error, 'Failed to process case file.'));
     } finally {
       setIsProcessingDossier(false);
     }
@@ -494,19 +522,19 @@ function DossierDetail() {
   const handleEscalateConfirm = async () => {
     const trimmedReason = escalationReason.trim();
     if (!trimmedReason) {
-      toast.error('Escalation reason is required.');
+      notifyError('Escalation reason is required.');
       return;
     }
 
     try {
       setIsEscalatingDossier(true);
       const response = await escalateDossier(id, trimmedReason);
-      toast.success(response?.message || 'Case file escalated to Supervisor.');
+      notifySuccess(getToastMessage(response, 'Case file escalated to Supervisor.'));
       setEscalateModalOpen(false);
       setEscalationReason('');
       await refreshDetailSilently();
     } catch (error) {
-      toast.error(formatApiError(error, 'Failed to escalate case file.'));
+      notifyError(formatApiError(error, 'Failed to escalate case file.'));
     } finally {
       setIsEscalatingDossier(false);
     }
@@ -516,10 +544,10 @@ function DossierDetail() {
     try {
       setIsSupervisorActing(true);
       const response = await approveEscalation(id, note);
-      toast.success(response?.message || 'Escalation approved. Case file is now processed.');
+      notifySuccess(getToastMessage(response, 'Escalation approved. Case file is now processed.'));
       await refreshDetailSilently();
     } catch (error) {
-      toast.error(formatApiError(error, 'Failed to approve escalation.'));
+      notifyError(formatApiError(error, 'Failed to approve escalation.'));
     } finally {
       setIsSupervisorActing(false);
     }
@@ -529,10 +557,12 @@ function DossierDetail() {
     try {
       setIsSupervisorActing(true);
       const response = await returnToClaimsManager(id, note);
-      toast.success(response?.message || 'Case file returned to Claims Manager for review.');
+      notifyWorkflowSuccess(
+        getToastMessage(response, 'Case file returned to Claims Manager for review.')
+      );
       await refreshDetailSilently();
     } catch (error) {
-      toast.error(formatApiError(error, 'Failed to return case file.'));
+      notifyError(formatApiError(error, 'Failed to return case file.'));
     } finally {
       setIsSupervisorActing(false);
     }
@@ -542,10 +572,12 @@ function DossierDetail() {
     try {
       setIsSupervisorActing(true);
       const response = await requestComplement(id, note);
-      toast.success(response?.message || 'Complement request sent to preparation owner.');
+      notifyWorkflowSuccess(
+        getToastMessage(response, 'Complement request sent to preparation owner.')
+      );
       await refreshDetailSilently();
     } catch (error) {
-      toast.error(formatApiError(error, 'Failed to request complement.'));
+      notifyError(formatApiError(error, 'Failed to request complement.'));
     } finally {
       setIsSupervisorActing(false);
     }
@@ -554,19 +586,19 @@ function DossierDetail() {
   const handleReturnToPreparationConfirm = async () => {
     const trimmedNote = returnToPreparationNote.trim();
     if (!trimmedNote) {
-      toast.error('A return note is required.');
+      notifyError('A return note is required.');
       return;
     }
 
     try {
       setIsReturningToPreparation(true);
       const response = await returnDossierToPreparation(id, trimmedNote);
-      toast.success(response?.message || 'Case file returned to preparation.');
+      notifyWorkflowSuccess(getToastMessage(response, 'Case file returned to preparation.'));
       setReturnToPreparationModalOpen(false);
       setReturnToPreparationNote('');
       await refreshDetailSilently();
     } catch (error) {
-      toast.error(formatApiError(error, 'Failed to return case file to preparation.'));
+      notifyError(formatApiError(error, 'Failed to return case file to preparation.'));
     } finally {
       setIsReturningToPreparation(false);
     }
@@ -582,7 +614,7 @@ function DossierDetail() {
       confirmingLabel: 'Removing...',
       confirmVariant: 'danger',
       initialFocus: 'cancel',
-      payload: { rubriqueId, documentId }
+      payload: { rubriqueId, documentId },
     });
   };
 
@@ -594,7 +626,7 @@ function DossierDetail() {
       confirmLabel: 'Submit Case File',
       cancelLabel: 'Cancel',
       confirmingLabel: 'Submitting...',
-      confirmVariant: 'primary'
+      confirmVariant: 'primary',
     });
   };
 
@@ -607,7 +639,8 @@ function DossierDetail() {
       cancelLabel: 'Cancel',
       confirmingLabel: 'Processing...',
       confirmVariant: 'success',
-      initialFocus: 'cancel'
+      initialFocus: 'cancel',
+      payload: null,
     });
   };
 
@@ -625,7 +658,7 @@ function DossierDetail() {
       confirmingLabel: 'Deleting...',
       confirmVariant: 'danger',
       initialFocus: 'cancel',
-      payload: { rubriqueId: rubrique.id }
+      payload: { rubriqueId: rubrique.id },
     });
   };
 
@@ -643,13 +676,17 @@ function DossierDetail() {
       confirmingLabel: 'Accepting...',
       confirmVariant: 'success',
       initialFocus: 'cancel',
-      payload: { documentId }
+      payload: { documentId },
     });
   };
 
+  // One dispatcher keeps all confirmation-backed actions consistent.
   const handleConfirmationAction = async () => {
     if (confirmationModal.action === 'detach') {
-      await executeDetachDocument(confirmationModal.payload?.rubriqueId, confirmationModal.payload?.documentId);
+      await executeDetachDocument(
+        confirmationModal.payload?.rubriqueId,
+        confirmationModal.payload?.documentId
+      );
     }
 
     if (confirmationModal.action === 'submit') {
@@ -676,10 +713,10 @@ function DossierDetail() {
       withMapPending(setIsDecidingByDocumentId, documentId, true);
 
       const response = await acceptDocument(documentId, null);
-      toast.success(response?.message || 'Document accepted successfully.');
+      notifySuccess(getToastMessage(response, 'Document accepted successfully.'));
       await refreshDetailSilently();
     } catch (error) {
-      toast.error(formatApiError(error, 'Failed to accept document.'));
+      notifyError(formatApiError(error, 'Failed to accept document.'));
     } finally {
       withMapPending(setIsDecidingByDocumentId, documentId, false);
     }
@@ -697,7 +734,7 @@ function DossierDetail() {
 
     const normalizedNote = rejectNote.trim();
     if (!normalizedNote) {
-      toast.error('A rejection note is required.');
+      notifyError('A rejection note is required.');
       return;
     }
 
@@ -705,11 +742,11 @@ function DossierDetail() {
       withMapPending(setIsDecidingByDocumentId, documentId, true);
 
       const response = await rejectDocument(documentId, normalizedNote);
-      toast.success(response?.message || 'Document rejected successfully.');
+      notifyDangerSuccess(getToastMessage(response, 'Document rejected successfully.'));
       closeRejectDocumentModal();
       await refreshDetailSilently();
     } catch (error) {
-      toast.error(formatApiError(error, 'Failed to reject document.'));
+      notifyError(formatApiError(error, 'Failed to reject document.'));
     } finally {
       withMapPending(setIsDecidingByDocumentId, documentId, false);
     }
@@ -738,16 +775,17 @@ function DossierDetail() {
 
       const note = rejectRubriqueNote.trim() || null;
       const response = await rejectRubrique(rubriqueId, note);
-      toast.success(response?.message || 'Section rejected successfully.');
+      notifyDangerSuccess(getToastMessage(response, 'Section rejected successfully.'));
       closeRejectRubriqueModal();
       await refreshDetailSilently();
     } catch (error) {
-      toast.error(formatApiError(error, 'Failed to reject section.'));
+      notifyError(formatApiError(error, 'Failed to reject section.'));
     } finally {
       withMapPending(setIsRejectingRubriqueById, rubriqueId, false);
     }
   };
 
+  // Keep loading / not-found branches early so the main render stays readable.
   if (isLoadingDetail) {
     return (
       <div className="container py-5">
@@ -824,12 +862,9 @@ function DossierDetail() {
         }
       />
 
+      {/* Top-level workflow banners keep the current dossier state explicit. */}
       {isFrozen && (
-        <WorkflowBanner
-          title="Finalized case file"
-          variant="success"
-          icon="bi-lock-fill"
-        >
+        <WorkflowBanner title="Finalized case file" variant="success" icon="bi-lock-fill">
           This case file is {dossierStatusLabel} and is now read-only.
         </WorkflowBanner>
       )}
@@ -860,9 +895,13 @@ function DossierDetail() {
       )}
 
       {isComplementPending && isDossierOwnedByCurrentUser && (() => {
-        const isSupervisorRequest = dossier.awaiting_complement_source === 'SUPERVISOR_COMPLEMENT_REQUEST';
-        const sourceLabel = isSupervisorRequest ? 'Complement requested by Supervisor' : 'Returned by Claims Manager';
+        const isSupervisorRequest =
+          dossier.awaiting_complement_source === 'SUPERVISOR_COMPLEMENT_REQUEST';
+        const sourceLabel = isSupervisorRequest
+          ? 'Complement requested by Supervisor'
+          : 'Returned by Claims Manager';
         const noteLabel = isSupervisorRequest ? 'Supervisor note' : 'Return note';
+
         return (
           <WorkflowBanner
             title="Preparation Reopened"
@@ -875,7 +914,9 @@ function DossierDetail() {
                 {dossier.awaiting_complement_user?.name && (
                   <> &bull; {dossier.awaiting_complement_user.name}</>
                 )}
-                {dossier.awaiting_complement_at && <> &bull; {formatDateTime(dossier.awaiting_complement_at)}</>}
+                {dossier.awaiting_complement_at && (
+                  <> &bull; {formatDateTime(dossier.awaiting_complement_at)}</>
+                )}
               </div>
               {dossier.awaiting_complement_note && (
                 <div className="text-dark fw-medium lh-sm mb-0">
@@ -934,7 +975,10 @@ function DossierDetail() {
       <DossierModalShell
         isOpen={escalateModalOpen}
         title="Escalate to Supervisor"
-        onClose={() => { setEscalateModalOpen(false); setEscalationReason(''); }}
+        onClose={() => {
+          setEscalateModalOpen(false);
+          setEscalationReason('');
+        }}
         isBusy={isEscalatingDossier}
         initialFocus="secondary"
         className="dossier-decision-modal"
@@ -943,7 +987,10 @@ function DossierDetail() {
             <button
               type="button"
               className="btn btn-outline-secondary"
-              onClick={() => { setEscalateModalOpen(false); setEscalationReason(''); }}
+              onClick={() => {
+                setEscalateModalOpen(false);
+                setEscalationReason('');
+              }}
               disabled={isEscalatingDossier}
             >
               Cancel
@@ -1049,7 +1096,12 @@ function DossierDetail() {
       <DossierModalShell
         isOpen={returnToPreparationModalOpen}
         title="Return to Preparation"
-        onClose={() => { if (!isReturningToPreparation) { setReturnToPreparationModalOpen(false); setReturnToPreparationNote(''); } }}
+        onClose={() => {
+          if (!isReturningToPreparation) {
+            setReturnToPreparationModalOpen(false);
+            setReturnToPreparationNote('');
+          }
+        }}
         isBusy={isReturningToPreparation}
         initialFocus="secondary"
         className="dossier-decision-modal"
@@ -1058,7 +1110,10 @@ function DossierDetail() {
             <button
               type="button"
               className="btn btn-outline-secondary"
-              onClick={() => { setReturnToPreparationModalOpen(false); setReturnToPreparationNote(''); }}
+              onClick={() => {
+                setReturnToPreparationModalOpen(false);
+                setReturnToPreparationNote('');
+              }}
               disabled={isReturningToPreparation}
             >
               Cancel

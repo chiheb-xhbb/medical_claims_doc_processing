@@ -25,7 +25,7 @@ class DossierEscalationController extends Controller
 
         if (! $this->canEscalateDossiers($user)) {
             return response()->json([
-                'message' => 'You are not allowed to escalate this dossier.',
+                'message' => 'You are not allowed to escalate this case file.',
             ], 403);
         }
 
@@ -37,15 +37,15 @@ class DossierEscalationController extends Controller
                 ->firstOrFail();
 
             if (! $this->canEscalateDossiers($user)) {
-                $this->forbidden('You are not allowed to escalate this dossier.');
+                $this->forbidden('You are not allowed to escalate this case file.');
             }
 
             if ($lockedDossier->isFrozen()) {
-                $this->unprocessable('This dossier is frozen and cannot be escalated.');
+                $this->unprocessable('This case file is frozen and cannot be escalated.');
             }
 
             if ($lockedDossier->status !== DossierStatus::UNDER_REVIEW) {
-                $this->unprocessable('Only dossiers in UNDER_REVIEW status can be escalated.');
+                $this->unprocessable('Only case files in UNDER_REVIEW status can be escalated.');
             }
 
             if ($this->hasPendingDecisionDocuments($lockedDossier)) {
@@ -62,7 +62,6 @@ class DossierEscalationController extends Controller
             $lockedDossier->chef_decision_at = null;
             $lockedDossier->chef_decision_note = null;
 
-            // Current reopen context is only meaningful while dossier is actually awaiting complement.
             $lockedDossier->awaiting_complement_source = null;
             $lockedDossier->awaiting_complement_by = null;
             $lockedDossier->awaiting_complement_at = null;
@@ -82,7 +81,7 @@ class DossierEscalationController extends Controller
         });
 
         return response()->json([
-            'message' => 'Dossier escalated successfully.',
+            'message' => 'Case file escalated successfully.',
             'dossier' => $this->formatDossierPayload($updatedDossier),
             'requested_total' => $updatedDossier->getRequestedTotal(),
             'current_total' => $updatedDossier->getCurrentTotal(),
@@ -97,7 +96,7 @@ class DossierEscalationController extends Controller
 
         if (! $this->canChefReviewDossiers($user)) {
             return response()->json([
-                'message' => 'You are not allowed to approve this dossier.',
+                'message' => 'You are not allowed to approve this case file.',
             ], 403);
         }
 
@@ -109,15 +108,15 @@ class DossierEscalationController extends Controller
                 ->firstOrFail();
 
             if (! $this->canChefReviewDossiers($user)) {
-                $this->forbidden('You are not allowed to approve this dossier.');
+                $this->forbidden('You are not allowed to approve this case file.');
             }
 
             if ($lockedDossier->isFrozen()) {
-                $this->unprocessable('This dossier is already frozen.');
+                $this->unprocessable('This case file is already frozen.');
             }
 
             if ($lockedDossier->status !== DossierStatus::IN_ESCALATION) {
-                $this->unprocessable('Only dossiers in IN_ESCALATION status can be approved by the supervisor.');
+                $this->unprocessable('Only case files in IN_ESCALATION status can be approved by the supervisor.');
             }
 
             if ($this->hasPendingDecisionDocuments($lockedDossier)) {
@@ -153,7 +152,7 @@ class DossierEscalationController extends Controller
         });
 
         return response()->json([
-            'message' => 'Escalation approved successfully.',
+            'message' => 'Escalation approved. Case file is now processed.',
             'dossier' => $this->formatDossierPayload($updatedDossier),
             'requested_total' => $updatedDossier->getRequestedTotal(),
             'current_total' => $updatedDossier->getCurrentTotal(),
@@ -168,7 +167,7 @@ class DossierEscalationController extends Controller
 
         if (! $this->canChefReviewDossiers($user)) {
             return response()->json([
-                'message' => 'You are not allowed to return this dossier.',
+                'message' => 'You are not allowed to return this case file.',
             ], 403);
         }
 
@@ -180,15 +179,15 @@ class DossierEscalationController extends Controller
                 ->firstOrFail();
 
             if (! $this->canChefReviewDossiers($user)) {
-                $this->forbidden('You are not allowed to return this dossier.');
+                $this->forbidden('You are not allowed to return this case file.');
             }
 
             if ($lockedDossier->isFrozen()) {
-                $this->unprocessable('This dossier is already frozen.');
+                $this->unprocessable('This case file is already frozen.');
             }
 
             if ($lockedDossier->status !== DossierStatus::IN_ESCALATION) {
-                $this->unprocessable('Only dossiers in IN_ESCALATION status can be returned to the claims manager.');
+                $this->unprocessable('Only case files in IN_ESCALATION status can be returned to the Claims Manager.');
             }
 
             $lockedDossier->status = DossierStatus::UNDER_REVIEW;
@@ -217,7 +216,7 @@ class DossierEscalationController extends Controller
         });
 
         return response()->json([
-            'message' => 'Dossier returned to the claims manager successfully.',
+            'message' => 'Case file returned to the Claims Manager successfully.',
             'dossier' => $this->formatDossierPayload($updatedDossier),
             'requested_total' => $updatedDossier->getRequestedTotal(),
             'current_total' => $updatedDossier->getCurrentTotal(),
@@ -232,7 +231,7 @@ class DossierEscalationController extends Controller
 
         if (! $this->canChefReviewDossiers($user)) {
             return response()->json([
-                'message' => 'You are not allowed to request complement for this dossier.',
+                'message' => 'You are not allowed to request complement for this case file.',
             ], 403);
         }
 
@@ -244,15 +243,15 @@ class DossierEscalationController extends Controller
                 ->firstOrFail();
 
             if (! $this->canChefReviewDossiers($user)) {
-                $this->forbidden('You are not allowed to request complement for this dossier.');
+                $this->forbidden('You are not allowed to request complement for this case file.');
             }
 
             if ($lockedDossier->isFrozen()) {
-                $this->unprocessable('This dossier is already frozen.');
+                $this->unprocessable('This case file is already frozen.');
             }
 
             if ($lockedDossier->status !== DossierStatus::IN_ESCALATION) {
-                $this->unprocessable('Only dossiers in IN_ESCALATION status can receive a complement request.');
+                $this->unprocessable('Only case files in IN_ESCALATION status can receive a complement request.');
             }
 
             $decisionNote = $request->validated('decision_note');

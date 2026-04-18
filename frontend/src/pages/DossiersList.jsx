@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
+import {
+  getToastMessage,
+  notifyDangerSuccess,
+  notifyError,
+} from '../utils/toast';
 import api, { getApiErrorMessage } from '../services/api';
 import { AUTH_CHANGED_EVENT, getStoredRole, getStoredUser } from '../services/auth';
 import {
@@ -194,6 +198,7 @@ function DossiersList() {
     appliedSortRef.current = sortState;
   }, [sortState]);
 
+  // Main list loader keeps filters and sort as the source of truth.
   const fetchDossiers = useCallback(
     async (page = 1, filters = appliedFiltersRef.current, sort = appliedSortRef.current) => {
       try {
@@ -215,12 +220,13 @@ function DossiersList() {
           : Array.isArray(payload.dossiers)
             ? payload.dossiers
             : [];
+
         setDossiers(list);
         setCurrentPage(payload?.current_page ?? 1);
         setLastPage(payload?.last_page ?? 1);
         setTotal(payload?.total ?? list.length);
       } catch (err) {
-        toast.error(getApiErrorMessage(err, 'Failed to load case files. Please try again.'));
+        notifyError(getApiErrorMessage(err, 'Failed to load case files. Please try again.'));
       } finally {
         setLoading(false);
       }
@@ -301,6 +307,7 @@ function DossiersList() {
     await fetchDossiers(1, appliedFiltersRef.current, nextSort);
   };
 
+  // Delete stays limited to editable early-state case files.
   const canDeleteDossier = (dossier) => {
     if (dossier.status !== DOSSIER_STATUSES.RECEIVED) {
       return false;
@@ -345,7 +352,7 @@ function DossiersList() {
 
     try {
       const response = await api.delete(`/dossiers/${targetId}`);
-      toast.success(response.data?.message || 'Case file deleted successfully.');
+      notifyDangerSuccess(getToastMessage(response, 'Case file deleted successfully.'));
       setDeleteTargetDossier(null);
 
       const nextPage = dossiers.length === 1 && currentPage > 1
@@ -355,7 +362,7 @@ function DossiersList() {
       setLoading(true);
       await fetchDossiers(nextPage, appliedFiltersRef.current, appliedSortRef.current);
     } catch (err) {
-      toast.error(getApiErrorMessage(err, 'Failed to delete case file.'));
+      notifyError(getApiErrorMessage(err, 'Failed to delete case file.'));
     } finally {
       setIsDeleteConfirming(false);
       setDeletingDossierId(null);
@@ -400,75 +407,75 @@ function DossiersList() {
 
       <ListFiltersCard className="dossiers-filters-card">
         <form className="row g-3 align-items-end enterprise-filters-form" onSubmit={handleApplyFilters}>
-            <div className="col-12 col-lg-4">
-              <label htmlFor="dossiersSearch" className="form-label mb-1">Search</label>
-              <input
-                id="dossiersSearch"
-                type="text"
-                className="form-control"
-                placeholder="Search by case file number or assured identifier"
-                value={filtersDraft.search}
-                onChange={(event) => handleFiltersDraftChange('search', event.target.value)}
-                disabled={loading}
-              />
-            </div>
+          <div className="col-12 col-lg-4">
+            <label htmlFor="dossiersSearch" className="form-label mb-1">Search</label>
+            <input
+              id="dossiersSearch"
+              type="text"
+              className="form-control"
+              placeholder="Search by case file number or assured identifier"
+              value={filtersDraft.search}
+              onChange={(event) => handleFiltersDraftChange('search', event.target.value)}
+              disabled={loading}
+            />
+          </div>
 
-            <div className="col-12 col-md-6 col-lg-2">
-              <label htmlFor="dossiersStatusFilter" className="form-label mb-1">Status</label>
-              <select
-                id="dossiersStatusFilter"
-                className="form-select"
-                value={filtersDraft.status}
-                onChange={(event) => handleFiltersDraftChange('status', event.target.value)}
-                disabled={loading}
-              >
-                <option value="">All Statuses</option>
-                {dossierStatusOptions.map((status) => (
-                  <option key={status} value={status}>
-                    {DOSSIER_STATUS_LABELS[status] || status}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div className="col-12 col-md-6 col-lg-2">
+            <label htmlFor="dossiersStatusFilter" className="form-label mb-1">Status</label>
+            <select
+              id="dossiersStatusFilter"
+              className="form-select"
+              value={filtersDraft.status}
+              onChange={(event) => handleFiltersDraftChange('status', event.target.value)}
+              disabled={loading}
+            >
+              <option value="">All Statuses</option>
+              {dossierStatusOptions.map((status) => (
+                <option key={status} value={status}>
+                  {DOSSIER_STATUS_LABELS[status] || status}
+                </option>
+              ))}
+            </select>
+          </div>
 
-            <div className="col-12 col-md-6 col-lg-2">
-              <label htmlFor="dossiersFromDate" className="form-label mb-1">From Date</label>
-              <input
-                id="dossiersFromDate"
-                type="date"
-                className="form-control"
-                value={filtersDraft.fromDate}
-                onChange={(event) => handleFiltersDraftChange('fromDate', event.target.value)}
-                disabled={loading}
-              />
-            </div>
+          <div className="col-12 col-md-6 col-lg-2">
+            <label htmlFor="dossiersFromDate" className="form-label mb-1">From Date</label>
+            <input
+              id="dossiersFromDate"
+              type="date"
+              className="form-control"
+              value={filtersDraft.fromDate}
+              onChange={(event) => handleFiltersDraftChange('fromDate', event.target.value)}
+              disabled={loading}
+            />
+          </div>
 
-            <div className="col-12 col-md-6 col-lg-2">
-              <label htmlFor="dossiersToDate" className="form-label mb-1">To Date</label>
-              <input
-                id="dossiersToDate"
-                type="date"
-                className="form-control"
-                value={filtersDraft.toDate}
-                onChange={(event) => handleFiltersDraftChange('toDate', event.target.value)}
-                disabled={loading}
-              />
-            </div>
+          <div className="col-12 col-md-6 col-lg-2">
+            <label htmlFor="dossiersToDate" className="form-label mb-1">To Date</label>
+            <input
+              id="dossiersToDate"
+              type="date"
+              className="form-control"
+              value={filtersDraft.toDate}
+              onChange={(event) => handleFiltersDraftChange('toDate', event.target.value)}
+              disabled={loading}
+            />
+          </div>
 
-            <div className="col-12 col-md-6 col-lg-2 d-flex gap-2 enterprise-filters-actions">
-              <button type="submit" className="btn btn-primary flex-grow-1" disabled={loading}>
-                <i className="bi bi-funnel"></i>
-                Apply
-              </button>
-              <button
-                type="button"
-                className="btn btn-outline-secondary"
-                onClick={handleResetFilters}
-                disabled={loading || (!hasActiveFilters && !hasDraftFilters && !hasSortOverride)}
-              >
-                Reset
-              </button>
-            </div>
+          <div className="col-12 col-md-6 col-lg-2 d-flex gap-2 enterprise-filters-actions">
+            <button type="submit" className="btn btn-primary flex-grow-1" disabled={loading}>
+              <i className="bi bi-funnel"></i>
+              Apply
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline-secondary"
+              onClick={handleResetFilters}
+              disabled={loading || (!hasActiveFilters && !hasDraftFilters && !hasSortOverride)}
+            >
+              Reset
+            </button>
+          </div>
         </form>
       </ListFiltersCard>
 
@@ -615,6 +622,7 @@ function DossiersList() {
             </table>
           </div>
         </div>
+
         <TablePaginationFooter
           currentPage={currentPage}
           lastPage={lastPage}

@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import toast from 'react-hot-toast';
+import {
+  getToastMessage,
+  notifySuccess,
+  notifyDangerSuccess,
+  notifyError,
+} from '../utils/toast';
 import api, { getApiErrorMessage } from '../services/api';
 import { getStoredUser } from '../services/auth';
 import { USER_ROLES, USER_ROLE_LABELS } from '../constants/domainLabels';
@@ -34,12 +39,13 @@ const CREATE_USER_INITIAL_FORM = {
   is_active: true,
 };
 
+const CLOSED_MODAL = { isOpen: false, user: null };
+const INITIAL_STATUS_MODAL = { isOpen: false, user: null, nextIsActive: true };
+
 const getFirstErrorMessage = (errorValue) => {
   if (!errorValue) return null;
   return Array.isArray(errorValue) ? errorValue[0] : errorValue;
 };
-
-const CLOSED_MODAL = { isOpen: false, user: null };
 
 function AdminUsers() {
   const currentUserId = Number(getStoredUser()?.id || 0);
@@ -67,19 +73,20 @@ function AdminUsers() {
   const [createErrors, setCreateErrors] = useState({});
   const [isCreatingUser, setIsCreatingUser] = useState(false);
 
-  // Role modal
+  // Modal state for role changes.
   const [roleModal, setRoleModal] = useState(CLOSED_MODAL);
   const [roleModalBusy, setRoleModalBusy] = useState(false);
 
-  // Password reset modal
+  // Modal state for admin password reset.
   const [passwordModal, setPasswordModal] = useState(CLOSED_MODAL);
   const [passwordModalBusy, setPasswordModalBusy] = useState(false);
   const [passwordModalServerErrors, setPasswordModalServerErrors] = useState({});
 
-  // Status confirmation modal
-  const [statusModal, setStatusModal] = useState({ isOpen: false, user: null, nextIsActive: true });
+  // Modal state for account activation / deactivation.
+  const [statusModal, setStatusModal] = useState(INITIAL_STATUS_MODAL);
   const [statusModalBusy, setStatusModalBusy] = useState(false);
 
+  // Loads the current page of users using the active filters.
   const loadUsers = useCallback(async () => {
     setLoading(true);
     setListError(null);
@@ -103,7 +110,7 @@ function AdminUsers() {
     } catch (err) {
       const message = getApiErrorMessage(err, 'Failed to load users. Please try again.');
       setListError(message);
-      toast.error(message);
+      notifyError(message);
     } finally {
       setLoading(false);
     }
@@ -115,8 +122,7 @@ function AdminUsers() {
 
   const refreshUsers = () => setReloadToken((prev) => prev + 1);
 
-  // ── Create form ────────────────────────────────────────────────────────────
-
+  // Create form helpers.
   const setCreateField = (field, value) => {
     setCreateForm((prev) => ({ ...prev, [field]: value }));
     if (createErrors[field]) {
@@ -148,7 +154,9 @@ function AdminUsers() {
       formErrors.password_confirmation = 'Password confirmation does not match.';
     }
 
-    if (!ROLE_OPTIONS.includes(createForm.role)) formErrors.role = 'Please choose a valid role.';
+    if (!ROLE_OPTIONS.includes(createForm.role)) {
+      formErrors.role = 'Please choose a valid role.';
+    }
 
     setCreateErrors(formErrors);
     return Object.keys(formErrors).length === 0;
@@ -159,6 +167,7 @@ function AdminUsers() {
     if (!validateCreateForm()) return;
 
     setIsCreatingUser(true);
+
     try {
       const payload = {
         name: createForm.name.trim(),
@@ -168,8 +177,10 @@ function AdminUsers() {
         role: createForm.role,
         is_active: Boolean(createForm.is_active),
       };
+
       const response = await api.post('/admin/users', payload);
-      toast.success(response.data?.message || 'User created successfully.');
+
+      notifySuccess(getToastMessage(response, 'User created successfully.'));
       setCreateForm(CREATE_USER_INITIAL_FORM);
       setCreateErrors({});
 
@@ -180,14 +191,13 @@ function AdminUsers() {
       }
     } catch (err) {
       setCreateErrors(err.response?.data?.errors || {});
-      toast.error(getApiErrorMessage(err, 'Failed to create user. Please try again.'));
+      notifyError(getApiErrorMessage(err, 'Failed to create user. Please try again.'));
     } finally {
       setIsCreatingUser(false);
     }
   };
 
-  // ── Filters & pagination ───────────────────────────────────────────────────
-
+  // Filters and pagination stay local to this page.
   const handleSearchSubmit = (event) => {
     event.preventDefault();
     setQuery((prev) => ({ ...prev, page: 1, search: searchInput.trim() }));
@@ -207,14 +217,16 @@ function AdminUsers() {
   };
 
   const handlePageChange = (nextPage) => {
-    if (nextPage < 1 || nextPage > pagination.lastPage || nextPage === query.page) return;
+    if (nextPage < 1 || nextPage > pagination.lastPage || nextPage === query.page) {
+      return;
+    }
+
     setQuery((prev) => ({ ...prev, page: nextPage }));
   };
 
   const hasActiveFilters = Boolean(query.search || query.role || query.status);
 
-  // ── Role modal ─────────────────────────────────────────────────────────────
-
+  // Role modal flow.
   const openRoleModal = (user) => {
     setRoleModal({ isOpen: true, user });
   };
@@ -229,20 +241,20 @@ function AdminUsers() {
     if (!target || newRole === target.role || roleModalBusy) return;
 
     setRoleModalBusy(true);
+
     try {
       const response = await api.patch(`/admin/users/${target.id}/role`, { role: newRole });
-      toast.success(response.data?.message || 'Role updated successfully.');
+      notifySuccess(getToastMessage(response, 'Role updated successfully.'));
       setRoleModal(CLOSED_MODAL);
       refreshUsers();
     } catch (err) {
-      toast.error(getApiErrorMessage(err, 'Failed to update role.'));
+      notifyError(getApiErrorMessage(err, 'Failed to update role.'));
     } finally {
       setRoleModalBusy(false);
     }
   };
 
-  // ── Password reset modal ───────────────────────────────────────────────────
-
+  // Password reset flow stays modal-driven and server-validation aware.
   const openPasswordModal = (user) => {
     setPasswordModalServerErrors({});
     setPasswordModal({ isOpen: true, user });
@@ -260,34 +272,35 @@ function AdminUsers() {
 
     setPasswordModalBusy(true);
     setPasswordModalServerErrors({});
+
     try {
       const response = await api.patch(`/admin/users/${target.id}/password`, {
         password,
         password_confirmation: passwordConfirmation,
       });
-      toast.success(response.data?.message || 'Password reset successfully.');
+
+      notifySuccess(getToastMessage(response, 'Password reset successfully.'));
       setPasswordModal(CLOSED_MODAL);
     } catch (err) {
       const serverErrors = err.response?.data?.errors;
       if (serverErrors && typeof serverErrors === 'object') {
         setPasswordModalServerErrors(serverErrors);
       } else {
-        toast.error(getApiErrorMessage(err, 'Failed to reset password.'));
+        notifyError(getApiErrorMessage(err, 'Failed to reset password.'));
       }
     } finally {
       setPasswordModalBusy(false);
     }
   };
 
-  // ── Status modal ───────────────────────────────────────────────────────────
-
+  // Status changes use semantic toasts: activate = green, deactivate = danger-success.
   const openStatusModal = (user) => {
     setStatusModal({ isOpen: true, user, nextIsActive: !user.is_active });
   };
 
   const closeStatusModal = () => {
     if (statusModalBusy) return;
-    setStatusModal({ isOpen: false, user: null, nextIsActive: true });
+    setStatusModal(INITIAL_STATUS_MODAL);
   };
 
   const handleConfirmStatusChange = async () => {
@@ -295,15 +308,29 @@ function AdminUsers() {
     if (!target) return;
 
     setStatusModalBusy(true);
+
     try {
       const response = await api.patch(`/admin/users/${target.id}/status`, {
         is_active: statusModal.nextIsActive,
       });
-      toast.success(response.data?.message || 'Status updated successfully.');
-      setStatusModal({ isOpen: false, user: null, nextIsActive: true });
+
+      const successMessage = getToastMessage(
+        response,
+        statusModal.nextIsActive
+          ? 'User activated successfully.'
+          : 'User deactivated successfully.'
+      );
+
+      if (statusModal.nextIsActive) {
+        notifySuccess(successMessage);
+      } else {
+        notifyDangerSuccess(successMessage);
+      }
+
+      setStatusModal(INITIAL_STATUS_MODAL);
       refreshUsers();
     } catch (err) {
-      toast.error(getApiErrorMessage(err, 'Failed to update status.'));
+      notifyError(getApiErrorMessage(err, 'Failed to update status.'));
     } finally {
       setStatusModalBusy(false);
     }
@@ -333,6 +360,7 @@ function AdminUsers() {
             Create User
           </h6>
         </div>
+
         <div className="card-body">
           <form onSubmit={handleCreateUser} noValidate>
             <p className="text-muted mb-3 admin-users-create-lead">
@@ -552,6 +580,7 @@ function AdminUsers() {
                   <col className="admin-users-col--created" />
                   <col className="admin-users-col--actions" />
                 </colgroup>
+
                 <thead className="table-light">
                   <tr>
                     <th scope="col" className="admin-users-head-name">Name</th>
@@ -581,7 +610,6 @@ function AdminUsers() {
                         <td className="cell-date admin-users-created-cell">{formatDateTime(user.created_at)}</td>
                         <td className="cell-actions admin-users-actions-cell">
                           <div className="user-action-group">
-                            {/* Change role */}
                             <button
                               type="button"
                               className="user-action-btn"
@@ -592,7 +620,6 @@ function AdminUsers() {
                               <i className="bi bi-pencil" aria-hidden="true" />
                             </button>
 
-                            {/* Reset password */}
                             <button
                               type="button"
                               className="user-action-btn"
@@ -603,7 +630,6 @@ function AdminUsers() {
                               <i className="bi bi-arrow-clockwise" aria-hidden="true" />
                             </button>
 
-                            {/* Activate / Deactivate */}
                             <button
                               type="button"
                               className="user-action-btn"
@@ -622,10 +648,11 @@ function AdminUsers() {
                                   : `Activate ${user.name}`
                               }
                             >
-                              {user.is_active
-                                ? <i className="bi bi-toggle-on" aria-hidden="true" />
-                                : <i className="bi bi-toggle-off" aria-hidden="true" />
-                              }
+                              {user.is_active ? (
+                                <i className="bi bi-toggle-on" aria-hidden="true" />
+                              ) : (
+                                <i className="bi bi-toggle-off" aria-hidden="true" />
+                              )}
                             </button>
                           </div>
                         </td>
@@ -635,6 +662,7 @@ function AdminUsers() {
                 </tbody>
               </table>
             </div>
+
             <TablePaginationFooter
               currentPage={pagination.currentPage}
               lastPage={pagination.lastPage}

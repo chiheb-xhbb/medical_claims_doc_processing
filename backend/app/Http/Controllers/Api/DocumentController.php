@@ -195,7 +195,7 @@ class DocumentController extends Controller
 
             if ($lockedDocument->rubrique_id !== null || $lockedDocument->dossier_id !== null) {
                 return response()->json([
-                    'message' => 'You cannot delete a document that is already attached to a dossier/rubrique.',
+                    'message' => 'You cannot delete a document that is already attached to a case file or section.',
                 ], 422);
             }
 

@@ -26,19 +26,19 @@ class RubriqueController extends Controller
 
         if (! $this->canPrepareDossiers($user) || ! $this->canManagePreparationDossier($user, $dossier)) {
             return response()->json([
-                'message' => 'You are not allowed to add rubriques to this dossier.',
+                'message' => 'You are not allowed to add sections to this case file.',
             ], 403);
         }
 
         if ($dossier->isFrozen()) {
             return response()->json([
-                'message' => 'This dossier is frozen and cannot be modified.',
+                'message' => 'This case file is frozen and cannot be modified.',
             ], 422);
         }
 
         if (! $this->isPreparationPhase($dossier)) {
             return response()->json([
-                'message' => 'Rubriques can only be created while the dossier is in preparation.',
+                'message' => 'Sections can only be created while the case file is in preparation.',
             ], 422);
         }
 
@@ -55,15 +55,15 @@ class RubriqueController extends Controller
                 ->firstOrFail();
 
             if (! $this->canPrepareDossiers($user) || ! $this->canManagePreparationDossier($user, $lockedDossier)) {
-                $this->forbidden('You are not allowed to add rubriques to this dossier.');
+                $this->forbidden('You are not allowed to add sections to this case file.');
             }
 
             if ($lockedDossier->isFrozen()) {
-                $this->unprocessable('This dossier is frozen and cannot be modified.');
+                $this->unprocessable('This case file is frozen and cannot be modified.');
             }
 
             if (! $this->isPreparationPhase($lockedDossier)) {
-                $this->unprocessable('Rubriques can only be created while the dossier is in preparation.');
+                $this->unprocessable('Sections can only be created while the case file is in preparation.');
             }
 
             $rubrique = new Rubrique();
@@ -82,7 +82,7 @@ class RubriqueController extends Controller
         });
 
         return response()->json([
-            'message' => 'Rubrique created successfully.',
+            'message' => 'Section created successfully.',
             'rubrique' => $rubrique->fresh(),
         ], 201);
     }
@@ -95,25 +95,25 @@ class RubriqueController extends Controller
 
         if (! $dossier) {
             return response()->json([
-                'message' => 'Parent dossier not found.',
+                'message' => 'Parent case file not found.',
             ], 404);
         }
 
         if (! $this->canPrepareDossiers($user) || ! $this->canManagePreparationDossier($user, $dossier)) {
             return response()->json([
-                'message' => 'You are not allowed to update this rubrique.',
+                'message' => 'You are not allowed to update this section.',
             ], 403);
         }
 
         if ($dossier->isFrozen()) {
             return response()->json([
-                'message' => 'This dossier is frozen and cannot be modified.',
+                'message' => 'This case file is frozen and cannot be modified.',
             ], 422);
         }
 
         if (! $this->isPreparationPhase($dossier)) {
             return response()->json([
-                'message' => 'This rubrique can only be updated while the dossier is in preparation.',
+                'message' => 'This section can only be updated while the case file is in preparation.',
             ], 422);
         }
 
@@ -127,7 +127,7 @@ class RubriqueController extends Controller
         $rubrique->save();
 
         return response()->json([
-            'message' => 'Rubrique updated successfully.',
+            'message' => 'Section updated successfully.',
             'rubrique' => $rubrique->fresh(),
         ], 200);
     }
@@ -140,25 +140,25 @@ class RubriqueController extends Controller
 
         if (! $dossier) {
             return response()->json([
-                'message' => 'Parent dossier not found.',
+                'message' => 'Parent case file not found.',
             ], 404);
         }
 
         if (! $this->canPrepareDossiers($user) || ! $this->canManagePreparationDossier($user, $dossier)) {
             return response()->json([
-                'message' => 'You are not allowed to delete this rubrique.',
+                'message' => 'You are not allowed to delete this section.',
             ], 403);
         }
 
         if ($dossier->isFrozen()) {
             return response()->json([
-                'message' => 'This dossier is frozen and cannot be modified.',
+                'message' => 'This case file is frozen and cannot be modified.',
             ], 422);
         }
 
         if (! $this->isPreparationPhase($dossier)) {
             return response()->json([
-                'message' => 'This rubrique can only be deleted while the dossier is in preparation.',
+                'message' => 'This section can only be deleted while the case file is in preparation.',
             ], 422);
         }
 
@@ -176,26 +176,26 @@ class RubriqueController extends Controller
                 ->firstOrFail();
 
             if (! $this->canPrepareDossiers($user) || ! $this->canManagePreparationDossier($user, $lockedDossier)) {
-                $this->forbidden('You are not allowed to delete this rubrique.');
+                $this->forbidden('You are not allowed to delete this section.');
             }
 
             if ($lockedDossier->isFrozen()) {
-                $this->unprocessable('This dossier is frozen and cannot be modified.');
+                $this->unprocessable('This case file is frozen and cannot be modified.');
             }
 
             if (! $this->isPreparationPhase($lockedDossier)) {
-                $this->unprocessable('This rubrique can only be deleted while the dossier is in preparation.');
+                $this->unprocessable('This section can only be deleted while the case file is in preparation.');
             }
 
             if ($lockedRubrique->documents()->exists()) {
-                $this->unprocessable('You cannot delete a rubrique that already contains documents.');
+                $this->unprocessable('You cannot delete a section that already contains documents.');
             }
 
             $lockedRubrique->delete();
         });
 
         return response()->json([
-            'message' => 'Rubrique deleted successfully.',
+            'message' => 'Section deleted successfully.',
         ], 200);
     }
 
@@ -207,25 +207,25 @@ class RubriqueController extends Controller
 
         if (! $dossier) {
             return response()->json([
-                'message' => 'Parent dossier not found.',
+                'message' => 'Parent case file not found.',
             ], 404);
         }
 
         if (! $this->canPrepareDossiers($user) || ! $this->canManagePreparationDossier($user, $dossier)) {
             return response()->json([
-                'message' => 'You are not allowed to attach documents to this rubrique.',
+                'message' => 'You are not allowed to attach documents to this section.',
             ], 403);
         }
 
         if ($dossier->isFrozen()) {
             return response()->json([
-                'message' => 'This dossier is frozen and cannot be modified.',
+                'message' => 'This case file is frozen and cannot be modified.',
             ], 422);
         }
 
         if (! $this->isPreparationPhase($dossier)) {
             return response()->json([
-                'message' => 'Documents can only be attached while the dossier is in preparation.',
+                'message' => 'Documents can only be attached while the case file is in preparation.',
             ], 422);
         }
 
@@ -247,15 +247,15 @@ class RubriqueController extends Controller
                 ->firstOrFail();
 
             if (! $this->canPrepareDossiers($user) || ! $this->canManagePreparationDossier($user, $lockedDossier)) {
-                $this->forbidden('You are not allowed to attach documents to this rubrique.');
+                $this->forbidden('You are not allowed to attach documents to this section.');
             }
 
             if ($lockedDossier->isFrozen()) {
-                $this->unprocessable('This dossier is frozen and cannot be modified.');
+                $this->unprocessable('This case file is frozen and cannot be modified.');
             }
 
             if (! $this->isPreparationPhase($lockedDossier)) {
-                $this->unprocessable('Documents can only be attached while the dossier is in preparation.');
+                $this->unprocessable('Documents can only be attached while the case file is in preparation.');
             }
 
             $documents = Document::query()
@@ -280,11 +280,11 @@ class RubriqueController extends Controller
                 }
 
                 if ($document->status !== DocumentStatus::VALIDATED) {
-                    $this->unprocessable('Only validated documents can be attached to a rubrique.');
+                    $this->unprocessable('Only validated documents can be attached to a section.');
                 }
 
                 if ($document->rubrique_id !== null && (int) $document->rubrique_id !== (int) $lockedRubrique->id) {
-                    $this->unprocessable('One or more selected documents are already attached to another rubrique.');
+                    $this->unprocessable('One or more selected documents are already attached to another section.');
                 }
             }
 
@@ -319,31 +319,31 @@ class RubriqueController extends Controller
 
         if (! $dossier) {
             return response()->json([
-                'message' => 'Parent dossier not found.',
+                'message' => 'Parent case file not found.',
             ], 404);
         }
 
         if (! $this->canPrepareDossiers($user) || ! $this->canManagePreparationDossier($user, $dossier)) {
             return response()->json([
-                'message' => 'You are not allowed to detach documents from this rubrique.',
+                'message' => 'You are not allowed to detach documents from this section.',
             ], 403);
         }
 
         if ($dossier->isFrozen()) {
             return response()->json([
-                'message' => 'This dossier is frozen and cannot be modified.',
+                'message' => 'This case file is frozen and cannot be modified.',
             ], 422);
         }
 
         if (! $this->isPreparationPhase($dossier)) {
             return response()->json([
-                'message' => 'Documents can only be detached while the dossier is in preparation.',
+                'message' => 'Documents can only be detached while the case file is in preparation.',
             ], 422);
         }
 
         if ((int) $document->rubrique_id !== (int) $rubrique->id) {
             return response()->json([
-                'message' => 'This document does not belong to this rubrique.',
+                'message' => 'This document does not belong to this section.',
             ], 422);
         }
 
@@ -367,19 +367,19 @@ class RubriqueController extends Controller
                 ->firstOrFail();
 
             if (! $this->canPrepareDossiers($user) || ! $this->canManagePreparationDossier($user, $lockedDossier)) {
-                $this->forbidden('You are not allowed to detach documents from this rubrique.');
+                $this->forbidden('You are not allowed to detach documents from this section.');
             }
 
             if ($lockedDossier->isFrozen()) {
-                $this->unprocessable('This dossier is frozen and cannot be modified.');
+                $this->unprocessable('This case file is frozen and cannot be modified.');
             }
 
             if (! $this->isPreparationPhase($lockedDossier)) {
-                $this->unprocessable('Documents can only be detached while the dossier is in preparation.');
+                $this->unprocessable('Documents can only be detached while the case file is in preparation.');
             }
 
             if ((int) $lockedDocument->rubrique_id !== (int) $lockedRubrique->id) {
-                $this->unprocessable('This document does not belong to this rubrique.');
+                $this->unprocessable('This document does not belong to this section.');
             }
 
             $lockedDocument->dossier_id = null;
@@ -408,7 +408,7 @@ class RubriqueController extends Controller
 
         if (! $dossier) {
             return response()->json([
-                'message' => 'Parent dossier not found.',
+                'message' => 'Parent case file not found.',
             ], 404);
         }
 
@@ -420,13 +420,13 @@ class RubriqueController extends Controller
 
         if ($dossier->isFrozen()) {
             return response()->json([
-                'message' => 'This dossier is frozen and cannot be modified.',
+                'message' => 'This case file is frozen and cannot be modified.',
             ], 422);
         }
 
         if (! $this->isDecisionWorkflowStatus($dossier)) {
             return response()->json([
-                'message' => 'A rubrique can only be rejected while the dossier is under review or in escalation.',
+                'message' => 'A section can only be rejected while the case file is under review or in escalation.',
             ], 422);
         }
 
@@ -452,11 +452,11 @@ class RubriqueController extends Controller
             }
 
             if ($lockedDossier->isFrozen()) {
-                $this->unprocessable('This dossier is frozen and cannot be modified.');
+                $this->unprocessable('This case file is frozen and cannot be modified.');
             }
 
             if (! $this->isDecisionWorkflowStatus($lockedDossier)) {
-                $this->unprocessable('A rubrique can only be rejected while the dossier is under review or in escalation.');
+                $this->unprocessable('A section can only be rejected while the case file is under review or in escalation.');
             }
 
             $documents = Document::query()
@@ -465,7 +465,7 @@ class RubriqueController extends Controller
                 ->get();
 
             if ($documents->isEmpty()) {
-                $this->unprocessable('You cannot reject an empty rubrique.');
+                $this->unprocessable('You cannot reject an empty section.');
             }
 
             $lockedRubrique->setRelation('documents', $documents);
@@ -478,7 +478,7 @@ class RubriqueController extends Controller
         });
 
         return response()->json([
-            'message' => 'Entire rubrique has been rejected.',
+            'message' => 'Entire section has been rejected.',
             'rubrique' => $rubrique->fresh(['documents']),
         ], 200);
     }
@@ -555,22 +555,22 @@ class RubriqueController extends Controller
     private function resolveDecisionForbiddenMessage(User $user, Dossier $dossier): string
     {
         if ($this->hasRole($user, UserRole::ADMIN)) {
-            return 'You are not allowed to reject this rubrique.';
+            return 'You are not allowed to reject this section.';
         }
 
         if ($dossier->status === DossierStatus::IN_ESCALATION) {
-            return 'Only the supervisor can modify rubrique decisions during escalation.';
+            return 'Only the supervisor can modify section decisions during escalation.';
         }
 
         if ($this->isReturnedFromSupervisor($dossier)) {
-            return 'Rubrique decisions are locked after a supervisor return. You can only process the dossier or escalate it again.';
+            return 'Section decisions are locked after a supervisor return. You can only process the case file or escalate it again.';
         }
 
         if ($dossier->status === DossierStatus::UNDER_REVIEW) {
-            return 'You are not allowed to reject this rubrique.';
+            return 'You are not allowed to reject this section.';
         }
 
-        return 'Rubrique decisions are not allowed in the current dossier workflow state.';
+        return 'Section decisions are not allowed in the current case file workflow state.';
     }
 
     private function hasRole(User $user, UserRole ...$roles): bool

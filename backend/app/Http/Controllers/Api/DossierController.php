@@ -72,7 +72,7 @@ class DossierController extends Controller
             });
         } elseif (! $this->hasRole($user, UserRole::ADMIN)) {
             return response()->json([
-                'message' => 'You are not allowed to view dossiers.',
+                'message' => 'You are not allowed to view case files.',
             ], 403);
         }
 
@@ -115,7 +115,7 @@ class DossierController extends Controller
 
         if (! $this->canPrepareDossiers($user)) {
             return response()->json([
-                'message' => 'You are not allowed to create dossiers.',
+                'message' => 'You are not allowed to create case files.',
             ], 403);
         }
 
@@ -138,7 +138,7 @@ class DossierController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Dossier created successfully.',
+            'message' => 'Case file created successfully.',
             'dossier' => $this->formatDossierDetail($dossier),
             'requested_total' => $dossier->getRequestedTotal(),
             'current_total' => $dossier->getCurrentTotal(),
@@ -153,7 +153,7 @@ class DossierController extends Controller
 
         if (! $this->canViewDossier($user, $dossier)) {
             return response()->json([
-                'message' => 'You are not allowed to view this dossier.',
+                'message' => 'You are not allowed to view this case file.',
             ], 403);
         }
 
@@ -190,7 +190,7 @@ class DossierController extends Controller
 
         if (! $this->canManageOwnDossier($user, $dossier)) {
             return response()->json([
-                'message' => 'You are not allowed to update this dossier.',
+                'message' => 'You are not allowed to update this case file.',
             ], 403);
         }
 
@@ -200,14 +200,14 @@ class DossierController extends Controller
             DossierStatus::AWAITING_COMPLEMENT,
         ], true)) {
             return response()->json([
-                'message' => 'This dossier cannot be updated in its current status.',
+                'message' => 'This case file cannot be updated in its current status.',
                 'current_status' => $dossier->status->value,
             ], 422);
         }
 
         if ($dossier->isFrozen()) {
             return response()->json([
-                'message' => 'Cannot update a frozen dossier.',
+                'message' => 'Cannot update a frozen case file.',
                 'current_status' => $dossier->status->value,
             ], 422);
         }
@@ -234,7 +234,7 @@ class DossierController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Dossier updated successfully.',
+            'message' => 'Case file updated successfully.',
             'dossier' => $this->formatDossierDetail($dossier),
             'requested_total' => $dossier->getRequestedTotal(),
             'current_total' => $dossier->getCurrentTotal(),
@@ -249,13 +249,13 @@ class DossierController extends Controller
 
         if (! $this->canManageOwnDossier($user, $dossier)) {
             return response()->json([
-                'message' => 'You are not allowed to delete this dossier.',
+                'message' => 'You are not allowed to delete this case file.',
             ], 403);
         }
 
         if ($dossier->status !== DossierStatus::RECEIVED) {
             return response()->json([
-                'message' => 'Only dossiers in RECEIVED status can be deleted.',
+                'message' => 'Only case files in RECEIVED status can be deleted.',
                 'current_status' => $dossier->status->value,
             ], 422);
         }
@@ -263,7 +263,7 @@ class DossierController extends Controller
         $dossier->delete();
 
         return response()->json([
-            'message' => 'Dossier deleted successfully.',
+            'message' => 'Case file deleted successfully.',
         ], 200);
     }
 
@@ -274,13 +274,13 @@ class DossierController extends Controller
 
         if (! $this->canPrepareDossiers($user) || ! $this->canManagePreparationDossier($user, $dossier)) {
             return response()->json([
-                'message' => 'You are not allowed to submit this dossier.',
+                'message' => 'You are not allowed to submit this case file.',
             ], 403);
         }
 
         if ($dossier->isFrozen()) {
             return response()->json([
-                'message' => 'This dossier is frozen and cannot be submitted.',
+                'message' => 'This case file is frozen and cannot be submitted.',
             ], 422);
         }
 
@@ -289,13 +289,13 @@ class DossierController extends Controller
             DossierStatus::AWAITING_COMPLEMENT,
         ], true)) {
             return response()->json([
-                'message' => 'Only dossiers in IN_PROGRESS or AWAITING_COMPLEMENT can be submitted.',
+                'message' => 'Only case files in IN_PROGRESS or AWAITING_COMPLEMENT can be submitted.',
             ], 422);
         }
 
         if (! $dossier->rubriques()->exists() || ! $dossier->documents()->exists()) {
             return response()->json([
-                'message' => 'This dossier is not ready to be submitted.',
+                'message' => 'This case file is not ready to be submitted.',
             ], 422);
         }
 
@@ -321,7 +321,7 @@ class DossierController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Dossier submitted successfully.',
+            'message' => 'Case file submitted successfully.',
             'dossier' => $this->formatDossierDetail($dossier),
             'requested_total' => $dossier->getRequestedTotal(),
             'current_total' => $dossier->getCurrentTotal(),
@@ -336,25 +336,25 @@ class DossierController extends Controller
 
         if (! $this->canReviewDossiers($user)) {
             return response()->json([
-                'message' => 'You are not allowed to process this dossier.',
+                'message' => 'You are not allowed to process this case file.',
             ], 403);
         }
 
         if ($dossier->isFrozen()) {
             return response()->json([
-                'message' => 'This dossier is already frozen.',
+                'message' => 'This case file is already frozen.',
             ], 422);
         }
 
         if ($dossier->status !== DossierStatus::UNDER_REVIEW) {
             return response()->json([
-                'message' => 'Only dossiers in UNDER_REVIEW status can be processed.',
+                'message' => 'Only case files in UNDER_REVIEW status can be processed.',
             ], 422);
         }
 
         if (! $dossier->documents()->exists()) {
             return response()->json([
-                'message' => 'This dossier cannot be processed yet.',
+                'message' => 'This case file cannot be processed yet.',
             ], 422);
         }
 
@@ -364,7 +364,7 @@ class DossierController extends Controller
 
         if ($hasPendingDecisions) {
             return response()->json([
-                'message' => 'All document decisions must be completed before processing the dossier.',
+                'message' => 'All document decisions must be completed before processing the case file.',
             ], 422);
         }
 
@@ -385,7 +385,7 @@ class DossierController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Dossier processed successfully.',
+            'message' => 'Case file processed successfully.',
             'dossier' => $this->formatDossierDetail($dossier),
             'requested_total' => $dossier->getRequestedTotal(),
             'current_total' => $dossier->getCurrentTotal(),
@@ -400,7 +400,7 @@ class DossierController extends Controller
 
         if (! $this->canReviewDossiers($user)) {
             return response()->json([
-                'message' => 'You are not allowed to return this dossier to preparation.',
+                'message' => 'You are not allowed to return this case file to preparation.',
             ], 403);
         }
 
@@ -413,20 +413,20 @@ class DossierController extends Controller
 
             if ($lockedDossier->isFrozen()) {
                 return response()->json([
-                    'message' => 'This dossier is already frozen.',
+                    'message' => 'This case file is already frozen.',
                 ], 422);
             }
 
             if ($lockedDossier->status !== DossierStatus::UNDER_REVIEW) {
                 return response()->json([
-                    'message' => 'Only dossiers in UNDER_REVIEW status can be returned to preparation.',
+                    'message' => 'Only case files in UNDER_REVIEW status can be returned to preparation.',
                     'current_status' => $lockedDossier->status?->value ?? $lockedDossier->status,
                 ], 422);
             }
 
             if (($lockedDossier->chef_decision_type ?? null) === 'RETURNED') {
                 return response()->json([
-                    'message' => 'A dossier returned by the supervisor cannot be sent back to preparation.',
+                    'message' => 'A case file returned by the supervisor cannot be sent back to preparation.',
                 ], 422);
             }
 
@@ -456,7 +456,7 @@ class DossierController extends Controller
             ]);
 
             return response()->json([
-                'message' => 'Dossier returned to preparation successfully.',
+                'message' => 'Case file returned to preparation successfully.',
                 'dossier' => $this->formatDossierDetail($lockedDossier),
                 'requested_total' => $lockedDossier->getRequestedTotal(),
                 'current_total' => $lockedDossier->getCurrentTotal(),

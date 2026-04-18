@@ -1,6 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
+import {
+  getToastMessage,
+  notifySuccess,
+  notifyDangerSuccess,
+  notifyError,
+} from '../utils/toast';
 import api, { getApiErrorMessage } from '../services/api';
 import { AUTH_CHANGED_EVENT, getStoredRole, getStoredUser } from '../services/auth';
 import { previewDocument, downloadDocument } from '../services/documentAccess';
@@ -45,7 +50,11 @@ function DocumentsList() {
   const location = useLocation();
   const [role, setRole] = useState(() => getStoredRole());
   const [currentUserId, setCurrentUserId] = useState(() => Number(getStoredUser()?.id || 0));
-  const canUpload = role === USER_ROLES.AGENT || role === USER_ROLES.CLAIMS_MANAGER || role === USER_ROLES.SUPERVISOR || role === USER_ROLES.ADMIN;
+  const canUpload =
+    role === USER_ROLES.AGENT ||
+    role === USER_ROLES.CLAIMS_MANAGER ||
+    role === USER_ROLES.SUPERVISOR ||
+    role === USER_ROLES.ADMIN;
 
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -98,6 +107,7 @@ function DocumentsList() {
     return docs.some((doc) => doc.status === 'UPLOADED' || doc.status === 'PROCESSING');
   }, []);
 
+  // Normalizes noisy backend / pipeline error text before showing it in the table.
   const formatDocumentError = (message) => {
     if (!message) {
       return 'Processing failed.';
@@ -114,6 +124,7 @@ function DocumentsList() {
     return cleaned || 'Processing failed.';
   };
 
+  // Main loader used by initial fetch, filters, sort, pagination, and polling.
   const fetchDocuments = useCallback(
     async (page = 1, filters = appliedFiltersRef.current, sort = appliedSortRef.current) => {
       try {
@@ -129,7 +140,7 @@ function DocumentsList() {
 
         return data.data || [];
       } catch (err) {
-        toast.error(err.response?.data?.message || 'Failed to load documents. Please try again.');
+        notifyError(getApiErrorMessage(err, 'Failed to load documents. Please try again.'));
         return [];
       } finally {
         setLoading(false);
@@ -138,6 +149,7 @@ function DocumentsList() {
     []
   );
 
+  // Poll only while at least one document is still pending technical processing.
   const setupPolling = useCallback(
     (docs) => {
       if (pollingIntervalRef.current) {
@@ -198,7 +210,7 @@ function DocumentsList() {
   };
 
   const handleUploadModalFinished = async () => {
-    toast.success('Document(s) uploaded successfully.');
+    notifySuccess('Document(s) uploaded successfully.');
     setLoading(true);
     const docs = await fetchDocuments(
       currentPageRef.current,
@@ -264,10 +276,14 @@ function DocumentsList() {
 
       await api.post(`/documents/${documentId}/retry`);
 
-      const docs = await fetchDocuments(currentPageRef.current);
+      const docs = await fetchDocuments(
+        currentPageRef.current,
+        appliedFiltersRef.current,
+        appliedSortRef.current
+      );
       setupPolling(docs);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to retry document.');
+      notifyError(getApiErrorMessage(err, 'Failed to retry document.'));
     } finally {
       setRetryingIds((prev) => prev.filter((id) => id !== documentId));
     }
@@ -305,7 +321,7 @@ function DocumentsList() {
         ? getApiErrorMessage(error, 'Failed to open original document.')
         : error?.message || 'Failed to open original document.';
 
-      toast.error(message);
+      notifyError(message);
     } finally {
       setDocumentAccessPending(setPreviewingById, doc.id, false);
     }
@@ -324,12 +340,13 @@ function DocumentsList() {
         ? getApiErrorMessage(error, 'Failed to download original document.')
         : error?.message || 'Failed to download original document.';
 
-      toast.error(message);
+      notifyError(message);
     } finally {
       setDocumentAccessPending(setDownloadingById, doc.id, false);
     }
   };
 
+  // Delete is restricted by status and by linkage to dossier / section context.
   const canDeleteDocument = (doc) => {
     const canDeleteByStatus = ['UPLOADED', 'FAILED', 'PROCESSED'].includes(doc.status);
     const isAttached = doc.rubrique_id != null || doc.dossier_id != null;
@@ -381,7 +398,7 @@ function DocumentsList() {
 
     try {
       const response = await api.delete(`/documents/${targetId}`);
-      toast.success(response.data?.message || 'Document deleted successfully.');
+      notifyDangerSuccess(getToastMessage(response, 'Document deleted successfully.'));
       setDeleteTargetDocument(null);
 
       const nextPage = documents.length === 1 && currentPageRef.current > 1
@@ -389,10 +406,14 @@ function DocumentsList() {
         : currentPageRef.current;
 
       setLoading(true);
-      const docs = await fetchDocuments(nextPage);
+      const docs = await fetchDocuments(
+        nextPage,
+        appliedFiltersRef.current,
+        appliedSortRef.current
+      );
       setupPolling(docs);
     } catch (err) {
-      toast.error(getApiErrorMessage(err, 'Failed to delete document.'));
+      notifyError(getApiErrorMessage(err, 'Failed to delete document.'));
     } finally {
       setIsDeleteConfirming(false);
       setDeletingDocumentId(null);
@@ -551,75 +572,75 @@ function DocumentsList() {
 
       <ListFiltersCard className="documents-filters-card">
         <form className="row g-3 align-items-end enterprise-filters-form" onSubmit={handleApplyFilters}>
-            <div className="col-12 col-lg-4">
-              <label htmlFor="documentsSearch" className="form-label mb-1">Search</label>
-              <input
-                id="documentsSearch"
-                type="text"
-                className="form-control"
-                placeholder="Search by document ID or filename"
-                value={filtersDraft.search}
-                onChange={(event) => handleFiltersDraftChange('search', event.target.value)}
-                disabled={loading}
-              />
-            </div>
+          <div className="col-12 col-lg-4">
+            <label htmlFor="documentsSearch" className="form-label mb-1">Search</label>
+            <input
+              id="documentsSearch"
+              type="text"
+              className="form-control"
+              placeholder="Search by document ID or filename"
+              value={filtersDraft.search}
+              onChange={(event) => handleFiltersDraftChange('search', event.target.value)}
+              disabled={loading}
+            />
+          </div>
 
-            <div className="col-12 col-md-6 col-lg-2">
-              <label htmlFor="documentsStatusFilter" className="form-label mb-1">Status</label>
-              <select
-                id="documentsStatusFilter"
-                className="form-select"
-                value={filtersDraft.status}
-                onChange={(event) => handleFiltersDraftChange('status', event.target.value)}
-                disabled={loading}
-              >
-                <option value="">All Statuses</option>
-                {DOCUMENT_STATUS_OPTIONS.map((status) => (
-                  <option key={status} value={status}>
-                    {status}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div className="col-12 col-md-6 col-lg-2">
+            <label htmlFor="documentsStatusFilter" className="form-label mb-1">Status</label>
+            <select
+              id="documentsStatusFilter"
+              className="form-select"
+              value={filtersDraft.status}
+              onChange={(event) => handleFiltersDraftChange('status', event.target.value)}
+              disabled={loading}
+            >
+              <option value="">All Statuses</option>
+              {DOCUMENT_STATUS_OPTIONS.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </select>
+          </div>
 
-            <div className="col-12 col-md-6 col-lg-2">
-              <label htmlFor="documentsFromDate" className="form-label mb-1">From Date</label>
-              <input
-                id="documentsFromDate"
-                type="date"
-                className="form-control"
-                value={filtersDraft.fromDate}
-                onChange={(event) => handleFiltersDraftChange('fromDate', event.target.value)}
-                disabled={loading}
-              />
-            </div>
+          <div className="col-12 col-md-6 col-lg-2">
+            <label htmlFor="documentsFromDate" className="form-label mb-1">From Date</label>
+            <input
+              id="documentsFromDate"
+              type="date"
+              className="form-control"
+              value={filtersDraft.fromDate}
+              onChange={(event) => handleFiltersDraftChange('fromDate', event.target.value)}
+              disabled={loading}
+            />
+          </div>
 
-            <div className="col-12 col-md-6 col-lg-2">
-              <label htmlFor="documentsToDate" className="form-label mb-1">To Date</label>
-              <input
-                id="documentsToDate"
-                type="date"
-                className="form-control"
-                value={filtersDraft.toDate}
-                onChange={(event) => handleFiltersDraftChange('toDate', event.target.value)}
-                disabled={loading}
-              />
-            </div>
+          <div className="col-12 col-md-6 col-lg-2">
+            <label htmlFor="documentsToDate" className="form-label mb-1">To Date</label>
+            <input
+              id="documentsToDate"
+              type="date"
+              className="form-control"
+              value={filtersDraft.toDate}
+              onChange={(event) => handleFiltersDraftChange('toDate', event.target.value)}
+              disabled={loading}
+            />
+          </div>
 
-            <div className="col-12 col-md-6 col-lg-2 d-flex gap-2 enterprise-filters-actions">
-              <button type="submit" className="btn btn-primary flex-grow-1" disabled={loading}>
-                <i className="bi bi-funnel"></i>
-                Apply
-              </button>
-              <button
-                type="button"
-                className="btn btn-outline-secondary"
-                onClick={handleResetFilters}
-                disabled={loading || (!hasActiveFilters && !hasDraftFilters && !hasSortOverride)}
-              >
-                Reset
-              </button>
-            </div>
+          <div className="col-12 col-md-6 col-lg-2 d-flex gap-2 enterprise-filters-actions">
+            <button type="submit" className="btn btn-primary flex-grow-1" disabled={loading}>
+              <i className="bi bi-funnel"></i>
+              Apply
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline-secondary"
+              onClick={handleResetFilters}
+              disabled={loading || (!hasActiveFilters && !hasDraftFilters && !hasSortOverride)}
+            >
+              Reset
+            </button>
+          </div>
         </form>
       </ListFiltersCard>
 
@@ -748,6 +769,7 @@ function DocumentsList() {
             </table>
           </div>
         </div>
+
         <TablePaginationFooter
           currentPage={currentPage}
           lastPage={lastPage}

@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
+import {
+  getToastMessage,
+  notifySuccess,
+  notifyError,
+} from '../utils/toast';
 import api, { getApiErrorMessage } from '../services/api';
 import { previewDocument, downloadDocument } from '../services/documentAccess';
 import { getStoredRole, getStoredUser } from '../services/auth';
@@ -61,10 +65,15 @@ function DocumentValidation() {
   const [isOpeningOriginalDocument, setIsOpeningOriginalDocument] = useState(false);
   const [isDownloadingOriginalDocument, setIsDownloadingOriginalDocument] = useState(false);
 
+  // Client-side warnings complement backend validation without blocking editing.
   useEffect(() => {
     const activeWarnings = [];
-    
-    if (editedFields.total_ttc !== undefined && editedFields.total_ttc !== null && editedFields.total_ttc !== '') {
+
+    if (
+      editedFields.total_ttc !== undefined &&
+      editedFields.total_ttc !== null &&
+      editedFields.total_ttc !== ''
+    ) {
       const amount = Number(editedFields.total_ttc);
       if (amount <= 0) {
         activeWarnings.push('Amount must be positive.');
@@ -77,6 +86,7 @@ function DocumentValidation() {
       const date = new Date(editedFields.invoice_date);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
+
       if (date > today) {
         activeWarnings.push('Invoice date is in the future.');
       }
@@ -85,6 +95,7 @@ function DocumentValidation() {
     setClientWarnings(activeWarnings);
   }, [editedFields.total_ttc, editedFields.invoice_date]);
 
+  // Fetches the document detail and normalizes extraction values for editing.
   const fetchDocument = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -125,7 +136,7 @@ function DocumentValidation() {
       }
 
       setLoadErrorMessage(errorMessage);
-      toast.error(errorMessage);
+      notifyError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -147,6 +158,7 @@ function DocumentValidation() {
       setIsSubmitting(true);
       setBusinessWarnings([]);
 
+      // Empty strings are converted to null to match backend nullable validation.
       const cleanedFields = Object.fromEntries(
         Object.entries(editedFields).map(([key, value]) => [
           key,
@@ -159,7 +171,7 @@ function DocumentValidation() {
       });
 
       setBusinessWarnings(response.data?.warnings || []);
-      toast.success('Document validated successfully! The extraction has been confirmed.');
+      notifySuccess(getToastMessage(response, 'Document validated successfully.'));
 
       await fetchDocument();
 
@@ -185,7 +197,7 @@ function DocumentValidation() {
         errorMessage = err.response?.data?.message || 'Failed to validate document. Please try again.';
       }
 
-      toast.error(errorMessage);
+      notifyError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -204,7 +216,7 @@ function DocumentValidation() {
         ? getApiErrorMessage(error, 'Failed to open original document.')
         : error?.message || 'Failed to open original document.';
 
-      toast.error(message);
+      notifyError(message);
     } finally {
       setIsOpeningOriginalDocument(false);
     }
@@ -223,7 +235,7 @@ function DocumentValidation() {
         ? getApiErrorMessage(error, 'Failed to download original document.')
         : error?.message || 'Failed to download original document.';
 
-      toast.error(message);
+      notifyError(message);
     } finally {
       setIsDownloadingOriginalDocument(false);
     }
@@ -236,6 +248,7 @@ function DocumentValidation() {
 
   const isValidated = document?.status?.toUpperCase() === 'VALIDATED';
 
+  // Validation access stays role-aware and owner-aware.
   const canValidate = (() => {
     if (
       role === USER_ROLES.CLAIMS_MANAGER ||
@@ -343,9 +356,9 @@ function DocumentValidation() {
 
       {(businessWarnings.length > 0 || clientWarnings.length > 0) && (
         <div className="mb-4">
-          <WarningAlert 
-            warnings={Array.from(new Set([...clientWarnings, ...businessWarnings]))} 
-            title="Business Validation Warnings" 
+          <WarningAlert
+            warnings={Array.from(new Set([...clientWarnings, ...businessWarnings]))}
+            title="Business Validation Warnings"
           />
         </div>
       )}
@@ -378,7 +391,6 @@ function DocumentValidation() {
 
       {hasExtraction && (
         <div className="card dv-fields-card">
-
           <div className="dv-fields-card__header">
             <div className="dv-fields-card__header-left">
               <i className="bi bi-table dv-fields-card__header-icon"></i>

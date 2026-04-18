@@ -69,14 +69,14 @@ class DocumentDecisionController extends Controller
         $rubrique = $document->rubrique;
         if (! $rubrique) {
             return response()->json([
-                'message' => 'This document is not attached to any rubrique.',
+                'message' => 'This document is not attached to any section.',
             ], 422);
         }
 
         $dossier = $rubrique->dossier;
         if (! $dossier) {
             return response()->json([
-                'message' => 'Parent dossier not found.',
+                'message' => 'Parent case file not found.',
             ], 404);
         }
 
@@ -88,13 +88,13 @@ class DocumentDecisionController extends Controller
 
         if ($dossier->isFrozen()) {
             return response()->json([
-                'message' => 'This dossier is frozen and cannot be modified.',
+                'message' => 'This case file is frozen and cannot be modified.',
             ], 422);
         }
 
         if (! $this->isDecisionWorkflowStatus($dossier)) {
             return response()->json([
-                'message' => 'Documents can only be decided while the dossier is under review or in escalation.',
+                'message' => 'Documents can only be decided while the case file is under review or in escalation.',
             ], 422);
         }
 
@@ -139,19 +139,19 @@ class DocumentDecisionController extends Controller
             }
 
             if ($lockedDossier->isFrozen()) {
-                $this->unprocessable('This dossier is frozen and cannot be modified.');
+                $this->unprocessable('This case file is frozen and cannot be modified.');
             }
 
             if (! $this->isDecisionWorkflowStatus($lockedDossier)) {
-                $this->unprocessable('Documents can only be decided while the dossier is under review or in escalation.');
+                $this->unprocessable('Documents can only be decided while the case file is under review or in escalation.');
             }
 
             if ((int) $lockedRubrique->dossier_id !== (int) $lockedDossier->id) {
-                $this->unprocessable('This rubrique does not belong to the expected dossier.');
+                $this->unprocessable('This section does not belong to the expected case file.');
             }
 
             if ((int) $lockedDocument->rubrique_id !== (int) $lockedRubrique->id) {
-                $this->unprocessable('This document does not belong to the expected rubrique.');
+                $this->unprocessable('This document does not belong to the expected section.');
             }
 
             if ($lockedDocument->status !== DocumentStatus::VALIDATED) {
@@ -228,7 +228,7 @@ class DocumentDecisionController extends Controller
         }
 
         if ($this->isReturnedFromSupervisor($dossier)) {
-            return 'Document decisions are locked after a supervisor return. You can only process the dossier or escalate it again.';
+            return 'Document decisions are locked after a supervisor return. You can only process the case file or escalate it again.';
         }
 
         if ($dossier->status === DossierStatus::UNDER_REVIEW && $document->decision_status !== DocumentDecisionStatus::PENDING) {
@@ -239,7 +239,7 @@ class DocumentDecisionController extends Controller
             return $defaultMessage;
         }
 
-        return 'Document decisions are not allowed in the current dossier workflow state.';
+        return 'Document decisions are not allowed in the current case file workflow state.';
     }
 
     private function hasRole(User $user, UserRole ...$roles): bool
