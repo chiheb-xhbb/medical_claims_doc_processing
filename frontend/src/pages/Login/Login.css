@@ -30,24 +30,33 @@
   background-color: var(--color-primary);
   color: var(--color-white);
   text-align: center;
-  padding: var(--spacing-6) var(--spacing-6);
+  padding: var(--spacing-5) var(--spacing-6);
 }
 
 .login-card .brand-title {
-  font-size: var(--font-size-2xl);
-  font-weight: var(--font-weight-semibold);
   margin: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--spacing-2);
+}
+
+.login-card .brand-logo {
+  height: 68px;
+  width: auto;
+  max-width: 220px;
+  object-fit: contain;
+  display: block;
 }
 
 .login-card .brand-subtitle {
-  opacity: 0.85;
-  font-size: var(--font-size-sm);
-  margin-top: var(--spacing-1);
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 400;
+  opacity: 0.92;
+  line-height: 1.2;
 }
+
 
 /* Card body */
 .login-card .card-body {
@@ -137,3 +146,4 @@
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
 }
+

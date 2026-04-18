@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { getDefaultLandingPath, consumeAuthFeedback } from '../services/auth';
 import { useAuth } from '../context/AuthContext';
 import { ErrorAlert, SuccessAlert } from '../ui';
+import companyLogo from '../assets/logo.svg';
 import './Login/Login.css';
 
 const LOGIN_SUCCESS_FEEDBACK_PREFIX = 'success:';
@@ -101,11 +102,16 @@ function Login() {
             <div className="card shadow-lg login-card">
               {/* Header */}
               <div className="card-header bg-primary text-white text-center py-4">
-                <h4 className="mb-1 d-flex align-items-center justify-content-center brand-title">
-                  <i className="bi bi-file-medical me-2"></i>
-                  MedDocs
-                </h4>
-                <small className="text-white brand-subtitle">Internal Claims Workspace</small>
+                <div className="brand-title">
+                  <img
+                    src={companyLogo}
+                    alt="Company logo"
+                    className="brand-logo"
+                  />
+                </div>
+                <small className="text-white brand-subtitle">
+                  Internal Medical Claims Workspace
+                </small>
               </div>
 
               {/* Body */}
