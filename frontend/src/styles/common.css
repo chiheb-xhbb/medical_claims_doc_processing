@@ -516,6 +516,54 @@ body {
   }
 }
 
+/* ─── Language switcher ──────────────────────────────────────────────────── */
+
+.nb-lang-switcher {
+  display: flex;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.nb-lang-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.6875rem;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+  line-height: 1.4;
+}
+
+.nb-lang-btn:not(:last-child) {
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.nb-lang-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.nb-lang-btn--active {
+  background-color: rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.95);
+}
+
+@media (max-width: 991.98px) {
+  .nb-lang-switcher {
+    align-self: flex-start;
+    margin-bottom: var(--spacing-1);
+  }
+}
+
 /* ─── Bell button ─────────────────────────────────────────────────────────── */
 
 .nb-bell {

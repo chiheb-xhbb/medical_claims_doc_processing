@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   getToastMessage,
   notifySuccess,
@@ -11,7 +12,7 @@ import { getStoredRole, getStoredUser, AUTH_CHANGED_EVENT } from '../services/au
 import {
   USER_ROLES,
   DOSSIER_STATUSES,
-  DOSSIER_STATUS_LABELS,
+  getDossierStatusLabel,
 } from '../constants/domainLabels';
 import {
   getDossierDetail,
@@ -51,17 +52,17 @@ const INITIAL_CONFIRMATION_MODAL = {
   action: null,
   title: '',
   message: '',
-  confirmLabel: 'Confirm',
-  cancelLabel: 'Cancel',
-  confirmingLabel: 'Processing...',
+  confirmLabel: '',
+  cancelLabel: '',
+  confirmingLabel: '',
   confirmVariant: 'primary',
   initialFocus: 'confirm',
   payload: null,
 };
 
-const formatApiError = (error, fallbackMessage) => {
+const formatApiError = (error, fallbackMessage, t) => {
   if (!error?.response) {
-    return 'Network error. Please check your connection and retry.';
+    return t('feedback.networkErrorRetry');
   }
 
   const status = error.response.status;
@@ -75,15 +76,15 @@ const formatApiError = (error, fallbackMessage) => {
   const backendMessage = error.response?.data?.message;
 
   if (status === 403) {
-    return backendMessage || 'You are not allowed to perform this action.';
+    return backendMessage || t('feedback.forbiddenAction');
   }
 
   if (status === 404) {
-    return backendMessage || 'The requested resource was not found.';
+    return backendMessage || t('feedback.resourceNotFound');
   }
 
   if (status === 422) {
-    return backendMessage || 'This action violates a business rule.';
+    return backendMessage || t('feedback.businessRuleViolation');
   }
 
   return backendMessage || fallbackMessage;
@@ -112,6 +113,7 @@ const mapDossierDetailResponse = (apiResponse) => {
 };
 
 function DossierDetail() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -166,14 +168,14 @@ function DossierDetail() {
       const normalized = mapDossierDetailResponse(response);
       setDossierData(normalized);
     } catch (error) {
-      const message = formatApiError(error, 'Failed to load case file details. Please try again.');
+      const message = formatApiError(error, t('feedback.loadCaseFileDetailsFailed'), t);
       setLoadErrorMessage(message);
       notifyError(message);
       setDossierData(null);
     } finally {
       setIsLoadingDetail(false);
     }
-  }, [id]);
+  }, [id, t]);
 
   // Silent refresh keeps the page stable after successful mutations.
   const refreshDetailSilently = useCallback(async () => {
@@ -184,12 +186,12 @@ function DossierDetail() {
       const normalized = mapDossierDetailResponse(response);
       setDossierData(normalized);
     } catch (error) {
-      const message = formatApiError(error, 'Failed to load case file details. Please try again.');
+      const message = formatApiError(error, t('feedback.loadCaseFileDetailsFailed'), t);
       notifyError(message);
     } finally {
       setIsRefreshingDetail(false);
     }
-  }, [id]);
+  }, [id, t]);
 
   useEffect(() => {
     refreshDetail();
@@ -212,7 +214,7 @@ function DossierDetail() {
   const dossier = dossierData?.dossier;
   const rubriques = useMemo(() => dossierData?.rubriques ?? [], [dossierData]);
   const dossierStatus = (dossier?.status || '').toUpperCase();
-  const dossierStatusLabel = DOSSIER_STATUS_LABELS[dossierStatus] || dossierStatus || '-';
+  const dossierStatusLabel = getDossierStatusLabel(dossierStatus) || dossierStatus || '-';
   const isDossierOwnedByCurrentUser = Number(dossier?.created_by) === currentUserId;
 
   const isSupervisor = role === USER_ROLES.SUPERVISOR;
@@ -353,7 +355,7 @@ function DossierDetail() {
       const documents = await getValidatedDocuments();
       setValidatedDocuments(Array.isArray(documents) ? documents : []);
     } catch (error) {
-      notifyError(formatApiError(error, 'Failed to load validated documents.'));
+      notifyError(formatApiError(error, t('feedback.loadValidatedDocumentsFailed'), t));
       setValidatedDocuments([]);
     } finally {
       setIsLoadingValidatedDocuments(false);
@@ -407,7 +409,7 @@ function DossierDetail() {
     event.preventDefault();
 
     if (!rubriqueTitle.trim()) {
-      notifyError('Section title is required.');
+      notifyError(t('workflow.sectionTitleRequired'));
       return;
     }
 
@@ -421,10 +423,10 @@ function DossierDetail() {
 
       setRubriqueTitle('');
       setRubriqueNotes('');
-      notifySuccess(getToastMessage(response, 'Section created successfully.'));
+      notifySuccess(getToastMessage(response, t('feedback.sectionCreatedSuccess')));
       await refreshDetailSilently();
     } catch (error) {
-      notifyError(formatApiError(error, 'Failed to create section.'));
+      notifyError(formatApiError(error, t('feedback.createSectionFailed'), t));
     } finally {
       setIsCreatingRubrique(false);
     }
@@ -436,7 +438,7 @@ function DossierDetail() {
     }
 
     if (selectedDocumentIds.length === 0) {
-      notifyError('Select at least one validated document to attach.');
+      notifyError(t('workflow.selectValidatedDocumentRequired'));
       return;
     }
 
@@ -445,11 +447,11 @@ function DossierDetail() {
 
       const response = await attachDocuments(attachTargetRubrique.id, selectedDocumentIds);
 
-      notifySuccess(getToastMessage(response, 'Documents attached successfully.'));
+      notifySuccess(getToastMessage(response, t('feedback.documentsAttachedSuccess')));
       closeAttachModal();
       await refreshDetailSilently();
     } catch (error) {
-      notifyError(formatApiError(error, 'Failed to attach documents.'));
+      notifyError(formatApiError(error, t('feedback.attachDocumentsFailed'), t));
     } finally {
       withMapPending(setIsAttachingByRubriqueId, attachTargetRubrique.id, false);
     }
@@ -464,10 +466,10 @@ function DossierDetail() {
       withMapPending(setIsDetachingByDocumentId, documentId, true);
 
       const response = await detachDocument(rubriqueId, documentId);
-      notifyDangerSuccess(getToastMessage(response, 'Document detached successfully.'));
+      notifyDangerSuccess(getToastMessage(response, t('feedback.documentDetachedSuccess')));
       await refreshDetailSilently();
     } catch (error) {
-      notifyError(formatApiError(error, 'Failed to detach document.'));
+      notifyError(formatApiError(error, t('feedback.detachDocumentFailed'), t));
     } finally {
       withMapPending(setIsDetachingByDocumentId, documentId, false);
     }
@@ -482,10 +484,10 @@ function DossierDetail() {
       withMapPending(setIsDeletingRubriqueById, rubriqueId, true);
 
       const response = await deleteRubrique(rubriqueId);
-      notifyDangerSuccess(getToastMessage(response, 'Section deleted successfully.'));
+      notifyDangerSuccess(getToastMessage(response, t('feedback.sectionDeletedSuccess')));
       await refreshDetailSilently();
     } catch (error) {
-      notifyError(formatApiError(error, 'Failed to delete section.'));
+      notifyError(formatApiError(error, t('feedback.deleteSectionFailed'), t));
     } finally {
       withMapPending(setIsDeletingRubriqueById, rubriqueId, false);
     }
@@ -496,10 +498,10 @@ function DossierDetail() {
       setIsSubmittingDossier(true);
 
       const response = await submitDossier(id);
-      notifySuccess(getToastMessage(response, 'Case file submitted successfully.'));
+      notifySuccess(getToastMessage(response, t('feedback.caseFileSubmittedSuccess')));
       await refreshDetailSilently();
     } catch (error) {
-      notifyError(formatApiError(error, 'Failed to submit case file.'));
+      notifyError(formatApiError(error, t('feedback.submitCaseFileFailed'), t));
     } finally {
       setIsSubmittingDossier(false);
     }
@@ -510,10 +512,10 @@ function DossierDetail() {
       setIsProcessingDossier(true);
 
       const response = await processDossier(id);
-      notifySuccess(getToastMessage(response, 'Case file processed successfully.'));
+      notifySuccess(getToastMessage(response, t('feedback.caseFileProcessedSuccess')));
       await refreshDetailSilently();
     } catch (error) {
-      notifyError(formatApiError(error, 'Failed to process case file.'));
+      notifyError(formatApiError(error, t('feedback.processCaseFileFailed'), t));
     } finally {
       setIsProcessingDossier(false);
     }
@@ -522,19 +524,19 @@ function DossierDetail() {
   const handleEscalateConfirm = async () => {
     const trimmedReason = escalationReason.trim();
     if (!trimmedReason) {
-      notifyError('Escalation reason is required.');
+      notifyError(t('feedback.escalationReasonRequired'));
       return;
     }
 
     try {
       setIsEscalatingDossier(true);
       const response = await escalateDossier(id, trimmedReason);
-      notifySuccess(getToastMessage(response, 'Case file escalated to Supervisor.'));
+      notifySuccess(getToastMessage(response, t('feedback.caseFileEscalatedSuccess')));
       setEscalateModalOpen(false);
       setEscalationReason('');
       await refreshDetailSilently();
     } catch (error) {
-      notifyError(formatApiError(error, 'Failed to escalate case file.'));
+      notifyError(formatApiError(error, t('feedback.escalateCaseFileFailed'), t));
     } finally {
       setIsEscalatingDossier(false);
     }
@@ -544,10 +546,10 @@ function DossierDetail() {
     try {
       setIsSupervisorActing(true);
       const response = await approveEscalation(id, note);
-      notifySuccess(getToastMessage(response, 'Escalation approved. Case file is now processed.'));
+      notifySuccess(getToastMessage(response, t('feedback.escalationApprovedProcessed')));
       await refreshDetailSilently();
     } catch (error) {
-      notifyError(formatApiError(error, 'Failed to approve escalation.'));
+      notifyError(formatApiError(error, t('feedback.approveEscalationFailed'), t));
     } finally {
       setIsSupervisorActing(false);
     }
@@ -558,11 +560,11 @@ function DossierDetail() {
       setIsSupervisorActing(true);
       const response = await returnToClaimsManager(id, note);
       notifyWorkflowSuccess(
-        getToastMessage(response, 'Case file returned to Claims Manager for review.')
+        getToastMessage(response, t('feedback.caseFileReturnedToClaims'))
       );
       await refreshDetailSilently();
     } catch (error) {
-      notifyError(formatApiError(error, 'Failed to return case file.'));
+      notifyError(formatApiError(error, t('feedback.returnCaseFileFailed'), t));
     } finally {
       setIsSupervisorActing(false);
     }
@@ -573,11 +575,11 @@ function DossierDetail() {
       setIsSupervisorActing(true);
       const response = await requestComplement(id, note);
       notifyWorkflowSuccess(
-        getToastMessage(response, 'Complement request sent to preparation owner.')
+        getToastMessage(response, t('feedback.complementRequestedPreparationOwner'))
       );
       await refreshDetailSilently();
     } catch (error) {
-      notifyError(formatApiError(error, 'Failed to request complement.'));
+      notifyError(formatApiError(error, t('feedback.requestComplementFailed'), t));
     } finally {
       setIsSupervisorActing(false);
     }
@@ -586,19 +588,19 @@ function DossierDetail() {
   const handleReturnToPreparationConfirm = async () => {
     const trimmedNote = returnToPreparationNote.trim();
     if (!trimmedNote) {
-      notifyError('A return note is required.');
+      notifyError(t('feedback.returnNoteRequired'));
       return;
     }
 
     try {
       setIsReturningToPreparation(true);
       const response = await returnDossierToPreparation(id, trimmedNote);
-      notifyWorkflowSuccess(getToastMessage(response, 'Case file returned to preparation.'));
+      notifyWorkflowSuccess(getToastMessage(response, t('feedback.caseFileReturnedPreparation')));
       setReturnToPreparationModalOpen(false);
       setReturnToPreparationNote('');
       await refreshDetailSilently();
     } catch (error) {
-      notifyError(formatApiError(error, 'Failed to return case file to preparation.'));
+      notifyError(formatApiError(error, t('feedback.returnCaseFileToPreparationFailed'), t));
     } finally {
       setIsReturningToPreparation(false);
     }
@@ -607,11 +609,11 @@ function DossierDetail() {
   const requestDetachDocument = (rubriqueId, documentId) => {
     openConfirmationModal({
       action: 'detach',
-      title: 'Remove Document from Section',
-      message: 'This will remove the document from the selected section.',
-      confirmLabel: 'Remove Document',
-      cancelLabel: 'Cancel',
-      confirmingLabel: 'Removing...',
+      title: t('workflow.detachConfirmTitle'),
+      message: t('workflow.detachConfirmMessage'),
+      confirmLabel: t('workflow.detachConfirmLabel'),
+      cancelLabel: t('actions.cancel'),
+      confirmingLabel: t('workflow.removing'),
       confirmVariant: 'danger',
       initialFocus: 'cancel',
       payload: { rubriqueId, documentId },
@@ -621,11 +623,11 @@ function DossierDetail() {
   const requestSubmitDossier = () => {
     openConfirmationModal({
       action: 'submit',
-      title: 'Submit Case File',
-      message: 'Submit this case file for review? Editing sections will be disabled after submission.',
-      confirmLabel: 'Submit Case File',
-      cancelLabel: 'Cancel',
-      confirmingLabel: 'Submitting...',
+      title: t('workflow.submitConfirmTitle'),
+      message: t('workflow.submitConfirmMessage'),
+      confirmLabel: t('workflow.submitCaseFile'),
+      cancelLabel: t('actions.cancel'),
+      confirmingLabel: t('workflow.submitting'),
       confirmVariant: 'primary',
     });
   };
@@ -633,11 +635,11 @@ function DossierDetail() {
   const requestProcessDossier = () => {
     openConfirmationModal({
       action: 'process',
-      title: 'Process Case File',
-      message: 'Process this case file now? This action freezes all case file modifications.',
-      confirmLabel: 'Process Case File',
-      cancelLabel: 'Cancel',
-      confirmingLabel: 'Processing...',
+      title: t('workflow.processConfirmTitle'),
+      message: t('workflow.processConfirmMessage'),
+      confirmLabel: t('workflow.processCaseFile'),
+      cancelLabel: t('actions.cancel'),
+      confirmingLabel: t('workflow.processing'),
       confirmVariant: 'success',
       initialFocus: 'cancel',
       payload: null,
@@ -651,11 +653,11 @@ function DossierDetail() {
 
     openConfirmationModal({
       action: 'delete_rubrique',
-      title: 'Delete Section',
-      message: 'This will permanently remove the empty section. This action cannot be undone.',
-      confirmLabel: 'Delete Section',
-      cancelLabel: 'Cancel',
-      confirmingLabel: 'Deleting...',
+      title: t('workflow.deleteRubriqueTitle'),
+      message: t('workflow.deleteRubriqueMessage'),
+      confirmLabel: t('workflow.deleteRubriqueLabel'),
+      cancelLabel: t('actions.cancel'),
+      confirmingLabel: t('sections.deleting'),
       confirmVariant: 'danger',
       initialFocus: 'cancel',
       payload: { rubriqueId: rubrique.id },
@@ -669,11 +671,11 @@ function DossierDetail() {
 
     openConfirmationModal({
       action: 'accept_document',
-      title: 'Accept Document',
-      message: 'Accept this document as valid? This decision is final for the current review.',
-      confirmLabel: 'Accept Document',
-      cancelLabel: 'Cancel',
-      confirmingLabel: 'Accepting...',
+      title: t('workflow.acceptDocumentTitle'),
+      message: t('workflow.acceptDocumentMessage'),
+      confirmLabel: t('workflow.acceptDocumentLabel'),
+      cancelLabel: t('actions.cancel'),
+      confirmingLabel: t('workflow.accepting'),
       confirmVariant: 'success',
       initialFocus: 'cancel',
       payload: { documentId },
@@ -713,10 +715,10 @@ function DossierDetail() {
       withMapPending(setIsDecidingByDocumentId, documentId, true);
 
       const response = await acceptDocument(documentId, null);
-      notifySuccess(getToastMessage(response, 'Document accepted successfully.'));
+      notifySuccess(getToastMessage(response, t('feedback.documentAcceptedSuccess')));
       await refreshDetailSilently();
     } catch (error) {
-      notifyError(formatApiError(error, 'Failed to accept document.'));
+      notifyError(formatApiError(error, t('feedback.acceptDocumentFailed'), t));
     } finally {
       withMapPending(setIsDecidingByDocumentId, documentId, false);
     }
@@ -734,7 +736,7 @@ function DossierDetail() {
 
     const normalizedNote = rejectNote.trim();
     if (!normalizedNote) {
-      notifyError('A rejection note is required.');
+      notifyError(t('feedback.rejectNoteRequired'));
       return;
     }
 
@@ -742,11 +744,11 @@ function DossierDetail() {
       withMapPending(setIsDecidingByDocumentId, documentId, true);
 
       const response = await rejectDocument(documentId, normalizedNote);
-      notifyDangerSuccess(getToastMessage(response, 'Document rejected successfully.'));
+      notifyDangerSuccess(getToastMessage(response, t('feedback.documentRejectedSuccess')));
       closeRejectDocumentModal();
       await refreshDetailSilently();
     } catch (error) {
-      notifyError(formatApiError(error, 'Failed to reject document.'));
+      notifyError(formatApiError(error, t('feedback.rejectDocumentFailed'), t));
     } finally {
       withMapPending(setIsDecidingByDocumentId, documentId, false);
     }
@@ -775,11 +777,11 @@ function DossierDetail() {
 
       const note = rejectRubriqueNote.trim() || null;
       const response = await rejectRubrique(rubriqueId, note);
-      notifyDangerSuccess(getToastMessage(response, 'Section rejected successfully.'));
+      notifyDangerSuccess(getToastMessage(response, t('feedback.sectionRejectedSuccess')));
       closeRejectRubriqueModal();
       await refreshDetailSilently();
     } catch (error) {
-      notifyError(formatApiError(error, 'Failed to reject section.'));
+      notifyError(formatApiError(error, t('feedback.rejectSectionFailed'), t));
     } finally {
       withMapPending(setIsRejectingRubriqueById, rubriqueId, false);
     }
@@ -789,7 +791,7 @@ function DossierDetail() {
   if (isLoadingDetail) {
     return (
       <div className="container py-5">
-        <Loader message="Loading case file details..." size="md" />
+        <Loader message={t('dossierDetail.loadingMessage')} size="md" />
       </div>
     );
   }
@@ -803,11 +805,11 @@ function DossierDetail() {
               <div className="card-body">
                 <EmptyState
                   icon="exclamation-triangle"
-                  title="Unable to Load Case File"
+                  title={t('dossierDetail.errorTitle')}
                   description={loadErrorMessage}
                   action={
                     <button className="btn btn-primary" onClick={() => navigate('/dossiers')}>
-                      Back to Case Files
+                      {t('dossierDetail.backToCaseFiles')}
                     </button>
                   }
                 />
@@ -828,11 +830,11 @@ function DossierDetail() {
               <div className="card-body">
                 <EmptyState
                   icon="folder-x"
-                  title="Case File Not Found"
-                  description="The requested case file could not be found."
+                  title={t('dossierDetail.notFoundTitle')}
+                  description={t('dossierDetail.notFoundDescription')}
                   action={
                     <button className="btn btn-primary" onClick={() => navigate('/dossiers')}>
-                      Back to Case Files
+                      {t('dossierDetail.backToCaseFiles')}
                     </button>
                   }
                 />
@@ -848,8 +850,8 @@ function DossierDetail() {
     <div className="container py-4 dossier-detail-page" aria-busy={isRefreshingDetail}>
       <PageHeader
         icon="bi-folder2-open"
-        title="Case File Details"
-        subtitle="Review dossier identity, workflow state, escalation history, and section-level document decisions."
+        title={t('dossierDetail.pageTitle')}
+        subtitle={t('dossierDetail.pageSubtitle')}
         action={
           <button
             type="button"
@@ -857,38 +859,38 @@ function DossierDetail() {
             onClick={() => navigate('/dossiers')}
           >
             <i className="bi bi-arrow-left me-2" aria-hidden="true" />
-            Back to Case Files
+            {t('dossierDetail.backToCaseFiles')}
           </button>
         }
       />
 
       {/* Top-level workflow banners keep the current dossier state explicit. */}
       {isFrozen && (
-        <WorkflowBanner title="Finalized case file" variant="success" icon="bi-lock-fill">
-          This case file is {dossierStatusLabel} and is now read-only.
+        <WorkflowBanner title={t('dossierDetail.finalized')} variant="success" icon="bi-lock-fill">
+          {t('dossierDetail.finalizedMessage', { status: dossierStatusLabel })}
         </WorkflowBanner>
       )}
 
       {dossierStatus === DOSSIER_STATUSES.IN_ESCALATION && !isSupervisor && (
         <WorkflowBanner
-          title="Pending supervisor review"
+          title={t('dossierDetail.pendingSupervisor')}
           variant="warning"
           icon="bi-diagram-3"
         >
-          This case file has been escalated to the Supervisor and is awaiting a decision.
+          {t('dossierDetail.pendingSupervisorMessage')}
         </WorkflowBanner>
       )}
 
       {isReturnedForClaimsReview && canReview && (
         <WorkflowBanner
-          title="Returned by Supervisor"
+          title={t('dossierDetail.returnedBySupervisor')}
           variant="warning"
           icon="bi-arrow-return-left"
         >
-          Document decisions are locked. You may process this case file or escalate again.
+          {t('dossierDetail.returnedBySupervisorMessage')}
           {dossier.chef_decision_note && (
             <div className="mt-1">
-              <strong>Supervisor note:</strong> {dossier.chef_decision_note}
+              <strong>{t('dossierDetail.supervisorNote')}:</strong> {dossier.chef_decision_note}
             </div>
           )}
         </WorkflowBanner>
@@ -898,13 +900,13 @@ function DossierDetail() {
         const isSupervisorRequest =
           dossier.awaiting_complement_source === 'SUPERVISOR_COMPLEMENT_REQUEST';
         const sourceLabel = isSupervisorRequest
-          ? 'Complement requested by Supervisor'
-          : 'Returned by Claims Manager';
-        const noteLabel = isSupervisorRequest ? 'Supervisor note' : 'Return note';
+          ? t('dossierDetail.complementBySupervisor')
+          : t('dossierDetail.returnedByClaimsManager');
+        const noteLabel = isSupervisorRequest ? t('dossierDetail.supervisorNote') : t('dossierDetail.returnNote');
 
         return (
           <WorkflowBanner
-            title="Preparation Reopened"
+            title={t('dossierDetail.preparationReopened')}
             variant="warning"
             icon="bi-arrow-return-left"
           >
@@ -974,7 +976,7 @@ function DossierDetail() {
 
       <DossierModalShell
         isOpen={escalateModalOpen}
-        title="Escalate to Supervisor"
+        title={t('workflow.escalateToSupervisor')}
         onClose={() => {
           setEscalateModalOpen(false);
           setEscalationReason('');
@@ -993,7 +995,7 @@ function DossierDetail() {
               }}
               disabled={isEscalatingDossier}
             >
-              Cancel
+              {t('actions.cancel')}
             </button>
             <button
               type="button"
@@ -1001,14 +1003,14 @@ function DossierDetail() {
               onClick={handleEscalateConfirm}
               disabled={isEscalatingDossier || !escalationReason.trim()}
             >
-              {isEscalatingDossier ? 'Escalating...' : 'Confirm Escalation'}
+              {isEscalatingDossier ? t('workflow.escalating') : t('workflow.confirmEscalation')}
             </button>
           </>
         }
       >
         <div>
           <label htmlFor="escalation-reason" className="form-label workflow-modal-label">
-            Escalation Reason <span className="text-danger">*</span>
+            {t('workflow.escalationReason')} <span className="text-danger">*</span>
           </label>
           <textarea
             id="escalation-reason"
@@ -1016,7 +1018,7 @@ function DossierDetail() {
             rows={3}
             value={escalationReason}
             onChange={(e) => setEscalationReason(e.target.value)}
-            placeholder="Describe why this case file requires supervisor review..."
+            placeholder={t('workflow.escalationPlaceholder')}
             disabled={isEscalatingDossier}
             autoFocus
           />
@@ -1095,7 +1097,7 @@ function DossierDetail() {
 
       <DossierModalShell
         isOpen={returnToPreparationModalOpen}
-        title="Return to Preparation"
+        title={t('workflow.returnToPreparation')}
         onClose={() => {
           if (!isReturningToPreparation) {
             setReturnToPreparationModalOpen(false);
@@ -1116,7 +1118,7 @@ function DossierDetail() {
               }}
               disabled={isReturningToPreparation}
             >
-              Cancel
+              {t('actions.cancel')}
             </button>
             <button
               type="button"
@@ -1124,14 +1126,14 @@ function DossierDetail() {
               onClick={handleReturnToPreparationConfirm}
               disabled={isReturningToPreparation || !returnToPreparationNote.trim()}
             >
-              {isReturningToPreparation ? 'Returning...' : 'Return to Preparation'}
+              {isReturningToPreparation ? t('workflow.returning') : t('workflow.returnToPreparation')}
             </button>
           </>
         }
       >
         <div>
           <label htmlFor="return-to-preparation-note" className="form-label workflow-modal-label">
-            Return Note <span className="text-danger">*</span>
+            {t('dossierDetail.returnNote')} <span className="text-danger">*</span>
           </label>
           <textarea
             id="return-to-preparation-note"
@@ -1139,7 +1141,7 @@ function DossierDetail() {
             rows={3}
             value={returnToPreparationNote}
             onChange={(e) => setReturnToPreparationNote(e.target.value)}
-            placeholder="Explain what needs to be completed or corrected..."
+            placeholder={t('workflow.returnNotePlaceholder')}
             disabled={isReturningToPreparation}
             autoFocus
           />

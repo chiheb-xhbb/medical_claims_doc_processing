@@ -31,6 +31,18 @@
   color: var(--color-white);
   text-align: center;
   padding: var(--spacing-5) var(--spacing-6);
+  position: relative;
+}
+
+.login-card__lang-switcher {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 2;
+}
+
+.login-card__lang-switcher .nb-lang-switcher {
+  margin-bottom: 0;
 }
 
 .login-card .brand-title {
@@ -145,5 +157,14 @@
 .login-card .card-footer small {
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
+}
+
+@media (max-width: 575.98px) {
+  .login-card__lang-switcher {
+    position: static;
+    display: flex;
+    justify-content: center;
+    margin-bottom: var(--spacing-3);
+  }
 }
 

@@ -1,3 +1,5 @@
+import { getAccountStatusLabel } from '../constants/domainLabels';
+
 function AccountStatusBadge({ isActive, className = '' }) {
   const isAccountActive = Boolean(isActive);
 
@@ -12,7 +14,7 @@ function AccountStatusBadge({ isActive, className = '' }) {
         .filter(Boolean)
         .join(' ')}
     >
-      {isAccountActive ? 'Active' : 'Inactive'}
+      {getAccountStatusLabel(isAccountActive)}
     </span>
   );
 }

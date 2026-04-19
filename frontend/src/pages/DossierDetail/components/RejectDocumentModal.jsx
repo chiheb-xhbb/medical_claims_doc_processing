@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import DossierModalShell from './DossierModalShell';
 
 function RejectDocumentModal({
@@ -11,6 +12,7 @@ function RejectDocumentModal({
   handleRejectDocument,
   isDecidingByDocumentId
 }) {
+  const { t } = useTranslation();
   const cancelButtonRef = useRef(null);
   const rejectButtonRef = useRef(null);
   const rejectNoteRef = useRef(null);
@@ -22,16 +24,16 @@ function RejectDocumentModal({
   const isRejecting = Boolean(isDecidingByDocumentId[rejectTargetDocument?.id] || false);
   const hasDecisionNote = Boolean((rejectNote || '').trim());
   const reviewMessage = isReturnedForClaimsReview
-    ? 'Reject this document for the returned case file review? This will update the current decision.'
-    : 'Reject this document for the current review.';
+    ? t('workflow.rejectDocumentPromptReturned')
+    : t('workflow.rejectDocumentPrompt');
 
   return (
     <DossierModalShell
       isOpen={isOpen}
-      title="Reject Document"
+      title={t('workflow.rejectDocumentTitle')}
       description={
         <>
-          Document: <strong>{rejectTargetDocument?.original_filename || `#${rejectTargetDocument?.id || ''}`}</strong>
+          {t('domain.document')}: <strong>{rejectTargetDocument?.original_filename || `#${rejectTargetDocument?.id || ''}`}</strong>
           <div className="mt-2">{reviewMessage}</div>
         </>
       }
@@ -49,7 +51,7 @@ function RejectDocumentModal({
             onClick={closeRejectDocumentModal}
             disabled={isRejecting}
           >
-            Cancel
+            {t('actions.cancel')}
           </button>
           <button
             type="button"
@@ -58,13 +60,13 @@ function RejectDocumentModal({
             onClick={handleRejectDocument}
             disabled={isRejecting || !hasDecisionNote}
           >
-            {isRejecting ? 'Rejecting...' : 'Reject Document'}
+            {isRejecting ? t('workflow.rejectingDocument') : t('workflow.rejectDocumentLabel')}
           </button>
         </>
       )}
     >
       <div>
-        <label htmlFor="rejectNote" className="form-label">Decision Note (required)</label>
+        <label htmlFor="rejectNote" className="form-label">{t('workflow.decisionNoteRequired')}</label>
         <textarea
           ref={rejectNoteRef}
           id="rejectNote"
@@ -72,7 +74,7 @@ function RejectDocumentModal({
           rows={4}
           value={rejectNote}
           onChange={(event) => setRejectNote(event.target.value)}
-          placeholder="Explain why this document is rejected"
+          placeholder={t('workflow.rejectReasonPlaceholder')}
           disabled={isRejecting}
         />
       </div>

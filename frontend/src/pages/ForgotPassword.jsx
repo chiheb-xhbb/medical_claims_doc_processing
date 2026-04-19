@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { forgotPassword } from '../services/auth';
 import { ErrorAlert, SuccessAlert } from '../ui';
 import './ForgotPassword/ForgotPassword.css';
 
-const GENERIC_SUCCESS_MESSAGE = 'If this email is registered, a password reset link has been sent.';
-
 function ForgotPassword() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -19,9 +19,9 @@ function ForgotPassword() {
     const errors = {};
 
     if (!email.trim()) {
-      errors.email = 'Email is required.';
+      errors.email = t('login.emailRequired');
     } else if (!isValidEmail(email.trim())) {
-      errors.email = 'Please enter a valid email address.';
+      errors.email = t('login.emailInvalid');
     }
 
     setValidationErrors(errors);
@@ -41,7 +41,7 @@ function ForgotPassword() {
 
     try {
       await forgotPassword(email.trim());
-      setSuccessMessage(GENERIC_SUCCESS_MESSAGE);
+      setSuccessMessage(t('auth.forgotPasswordSuccess'));
       setValidationErrors({});
     } catch (err) {
       if (err.response?.status === 422) {
@@ -52,12 +52,12 @@ function ForgotPassword() {
 
         setValidationErrors((prev) => ({
           ...prev,
-          email: emailError || 'Please enter a valid email address.',
+          email: emailError || t('login.emailInvalid'),
         }));
       } else if (err.code === 'ERR_NETWORK' || !err.response) {
-        setError('Connection failed. Please check if the server is running.');
+        setError(t('login.connectionFailed'));
       } else {
-        setError('Unable to process your request right now. Please try again later.');
+        setError(t('auth.forgotPasswordFailed'));
       }
     } finally {
       setLoading(false);
@@ -71,13 +71,13 @@ function ForgotPassword() {
           <div className="col-md-6 col-lg-5 col-xl-4">
             <div className="card shadow-lg forgot-password-card">
               <div className="card-header bg-primary text-white text-center py-4 forgot-password-card__header">
-                <h4 className="mb-1">Forgot Password</h4>
-                <small className="text-white">Password Recovery</small>
+                <h4 className="mb-1">{t('auth.forgotPasswordTitle')}</h4>
+                <small className="text-white">{t('auth.forgotPasswordSubtitle')}</small>
               </div>
 
               <div className="card-body p-4 forgot-password-card__body">
                 <p className="forgot-password-card__helper text-muted text-center mb-4">
-                  Enter your account email address and we will send you a password reset link.
+                  {t('auth.forgotPasswordHelper')}
                 </p>
 
                 {error && (
@@ -96,13 +96,13 @@ function ForgotPassword() {
                   <div className="mb-4">
                     <label htmlFor="email" className="form-label">
                       <i className="bi bi-envelope me-1"></i>
-                      Email Address
+                      {t('login.emailLabel')}
                     </label>
                     <input
                       type="email"
                       id="email"
                       className={`form-control ${validationErrors.email ? 'is-invalid' : ''}`}
-                      placeholder="agent@carte.com.tn"
+                      placeholder={t('login.emailPlaceholder')}
                       value={email}
                       onChange={(event) => {
                         setEmail(event.target.value);
@@ -131,12 +131,12 @@ function ForgotPassword() {
                           role="status"
                           aria-hidden="true"
                         ></span>
-                        Sending...
+                        {t('auth.sending')}
                       </>
                     ) : (
                       <>
                         <i className="bi bi-send me-2"></i>
-                        Send Reset Link
+                        {t('auth.sendResetLink')}
                       </>
                     )}
                   </button>
@@ -146,7 +146,7 @@ function ForgotPassword() {
               <div className="card-footer bg-white text-center py-3 forgot-password-card__footer">
                 <Link to="/login" className="text-decoration-none forgot-password-card__back-link">
                   <i className="bi bi-arrow-left me-1"></i>
-                  Back to Login
+                  {t('auth.backToLogin')}
                 </Link>
               </div>
             </div>

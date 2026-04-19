@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import DecisionBadge from './DecisionBadge';
 
 const HISTORY_ARRAY_KEYS = [
@@ -143,44 +144,44 @@ const getDecisionMarkerClass = (decisionStatus) => {
   return 'audit-timeline__marker--decided-info';
 };
 
-const getEventLabel = (eventType, decisionStatus) => {
+const getEventLabel = (eventType, decisionStatus, t) => {
   if (eventType.includes('ESCALAT')) {
-    return 'Escalated';
+    return t('workflow.labelEscalated', { defaultValue: 'Escalated' });
   }
 
   if (decisionStatus === 'RETURNED') {
-    return 'Returned';
+    return t('workflow.labelReturned', { defaultValue: 'Returned' });
   }
 
   if (decisionStatus === 'COMPLEMENT_REQUESTED') {
-    return 'Complement Requested';
+    return t('workflow.labelComplementRequested', { defaultValue: 'Complement Requested' });
   }
 
   if (decisionStatus === 'APPROVED') {
-    return 'Approved';
+    return t('workflow.labelApproved', { defaultValue: 'Approved' });
   }
 
   if (eventType.includes('RETURN')) {
-    return 'Returned';
+    return t('workflow.labelReturned', { defaultValue: 'Returned' });
   }
 
   if (eventType.includes('COMPLEMENT')) {
-    return 'Complement Requested';
+    return t('workflow.labelComplementRequested', { defaultValue: 'Complement Requested' });
   }
 
   if (eventType.includes('APPROV')) {
-    return 'Approved';
+    return t('workflow.labelApproved', { defaultValue: 'Approved' });
   }
 
   if (eventType.includes('REJECT')) {
-    return 'Supervisor Rejected';
+    return t('workflow.labelSupervisorRejected', { defaultValue: 'Supervisor Rejected' });
   }
 
   if (eventType.includes('DECISION') || decisionStatus) {
-    return 'Supervisor Decision';
+    return t('workflow.labelSupervisorDecision', { defaultValue: 'Supervisor Decision' });
   }
 
-  return toTitleCase(eventType) || 'Workflow Event';
+  return toTitleCase(eventType) || t('workflow.labelWorkflowEvent', { defaultValue: 'Workflow Event' });
 };
 
 const getEventMarkerClass = (eventType, decisionStatus) => {
@@ -203,7 +204,7 @@ const getEventMarkerClass = (eventType, decisionStatus) => {
   return 'audit-timeline__marker--decided-info';
 };
 
-const normalizeHistoryEvent = (entry, orderIndex) => {
+const normalizeHistoryEvent = (entry, orderIndex, t) => {
   const eventType = pickFirstText(
     entry?.event_type,
     entry?.eventType,
@@ -243,13 +244,13 @@ const normalizeHistoryEvent = (entry, orderIndex) => {
     timestamp,
     actorName,
     note,
-    label: getEventLabel(eventType, decisionStatus),
+    label: getEventLabel(eventType, decisionStatus, t),
     markerClass: getEventMarkerClass(eventType, decisionStatus),
     orderIndex,
   };
 };
 
-const buildSnapshotEvents = (dossier) => {
+const buildSnapshotEvents = (dossier, t) => {
   // API snapshot fields represent the currently stored escalation cycle.
   const events = [];
 
@@ -261,7 +262,7 @@ const buildSnapshotEvents = (dossier) => {
       timestamp: dossier?.escalated_at || '',
       actorName: dossier?.escalator?.name || dossier?.escalated_by || '',
       note: dossier?.escalation_reason || '',
-      label: 'Escalated',
+      label: t('workflow.labelEscalated', { defaultValue: 'Escalated' }),
       markerClass: 'audit-timeline__marker--escalated',
       orderIndex: 10_000,
     });
@@ -282,7 +283,7 @@ const buildSnapshotEvents = (dossier) => {
       timestamp: dossier?.chef_decision_at || '',
       actorName: dossier?.chef_decision_maker?.name || dossier?.chef_decision_by || '',
       note: dossier?.chef_decision_note || '',
-      label: 'Supervisor Decision',
+      label: t('workflow.labelSupervisorDecision', { defaultValue: 'Supervisor Decision' }),
       markerClass: getDecisionMarkerClass(snapshotDecisionStatus),
       orderIndex: 10_001,
     });
@@ -291,55 +292,59 @@ const buildSnapshotEvents = (dossier) => {
   return events;
 };
 
-const buildTimelineEvents = (dossier) => {
-  const historyEvents = [];
-  let historyOrderIndex = 0;
-
-  HISTORY_ARRAY_KEYS.forEach((key) => {
-    const entries = getHistoryEntriesByKey(dossier, key);
-    if (entries.length === 0) {
-      return;
-    }
-
-    entries.forEach((entry) => {
-      const normalized = normalizeHistoryEvent(entry, historyOrderIndex);
-      historyOrderIndex += 1;
-
-      if (normalized) {
-        historyEvents.push(normalized);
-      }
-    });
-  });
-
-  const snapshotEvents = buildSnapshotEvents(dossier);
-  const historySignatures = new Set(historyEvents.map((event) => createEventSignature(event)));
-  const deduplicatedSnapshots = snapshotEvents.filter(
-    (event) => !historySignatures.has(createEventSignature(event))
-  );
-  const merged = [...historyEvents, ...deduplicatedSnapshots];
-
-  return merged.sort((first, second) => {
-    const firstTimestamp = toTimestampValue(first.timestamp);
-    const secondTimestamp = toTimestampValue(second.timestamp);
-
-    if (firstTimestamp !== null && secondTimestamp !== null) {
-      return secondTimestamp - firstTimestamp;
-    }
-
-    if (firstTimestamp !== null) {
-      return -1;
-    }
-
-    if (secondTimestamp !== null) {
-      return 1;
-    }
-
-    return second.orderIndex - first.orderIndex;
-  });
-};
+const normalizeHistoryEventWithT = (t) => (entry, orderIndex) => normalizeHistoryEvent(entry, orderIndex, t);
 
 function AuditTimeline({ dossier, formatDateTime }) {
-  const timelineEvents = buildTimelineEvents(dossier);
+  const { t } = useTranslation();
+  
+  const buildTimelineEventsWithT = (dossier) => {
+    const historyEvents = [];
+    let historyOrderIndex = 0;
+
+    HISTORY_ARRAY_KEYS.forEach((key) => {
+      const entries = getHistoryEntriesByKey(dossier, key);
+      if (entries.length === 0) {
+        return;
+      }
+
+      entries.forEach((entry) => {
+        const normalized = normalizeHistoryEventWithT(t)(entry, historyOrderIndex);
+        historyOrderIndex += 1;
+
+        if (normalized) {
+          historyEvents.push(normalized);
+        }
+      });
+    });
+
+    const snapshotEvents = buildSnapshotEvents(dossier, t);
+    const historySignatures = new Set(historyEvents.map((event) => createEventSignature(event)));
+    const deduplicatedSnapshots = snapshotEvents.filter(
+      (event) => !historySignatures.has(createEventSignature(event))
+    );
+    const merged = [...historyEvents, ...deduplicatedSnapshots];
+
+    return merged.sort((first, second) => {
+      const firstTimestamp = toTimestampValue(first.timestamp);
+      const secondTimestamp = toTimestampValue(second.timestamp);
+
+      if (firstTimestamp !== null && secondTimestamp !== null) {
+        return secondTimestamp - firstTimestamp;
+      }
+
+      if (firstTimestamp !== null) {
+        return -1;
+      }
+
+      if (secondTimestamp !== null) {
+        return 1;
+      }
+
+      return second.orderIndex - first.orderIndex;
+    });
+  };
+
+  const timelineEvents = buildTimelineEventsWithT(dossier);
 
   const renderDateTime = (value) => {
     if (typeof formatDateTime === 'function') {
@@ -357,7 +362,7 @@ function AuditTimeline({ dossier, formatDateTime }) {
     <div className="card mb-4">
       <div className="card-header d-flex align-items-center gap-2">
         <i className="bi bi-diagram-3 text-muted" aria-hidden="true" />
-        <h6 className="mb-0">Escalation &amp; Supervisor Review</h6>
+        <h6 className="mb-0">{t('workflow.escalationReview', { defaultValue: 'Escalation & Supervisor Review' })}</h6>
       </div>
       <div className="card-body p-0">
         <div className="audit-timeline">

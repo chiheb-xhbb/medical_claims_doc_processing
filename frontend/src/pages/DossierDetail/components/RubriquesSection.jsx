@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { notifyError } from '../../../utils/toast';
 import { getApiErrorMessage } from '../../../services/api';
 import { previewDocument, downloadDocument } from '../../../services/documentAccess';
@@ -91,6 +92,7 @@ function RubriquesSection({
   requestDetachDocument,
   formatAmount,
 }) {
+  const { t } = useTranslation();
   const [previewingById, setPreviewingById] = useState({});
   const [downloadingById, setDownloadingById] = useState({});
 
@@ -124,8 +126,8 @@ function RubriquesSection({
       await previewDocument(documentId);
     } catch (error) {
       const message = error?.response
-        ? getApiErrorMessage(error, 'Failed to open original document.')
-        : error?.message || 'Failed to open original document.';
+        ? getApiErrorMessage(error, t('feedback.openOriginalDocumentFailed'))
+        : error?.message || t('feedback.openOriginalDocumentFailed');
 
       notifyError(message);
     } finally {
@@ -145,8 +147,8 @@ function RubriquesSection({
       await downloadDocument(documentId, document?.original_filename);
     } catch (error) {
       const message = error?.response
-        ? getApiErrorMessage(error, 'Failed to download original document.')
-        : error?.message || 'Failed to download original document.';
+        ? getApiErrorMessage(error, t('feedback.downloadOriginalDocumentFailed'))
+        : error?.message || t('feedback.downloadOriginalDocumentFailed');
 
       notifyError(message);
     } finally {
@@ -159,10 +161,10 @@ function RubriquesSection({
       <div className="card-header d-flex justify-content-between align-items-center">
         <h6 className="mb-0 d-flex align-items-center">
           <i className="bi bi-diagram-3 me-2"></i>
-          Sections
+          {t('sections.title')}
         </h6>
         <span className="text-muted small">
-          {rubriques.length} {rubriques.length === 1 ? 'section' : 'sections'}
+          {rubriques.length} {rubriques.length === 1 ? t('domain.section').toLowerCase() : t('domain.sections').toLowerCase()}
         </span>
       </div>
 
@@ -170,8 +172,8 @@ function RubriquesSection({
         {rubriques.length === 0 ? (
           <EmptyState
             icon="folder2-open"
-            title="No Sections"
-            description="Create a section to start attaching validated documents."
+            title={t('sections.noSections')}
+            description={t('sections.noSectionsDescription')}
           />
         ) : (
           <div className="rubrique-list">
@@ -220,7 +222,7 @@ function RubriquesSection({
                   <div className="card-header rubrique-card__header">
                     <div className="rubrique-card__identity">
                       <h6 className="mb-1 rubrique-card__title">
-                        {rubrique.title || `Section #${rubrique.id}`}
+                        {rubrique.title || `${t('domain.section')} #${rubrique.id}`}
                       </h6>
 
                       <div className="rubrique-card__meta text-muted">
@@ -236,7 +238,7 @@ function RubriquesSection({
                         </span>
                         <span className="rubrique-card__count">
                           {rubriqueDocuments.length}{' '}
-                          {rubriqueDocuments.length === 1 ? 'document' : 'documents'}
+                          {rubriqueDocuments.length === 1 ? t('domain.document').toLowerCase() : t('domain.documents').toLowerCase()}
                         </span>
                       </div>
                     </div>
@@ -249,7 +251,7 @@ function RubriquesSection({
                           disabled={Boolean(isAttachingByRubriqueId[rubrique.id])}
                         >
                           <i className="bi bi-link-45deg" aria-hidden="true"></i>
-                          Attach Documents
+                          {t('sections.attachDocuments')}
                         </button>
                       )}
 
@@ -259,7 +261,7 @@ function RubriquesSection({
                           onClick={() => requestDeleteRubrique(rubrique)}
                           disabled={isDeletingRubrique}
                         >
-                          {isDeletingRubrique ? 'Deleting...' : 'Delete Section'}
+                          {isDeletingRubrique ? t('sections.deleting') : t('sections.deleteSection')}
                         </button>
                       )}
 
@@ -270,7 +272,7 @@ function RubriquesSection({
                             onClick={() => openRejectRubriqueModal(rubrique)}
                             disabled={isRejectSectionDisabled}
                           >
-                            {isRejectingRubrique ? 'Rejecting...' : 'Reject Section'}
+                            {isRejectingRubrique ? t('sections.rejecting') : t('sections.rejectSection')}
                           </button>
                         </div>
                       )}
@@ -290,8 +292,8 @@ function RubriquesSection({
                           <i className="bi bi-file-earmark"></i>
                           <span>
                             {canAttachDocuments && !isFrozen
-                              ? 'No documents attached yet. Use Attach Documents to add validated files.'
-                              : 'No documents attached yet.'}
+                              ? t('sections.noDocumentsAttach')
+                              : t('sections.noDocuments')}
                           </span>
                         </div>
                       </div>
@@ -300,12 +302,12 @@ function RubriquesSection({
                         <table className="table table-striped align-middle mb-0 documents-table">
                           <thead>
                             <tr>
-                              <th>#</th>
-                              <th>Document</th>
-                              <th>Decision</th>
-                              <th>Total TTC</th>
-                              <th>Decision Note</th>
-                              <th>Actions</th>
+                              <th>{t('sections.columns.id')}</th>
+                              <th>{t('sections.columns.document')}</th>
+                              <th>{t('sections.columns.decision')}</th>
+                              <th>{t('sections.columns.totalTtc')}</th>
+                              <th>{t('sections.columns.decisionNote')}</th>
+                              <th>{t('sections.columns.actions')}</th>
                             </tr>
                           </thead>
 
@@ -317,7 +319,7 @@ function RubriquesSection({
                                 .toUpperCase();
                               const documentId = document.id;
                               const originalFilename =
-                                document.original_filename || `Document #${documentId}`;
+                                document.original_filename || `${t('domain.document')} #${documentId}`;
                               const isPreviewing = Boolean(previewingById[documentId]);
                               const isDownloading = Boolean(downloadingById[documentId]);
                               const isDecided =
@@ -343,7 +345,7 @@ function RubriquesSection({
                               const showActionsPlaceholder =
                                 !canShowDecisionActions && !canShowDetachAction;
                               const actionPlaceholderText =
-                                decisionStatus === 'PENDING' ? '-' : 'Decision completed';
+                                decisionStatus === 'PENDING' ? '-' : t('decision.decisionCompleted');
                               const decisionRowClass = getDecisionRowClass(decisionStatus);
 
                               return (
@@ -381,14 +383,14 @@ function RubriquesSection({
                                         <div
                                           className="document-decision-actions"
                                           role="group"
-                                          aria-label="Document decision actions"
+                                          aria-label={t('sections.documentDecisionActionsAria')}
                                         >
                                           <button
                                             className="btn btn-sm btn-outline-success document-decision-btn document-decision-btn--accept"
                                             onClick={() => handleAcceptDocument(documentId)}
                                             disabled={isBusy}
                                           >
-                                            Accept
+                                            {t('sections.accept')}
                                           </button>
 
                                           <button
@@ -396,7 +398,7 @@ function RubriquesSection({
                                             onClick={() => openRejectDocumentModal(document)}
                                             disabled={isBusy}
                                           >
-                                            Reject
+                                            {t('sections.reject')}
                                           </button>
                                         </div>
                                       )}
@@ -410,8 +412,8 @@ function RubriquesSection({
                                           disabled={isBusy}
                                         >
                                           {isDetachingByDocumentId[documentId]
-                                            ? 'Detaching...'
-                                            : 'Detach'}
+                                            ? t('sections.detaching')
+                                            : t('sections.detach')}
                                         </button>
                                       )}
 

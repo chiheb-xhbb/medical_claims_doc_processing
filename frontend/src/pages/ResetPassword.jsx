@@ -1,14 +1,15 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { resetPassword } from '../services/auth';
 import { AUTH_FEEDBACK_KEY } from '../services/api';
 import { ErrorAlert, SuccessAlert } from '../ui';
 import './ResetPassword/ResetPassword.css';
 
 const LOGIN_SUCCESS_FEEDBACK_PREFIX = 'success:';
-const RESET_SUCCESS_MESSAGE = 'Password reset successfully. Redirecting to sign in...';
 
 function ResetPassword() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -28,19 +29,19 @@ function ResetPassword() {
     const errors = {};
 
     if (!hasRequiredParams) {
-      errors.form = 'This password reset link is invalid or incomplete.';
+      errors.form = t('auth.resetInvalidLink');
     }
 
     if (!password) {
-      errors.password = 'New password is required.';
+      errors.password = t('changePassword.newRequired');
     } else if (password.length < 8) {
-      errors.password = 'Password must be at least 8 characters.';
+      errors.password = t('changePassword.newMinLength');
     }
 
     if (!passwordConfirmation) {
-      errors.passwordConfirmation = 'Password confirmation is required.';
+      errors.passwordConfirmation = t('changePassword.confirmRequired');
     } else if (password !== passwordConfirmation) {
-      errors.passwordConfirmation = 'Password confirmation does not match.';
+      errors.passwordConfirmation = t('changePassword.confirmMismatch');
     }
 
     setValidationErrors(errors);
@@ -66,13 +67,13 @@ function ResetPassword() {
         passwordConfirmation,
       });
 
-      setSuccessMessage(RESET_SUCCESS_MESSAGE);
+      setSuccessMessage(t('auth.resetSuccess'));
       setValidationErrors({});
 
       setTimeout(() => {
         sessionStorage.setItem(
           AUTH_FEEDBACK_KEY,
-          `${LOGIN_SUCCESS_FEEDBACK_PREFIX}Password reset successfully. You can now sign in.`
+          `${LOGIN_SUCCESS_FEEDBACK_PREFIX}${t('auth.resetSuccessRedirect')}`
         );
         navigate('/login', { replace: true });
       }, 1500);
@@ -86,10 +87,10 @@ function ResetPassword() {
             : serverErrors.password_confirmation,
         });
       } else if (err.code === 'ERR_NETWORK' || !err.response) {
-        setError('Connection failed. Please check if the server is running.');
+        setError(t('login.connectionFailed'));
       } else {
         setError(
-          err.response?.data?.message || 'This password reset request is invalid or has expired.'
+          err.response?.data?.message || t('auth.resetFailed')
         );
       }
     } finally {
@@ -104,8 +105,8 @@ function ResetPassword() {
           <div className="col-md-6 col-lg-5 col-xl-4">
             <div className="card shadow-lg reset-password-card">
               <div className="card-header bg-primary text-white text-center py-4 reset-password-card__header">
-                <h4 className="mb-1">Password Reset</h4>
-                <small className="text-white">Choose a new password for your account.</small>
+                <h4 className="mb-1">{t('auth.resetTitle')}</h4>
+                <small className="text-white">{t('auth.resetSubtitle')}</small>
               </div>
 
               <div className="card-body p-4 reset-password-card__body">
@@ -113,7 +114,7 @@ function ResetPassword() {
                   <div className="mb-3">
                     <ErrorAlert
                       title=""
-                      message="This password reset link is invalid or incomplete."
+                      message={t('auth.resetInvalidLink')}
                     />
                   </div>
                 )}
@@ -134,7 +135,7 @@ function ResetPassword() {
                   <div className="mb-3">
                     <label htmlFor="email" className="form-label">
                       <i className="bi bi-envelope me-1"></i>
-                      Email Address
+                      {t('login.emailLabel')}
                     </label>
                     <input
                       type="email"
@@ -149,13 +150,13 @@ function ResetPassword() {
                   <div className="mb-3">
                     <label htmlFor="password" className="form-label">
                       <i className="bi bi-lock me-1"></i>
-                      New Password
+                      {t('changePassword.newPassword')}
                     </label>
                     <input
                       type="password"
                       id="password"
                       className={`form-control ${validationErrors.password ? 'is-invalid' : ''}`}
-                      placeholder="Enter your new password"
+                      placeholder={t('changePassword.newPassword')}
                       value={password}
                       onChange={(event) => {
                         setPassword(event.target.value);
@@ -175,13 +176,13 @@ function ResetPassword() {
                   <div className="mb-4">
                     <label htmlFor="passwordConfirmation" className="form-label">
                       <i className="bi bi-shield-lock me-1"></i>
-                      Confirm New Password
+                      {t('changePassword.confirmPassword')}
                     </label>
                     <input
                       type="password"
                       id="passwordConfirmation"
                       className={`form-control ${validationErrors.passwordConfirmation ? 'is-invalid' : ''}`}
-                      placeholder="Confirm your new password"
+                      placeholder={t('changePassword.confirmPassword')}
                       value={passwordConfirmation}
                       onChange={(event) => {
                         setPasswordConfirmation(event.target.value);
@@ -214,12 +215,12 @@ function ResetPassword() {
                           role="status"
                           aria-hidden="true"
                         ></span>
-                        Resetting...
+                        {t('auth.resetting')}
                       </>
                     ) : (
                       <>
                         <i className="bi bi-check2-circle me-2"></i>
-                        Reset Password
+                        {t('auth.resetPassword')}
                       </>
                     )}
                   </button>
@@ -229,7 +230,7 @@ function ResetPassword() {
               <div className="card-footer bg-white text-center py-3 reset-password-card__footer">
                 <Link to="/login" className="text-decoration-none reset-password-card__back-link">
                   <i className="bi bi-arrow-left me-1"></i>
-                  Back to Login
+                  {t('auth.backToLogin')}
                 </Link>
               </div>
             </div>

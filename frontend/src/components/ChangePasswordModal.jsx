@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { changePassword } from '../services/auth';
 import WorkspaceModalShell from './WorkspaceModalShell';
 
@@ -11,6 +12,7 @@ const EMPTY_FORM = {
 const getFirst = (v) => (Array.isArray(v) ? v[0] : v) || null;
 
 function ChangePasswordModal({ isOpen, onClose }) {
+  const { t } = useTranslation();
   const [form, setForm] = useState(EMPTY_FORM);
   const [fieldErrors, setFieldErrors] = useState({});
   const [globalError, setGlobalError] = useState(null);
@@ -37,19 +39,19 @@ function ChangePasswordModal({ isOpen, onClose }) {
     const errors = {};
 
     if (!form.currentPassword) {
-      errors.currentPassword = 'Current password is required.';
+      errors.currentPassword = t('changePassword.currentRequired');
     }
 
     if (!form.newPassword) {
-      errors.newPassword = 'New password is required.';
+      errors.newPassword = t('changePassword.newRequired');
     } else if (form.newPassword.length < 8) {
-      errors.newPassword = 'New password must be at least 8 characters.';
+      errors.newPassword = t('changePassword.newMinLength');
     }
 
     if (!form.confirmPassword) {
-      errors.confirmPassword = 'Please confirm your new password.';
+      errors.confirmPassword = t('changePassword.confirmRequired');
     } else if (form.confirmPassword !== form.newPassword) {
-      errors.confirmPassword = 'Passwords do not match.';
+      errors.confirmPassword = t('changePassword.confirmMismatch');
     }
 
     setFieldErrors(errors);
@@ -79,7 +81,7 @@ function ChangePasswordModal({ isOpen, onClose }) {
         });
       } else {
         setGlobalError(
-          err.response?.data?.message || 'Something went wrong. Please try again.'
+          err.response?.data?.message || t('feedback.somethingWentWrong')
         );
       }
     } finally {
@@ -102,7 +104,7 @@ function ChangePasswordModal({ isOpen, onClose }) {
   return (
     <WorkspaceModalShell
       isOpen={isOpen}
-      title="Change Password"
+      title={t('changePassword.title')}
       iconClass="bi-shield-lock"
       onClose={handleClose}
       isBusy={busy}
@@ -113,10 +115,10 @@ function ChangePasswordModal({ isOpen, onClose }) {
           <div className="chpw-success__icon" aria-hidden="true">
             <i className="bi bi-check-circle-fill" />
           </div>
-          <p className="chpw-success__title">Password updated</p>
-          <p className="chpw-success__sub">Your password has been changed successfully.</p>
+          <p className="chpw-success__title">{t('changePassword.successTitle')}</p>
+          <p className="chpw-success__sub">{t('changePassword.successMessage')}</p>
           <button className="btn btn-primary mt-3" onClick={handleClose}>
-            Done
+            {t('actions.done')}
           </button>
         </div>
       ) : (
@@ -130,7 +132,7 @@ function ChangePasswordModal({ isOpen, onClose }) {
 
           <div className="mb-4">
             <label htmlFor="chpw-current" className="form-label">
-              Current password
+              {t('changePassword.currentPassword')}
             </label>
             <div className="position-relative">
               <input
@@ -146,8 +148,8 @@ function ChangePasswordModal({ isOpen, onClose }) {
                 type="button"
                 className="btn btn-link position-absolute end-0 top-50 translate-middle-y text-muted text-decoration-none shadow-none border-0 p-2"
                 onClick={() => setShowCurrent(!showCurrent)}
-                aria-label={showCurrent ? 'Hide password' : 'Show password'}
-                title={showCurrent ? 'Hide password' : 'Show password'}
+                aria-label={showCurrent ? t('changePassword.hidePassword') : t('changePassword.showPassword')}
+                title={showCurrent ? t('changePassword.hidePassword') : t('changePassword.showPassword')}
                 disabled={busy}
               >
                 <i className={`bi ${showCurrent ? 'bi-eye-slash' : 'bi-eye'}`} aria-hidden="true" />
@@ -160,7 +162,7 @@ function ChangePasswordModal({ isOpen, onClose }) {
 
           <div className="mb-4">
             <label htmlFor="chpw-new" className="form-label">
-              New password
+              {t('changePassword.newPassword')}
             </label>
             <div className="position-relative">
               <input
@@ -176,8 +178,8 @@ function ChangePasswordModal({ isOpen, onClose }) {
                 type="button"
                 className="btn btn-link position-absolute end-0 top-50 translate-middle-y text-muted text-decoration-none shadow-none border-0 p-2"
                 onClick={() => setShowNew(!showNew)}
-                aria-label={showNew ? 'Hide password' : 'Show password'}
-                title={showNew ? 'Hide password' : 'Show password'}
+                aria-label={showNew ? t('changePassword.hidePassword') : t('changePassword.showPassword')}
+                title={showNew ? t('changePassword.hidePassword') : t('changePassword.showPassword')}
                 disabled={busy}
               >
                 <i className={`bi ${showNew ? 'bi-eye-slash' : 'bi-eye'}`} aria-hidden="true" />
@@ -186,12 +188,12 @@ function ChangePasswordModal({ isOpen, onClose }) {
             {fieldErrors.newPassword && (
               <div className="invalid-feedback d-block">{fieldErrors.newPassword}</div>
             )}
-            <div className="form-text mt-1">Minimum 8 characters.</div>
+            <div className="form-text mt-1">{t('changePassword.minChars')}</div>
           </div>
 
           <div className="mb-5">
             <label htmlFor="chpw-confirm" className="form-label">
-              Confirm new password
+              {t('changePassword.confirmPassword')}
             </label>
             <div className="position-relative">
               <input
@@ -207,8 +209,8 @@ function ChangePasswordModal({ isOpen, onClose }) {
                 type="button"
                 className="btn btn-link position-absolute end-0 top-50 translate-middle-y text-muted text-decoration-none shadow-none border-0 p-2"
                 onClick={() => setShowConfirm(!showConfirm)}
-                aria-label={showConfirm ? 'Hide password' : 'Show password'}
-                title={showConfirm ? 'Hide password' : 'Show password'}
+                aria-label={showConfirm ? t('changePassword.hidePassword') : t('changePassword.showPassword')}
+                title={showConfirm ? t('changePassword.hidePassword') : t('changePassword.showPassword')}
                 disabled={busy}
               >
                 <i className={`bi ${showConfirm ? 'bi-eye-slash' : 'bi-eye'}`} aria-hidden="true" />
@@ -226,18 +228,18 @@ function ChangePasswordModal({ isOpen, onClose }) {
               onClick={handleClose}
               disabled={busy}
             >
-              Cancel
+              {t('actions.cancel')}
             </button>
             <button type="submit" className="btn btn-primary" disabled={busy}>
               {busy ? (
                 <>
                   <span className="spinner-border spinner-border-sm" aria-hidden="true" />
-                  Saving...
+                  {t('changePassword.saving')}
                 </>
               ) : (
                 <>
                   <i className="bi bi-shield-check" aria-hidden="true" />
-                  Update password
+                  {t('changePassword.updatePassword')}
                 </>
               )}
             </button>

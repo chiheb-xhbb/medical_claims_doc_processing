@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   getNotifications,
   getUnreadNotificationCount,
@@ -16,14 +17,15 @@ const BELL_VISIBLE_ROLES = new Set([
   USER_ROLES.SUPERVISOR,
 ]);
 
-const formatRelativeTime = (value) => {
+const formatRelativeTime = (value, locale) => {
   if (!value) return '';
 
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '';
 
   const diffInSeconds = Math.round((date.getTime() - Date.now()) / 1000);
-  const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+  const normalizedLocale = (locale || 'en').split('-')[0];
+  const rtf = new Intl.RelativeTimeFormat(normalizedLocale, { numeric: 'auto' });
 
   const ranges = [
     { limit: 60, unit: 'second', divisor: 1 },
@@ -40,6 +42,7 @@ const formatRelativeTime = (value) => {
 };
 
 function NotificationBellButton() {
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const containerRef = useRef(null);
 
@@ -75,11 +78,11 @@ function NotificationBellButton() {
       const res = await getNotifications(1, 8);
       setNotifications(Array.isArray(res?.data) ? res.data : []);
     } catch {
-      notifyError('Failed to load notifications.');
+      notifyError(t('notifications.failedLoad'));
     } finally {
       setIsLoadingList(false);
     }
-  }, []);
+  }, [t]);
 
   // Poll unread badge every 30 s while the bell is mounted for the current role.
   useEffect(() => {
@@ -145,7 +148,7 @@ function NotificationBellButton() {
       setIsOpen(false);
       navigate(url);
     } catch {
-      notifyError('Failed to open notification.');
+      notifyError(t('notifications.failedOpen'));
     } finally {
       setActiveNotificationId(null);
     }
@@ -167,13 +170,14 @@ function NotificationBellButton() {
       );
       setUnreadCount(0);
     } catch {
-      notifyError('Failed to mark all notifications as read.');
+      notifyError(t('notifications.failedMarkAll'));
     } finally {
       setIsMarkingAllRead(false);
     }
   };
 
   const displayBadge = unreadCount > 99 ? '99+' : unreadCount;
+  const unreadSummary = unreadCount > 0 ? `, ${t('notifications.unread', { count: unreadCount })}` : '';
 
   return (
     <div className="position-relative" ref={containerRef}>
@@ -181,7 +185,7 @@ function NotificationBellButton() {
         type="button"
         className="nb-bell"
         onClick={handleToggleBell}
-        aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
+        aria-label={`${t('notifications.title')}${unreadSummary}`}
         aria-expanded={isOpen}
         aria-haspopup="true"
         id="nb-bell-btn"
@@ -198,13 +202,15 @@ function NotificationBellButton() {
         <div
           className="nb-bell-panel"
           role="dialog"
-          aria-label="Notifications"
+          aria-label={t('notifications.title')}
           aria-labelledby="nb-bell-btn"
         >
           <div className="nb-bell-panel__header">
-            <span className="nb-bell-panel__title">Notifications</span>
+            <span className="nb-bell-panel__title">{t('notifications.title')}</span>
             {unreadCount > 0 && (
-              <span className="nb-bell-panel__count">{unreadCount} unread</span>
+              <span className="nb-bell-panel__count">
+                {t('notifications.unread', { count: unreadCount })}
+              </span>
             )}
           </div>
 
@@ -216,7 +222,7 @@ function NotificationBellButton() {
                 onClick={handleMarkAllRead}
                 disabled={isMarkingAllRead}
               >
-                {isMarkingAllRead ? 'Marking…' : 'Mark all as read'}
+                {isMarkingAllRead ? t('notifications.markingAll') : t('notifications.markAllRead')}
               </button>
             </div>
           )}
@@ -228,18 +234,18 @@ function NotificationBellButton() {
                   className="spinner-border spinner-border-sm text-secondary mb-2"
                   aria-hidden="true"
                 />
-                <p className="nb-bell-panel__empty-text mb-0">Loading…</p>
+                <p className="nb-bell-panel__empty-text mb-0">{t('notifications.loading')}</p>
               </div>
             ) : notifications.length === 0 ? (
               <div className="nb-bell-panel__empty">
                 <i className="bi bi-bell-slash nb-bell-panel__empty-icon" aria-hidden="true" />
-                <p className="nb-bell-panel__empty-text mb-0">No notifications yet</p>
+                <p className="nb-bell-panel__empty-text mb-0">{t('notifications.empty')}</p>
               </div>
             ) : (
               notifications.map((notification) => {
                 const isUnread = !notification.is_read;
                 const isBusy = activeNotificationId === notification.id;
-                const actorName = notification.actor?.name || 'System';
+                const actorName = notification.actor?.name || t('notifications.actorSystem');
 
                 return (
                   <button
@@ -264,7 +270,10 @@ function NotificationBellButton() {
                       <span className="nb-bell-item__actor">{actorName}</span>
                       <span className="nb-bell-item__sep" aria-hidden="true">·</span>
                       <span className="nb-bell-item__time">
-                        {formatRelativeTime(notification.created_at)}
+                        {formatRelativeTime(
+                          notification.created_at,
+                          i18n.resolvedLanguage || i18n.language
+                        )}
                       </span>
                     </div>
                   </button>

@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { EmptyState, Loader } from '../../../ui';
 import DossierModalShell from './DossierModalShell';
 
@@ -13,6 +14,7 @@ function AttachDocumentsModal({
   handleAttachDocuments,
   closeAttachModal
 }) {
+  const { t } = useTranslation();
   const cancelButtonRef = useRef(null);
   const attachButtonRef = useRef(null);
 
@@ -25,10 +27,10 @@ function AttachDocumentsModal({
   return (
     <DossierModalShell
       isOpen={isOpen}
-      title="Attach Validated Documents"
+      title={t('workflow.attachValidatedDocuments')}
       description={
         <>
-          Target section: <strong>{attachTargetRubrique?.title || '-'}</strong>
+          {t('workflow.targetSectionLabel')}: <strong>{attachTargetRubrique?.title || '-'}</strong>
         </>
       }
       onClose={closeAttachModal}
@@ -44,7 +46,7 @@ function AttachDocumentsModal({
             onClick={closeAttachModal}
             disabled={isAttaching}
           >
-            Cancel
+            {t('actions.cancel')}
           </button>
           <button
             ref={attachButtonRef}
@@ -56,18 +58,20 @@ function AttachDocumentsModal({
               selectedDocumentIds.length === 0
             }
           >
-            {isAttaching ? 'Attaching...' : `Attach Selected (${selectedDocumentIds.length})`}
+            {isAttaching
+              ? t('workflow.attachingDocuments')
+              : t('workflow.attachSelected', { count: selectedDocumentIds.length })}
           </button>
         </>
       )}
     >
       {isLoadingValidatedDocuments ? (
-        <Loader message="Loading validated documents..." size="sm" />
+        <Loader message={t('workflow.loadingValidatedDocuments')} size="sm" />
       ) : attachableDocuments.length === 0 ? (
         <EmptyState
           icon="check2-square"
-          title="No Attachable Documents"
-          description="There are no validated and unassigned documents available."
+          title={t('workflow.noAttachableDocumentsTitle')}
+          description={t('workflow.noAttachableDocumentsDescription')}
         />
       ) : (
         <div className="attach-docs-list">
@@ -80,7 +84,7 @@ function AttachDocumentsModal({
                 onChange={() => handleToggleDocument(doc.id)}
                 disabled={isAttaching}
               />
-              <span className="fw-medium">{doc.original_filename || `Document #${doc.id}`}</span>
+              <span className="fw-medium">{doc.original_filename || `${t('domain.document')} #${doc.id}`}</span>
               <span className="text-muted small ms-2">#{doc.id}</span>
             </label>
           ))}

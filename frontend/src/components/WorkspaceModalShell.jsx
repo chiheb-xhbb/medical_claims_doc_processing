@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const FOCUSABLE_SELECTOR = [
   'button:not([disabled])',
@@ -33,6 +34,7 @@ function WorkspaceModalShell({
   size = 'lg',
   bodyClassName = ''
 }) {
+  const { t } = useTranslation();
   const dialogRef = useRef(null);
   const titleId = useId();
 
@@ -155,7 +157,7 @@ function WorkspaceModalShell({
             className="workspace-modal-close"
             onClick={onClose}
             disabled={isBusy}
-            aria-label="Close"
+            aria-label={t('accessibility.closeModal')}
           >
             <i className="bi bi-x-lg" aria-hidden="true"></i>
           </button>

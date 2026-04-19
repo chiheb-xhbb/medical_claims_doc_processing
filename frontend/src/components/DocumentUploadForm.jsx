@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import { SuccessAlert, ErrorAlert } from '../ui';
 import '../pages/DocumentUpload/DocumentUpload.css';
@@ -17,8 +18,6 @@ const FILE_PICKER_MODE = {
   APPEND: 'append'
 };
 
-const formatCountLabel = (count, singular, plural) => `${count} ${count === 1 ? singular : plural}`;
-
 const formatFileSize = (bytes) => {
   if (bytes === 0) return '0 Bytes';
   const k = 1024;
@@ -28,6 +27,7 @@ const formatFileSize = (bytes) => {
 };
 
 function DocumentUploadForm({ onCompleteSuccess, onBusyChange }) {
+  const { t } = useTranslation();
   const fileInputRef = useRef(null);
   const pickerModeRef = useRef(FILE_PICKER_MODE.REPLACE);
 
@@ -42,10 +42,10 @@ function DocumentUploadForm({ onCompleteSuccess, onBusyChange }) {
 
   const validateFile = (selectedFile) => {
     if (!ALLOWED_TYPES.includes(selectedFile.type)) {
-      return 'Invalid file type. Please select PNG, JPEG, or PDF files.';
+      return t('documentUpload.invalidFileType');
     }
     if (selectedFile.size > MAX_FILE_SIZE) {
-      return 'File is too large. Maximum size is 10MB.';
+      return t('documentUpload.fileTooLarge');
     }
     return null;
   };
@@ -58,10 +58,10 @@ function DocumentUploadForm({ onCompleteSuccess, onBusyChange }) {
         return Array.isArray(firstError) ? firstError[0] : firstError;
       }
 
-      return err.response.data.message || 'Validation failed. Please check your file.';
+      return err.response.data.message || t('documentUpload.validationFailed');
     }
 
-    return err.response?.data?.message || 'Failed to upload one or more documents. Please try again.';
+    return err.response?.data?.message || t('documentUpload.uploadFailed');
   };
 
   const toFileEntry = (selectedFile) => {
@@ -105,7 +105,7 @@ function DocumentUploadForm({ onCompleteSuccess, onBusyChange }) {
 
     const hasInvalidSelection = incomingEntries.some((item) => item.status === FILE_STATUS.INVALID);
     if (hasInvalidSelection) {
-      setError('Some selected files are invalid. Upload will continue only for valid files.');
+      setError(t('documentUpload.invalidSelection'));
     }
 
     setSelectedFiles([...baseSelection, ...incomingEntries]);
@@ -124,7 +124,7 @@ function DocumentUploadForm({ onCompleteSuccess, onBusyChange }) {
     );
 
     if (uploadQueue.length === 0) {
-      setError('No valid files are ready for upload.');
+      setError(t('documentUpload.noValidFiles'));
       return;
     }
 
@@ -203,11 +203,11 @@ function DocumentUploadForm({ onCompleteSuccess, onBusyChange }) {
   };
 
   const getFileStatusLabel = (status) => {
-    if (status === FILE_STATUS.UPLOADING) return 'Uploading';
-    if (status === FILE_STATUS.SUCCESS) return 'Uploaded';
-    if (status === FILE_STATUS.ERROR) return 'Failed';
-    if (status === FILE_STATUS.INVALID) return 'Invalid';
-    return 'Ready';
+    if (status === FILE_STATUS.UPLOADING) return t('documentUpload.statusUploading');
+    if (status === FILE_STATUS.SUCCESS) return t('documentUpload.statusUploaded');
+    if (status === FILE_STATUS.ERROR) return t('documentUpload.statusFailed');
+    if (status === FILE_STATUS.INVALID) return t('documentUpload.statusInvalid');
+    return t('documentUpload.statusReady');
   };
 
   const getFileStatusClass = (status) => {
@@ -226,7 +226,7 @@ function DocumentUploadForm({ onCompleteSuccess, onBusyChange }) {
       {batchSummary && batchSummary.failedCount === 0 && batchSummary.successCount > 0 && (
         <div className="mb-3">
           <SuccessAlert
-            message={`Upload completed: ${formatCountLabel(batchSummary.successCount, 'document', 'documents')} uploaded successfully.`}
+            message={t('documentUpload.uploadCompleted', { count: batchSummary.successCount })}
             title=""
           />
         </div>
@@ -235,7 +235,7 @@ function DocumentUploadForm({ onCompleteSuccess, onBusyChange }) {
       {batchSummary && batchSummary.failedCount > 0 && (
         <div className="mb-3">
           <ErrorAlert
-            message={`Upload completed with issues: ${batchSummary.successCount} succeeded, ${batchSummary.failedCount} failed. Remove failed files and retry.`}
+            message={t('documentUpload.uploadCompletedWithIssues', { successCount: batchSummary.successCount, failedCount: batchSummary.failedCount })}
             title=""
           />
         </div>
@@ -264,14 +264,14 @@ function DocumentUploadForm({ onCompleteSuccess, onBusyChange }) {
           {selectedFiles.length > 0 ? (
             <div>
               <i className="bi bi-files upload-icon"></i>
-              <p className="mt-2 mb-1 fw-semibold">{formatCountLabel(selectedFiles.length, 'file', 'files')} selected</p>
-              <p className="text-muted mb-0 small">Use the actions below to replace or add more files.</p>
+              <p className="mt-2 mb-1 fw-semibold">{t('documentUpload.filesSelected', { count: selectedFiles.length })}</p>
+              <p className="text-muted mb-0 small">{t('documentUpload.filesSelectedHelper')}</p>
             </div>
           ) : (
             <div>
               <i className="bi bi-cloud-arrow-up upload-icon"></i>
-              <p className="mt-2 mb-1">Click to select files</p>
-              <p className="text-muted mb-0 small">PNG, JPEG, or PDF (max 10MB each)</p>
+              <p className="mt-2 mb-1">{t('documentUpload.clickToSelect')}</p>
+              <p className="text-muted mb-0 small">{t('documentUpload.supportedFormatsHelper')}</p>
             </div>
           )}
         </div>
@@ -284,7 +284,7 @@ function DocumentUploadForm({ onCompleteSuccess, onBusyChange }) {
             disabled={uploading}
           >
             <i className="bi bi-folder2-open me-2"></i>
-            {selectedFiles.length > 0 ? 'Replace Selection' : 'Choose Files'}
+            {selectedFiles.length > 0 ? t('documentUpload.replaceSelection') : t('documentUpload.chooseFiles')}
           </button>
 
           {selectedFiles.length > 0 && (
@@ -295,7 +295,7 @@ function DocumentUploadForm({ onCompleteSuccess, onBusyChange }) {
               disabled={uploading}
             >
               <i className="bi bi-plus-circle me-2"></i>
-              Add Files
+              {t('documentUpload.addFiles')}
             </button>
           )}
         </div>
@@ -318,7 +318,7 @@ function DocumentUploadForm({ onCompleteSuccess, onBusyChange }) {
                       type="button"
                       className="btn btn-link btn-sm text-muted p-0 remove-file-btn"
                       onClick={() => handleRemoveSelectedFile(item.id)}
-                      aria-label={`Remove ${item.file.name}`}
+                      aria-label={t('documentUpload.removeFile', { filename: item.file.name })}
                     >
                       <i className="bi bi-x-lg"></i>
                     </button>
@@ -343,21 +343,19 @@ function DocumentUploadForm({ onCompleteSuccess, onBusyChange }) {
               role="status"
               aria-hidden="true"
             ></span>
-            Uploading batch...
+            {t('documentUpload.uploadingBatch')}
           </>
         ) : (
           <>
             <i className="bi bi-upload me-2"></i>
-            Upload Selected Files
+            {t('documentUpload.uploadSelectedFiles')}
           </>
         )}
       </button>
 
       <div className="mt-4 text-center help-text">
-        <small className="text-muted">
-          Supported formats: PNG, JPEG, PDF
-          <br />
-          Maximum file size: 10MB per file
+        <small className="text-muted" style={{ whiteSpace: 'pre-line' }}>
+          {t('documentUpload.supportedFormatsFooter')}
         </small>
       </div>
     </div>

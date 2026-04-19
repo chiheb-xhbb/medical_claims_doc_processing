@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 function TablePaginationFooter({
   currentPage,
@@ -8,6 +9,7 @@ function TablePaginationFooter({
   onPageChange,
   disabled = false,
 }) {
+  const { t } = useTranslation();
   const [jumpPage, setJumpPage] = useState(String(currentPage));
 
   useEffect(() => {
@@ -63,12 +65,12 @@ function TablePaginationFooter({
     <div className="card-footer bg-white d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 table-pagination-footer">
       <div className="table-pagination-footer__summary">
         <span className="table-pagination-footer__page-pill">
-          Page {currentPage} of {lastPage}
+          {t('pagination.pageOf', { current: currentPage, last: lastPage })}
         </span>
 
         <span className="pagination-info table-pagination-footer__total d-inline-flex align-items-center gap-2">
           <i className="bi bi-grid-3x3-gap" aria-hidden="true"></i>
-          {total} total {summaryLabel}
+          {t('pagination.totalItems', { total, label: summaryLabel })}
         </span>
       </div>
 
@@ -78,7 +80,7 @@ function TablePaginationFooter({
             htmlFor={`jump-to-page-${summaryLabel.replace(/\s+/g, '-').toLowerCase()}`}
             className="table-pagination-footer__jump-label"
           >
-            Jump to
+            {t('pagination.jumpTo')}
           </label>
 
           <div className="table-pagination-footer__jump-controls">
@@ -95,7 +97,7 @@ function TablePaginationFooter({
               onKeyDown={handleJumpKeyDown}
               onBlur={handleJumpBlur}
               disabled={isJumpDisabled}
-              aria-label={`Jump to page for ${summaryLabel}`}
+              aria-label={t('pagination.jumpToAria', { label: summaryLabel })}
             />
 
             <button
@@ -104,7 +106,7 @@ function TablePaginationFooter({
               onClick={handleJumpSubmit}
               disabled={isJumpDisabled}
             >
-              Go
+              {t('actions.go')}
             </button>
           </div>
         </div>
@@ -117,7 +119,7 @@ function TablePaginationFooter({
             type="button"
           >
             <i className="bi bi-chevron-left me-1" aria-hidden="true"></i>
-            Previous
+            {t('actions.previous')}
           </button>
 
           <button
@@ -126,7 +128,7 @@ function TablePaginationFooter({
             disabled={isNextDisabled}
             type="button"
           >
-            Next
+            {t('actions.next')}
             <i className="bi bi-chevron-right ms-1" aria-hidden="true"></i>
           </button>
         </div>

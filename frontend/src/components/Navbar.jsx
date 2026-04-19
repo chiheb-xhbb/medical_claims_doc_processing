@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   AUTH_CHANGED_EVENT,
   getDefaultLandingPath,
@@ -8,8 +9,9 @@ import {
   isAuthenticated,
   logout,
 } from '../services/auth';
-import { USER_ROLES, USER_ROLE_LABELS } from '../constants/domainLabels';
+import { USER_ROLES, getRoleLabel } from '../constants/domainLabels';
 import ChangePasswordModal from './ChangePasswordModal';
+import LanguageSwitcher from './LanguageSwitcher';
 import companyLogo from '../assets/logo.svg';
 import NotificationBellButton from './NotificationBellButton';
 
@@ -20,13 +22,8 @@ const ROLE_BADGE_CLASS = {
   [USER_ROLES.ADMIN]: 'nb-role-badge--admin',
 };
 
-const getCaseFilesNavLabel = (role) => {
-  if (role === USER_ROLES.AGENT) return 'My Case Files';
-  if (role === USER_ROLES.ADMIN) return 'All Case Files';
-  return 'Case Files';
-};
-
 function Navbar() {
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const [authSnapshot, setAuthSnapshot] = useState(() => ({
@@ -35,9 +32,12 @@ function Navbar() {
     user: getStoredUser(),
   }));
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [dropdownPath, setDropdownPath] = useState(() => location.pathname);
   const [scrolled, setScrolled] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const dropdownRef = useRef(null);
+
+  const isDropdownOpen = dropdownOpen && dropdownPath === location.pathname;
 
   useEffect(() => {
     const syncAuth = () => {
@@ -71,22 +71,18 @@ function Navbar() {
       }
     };
 
-    if (dropdownOpen) {
+    if (isDropdownOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [dropdownOpen]);
+  }, [isDropdownOpen]);
 
-  // Close the profile dropdown on route change.
-  useEffect(() => {
-    setDropdownOpen(false);
-  }, [location.pathname]);
-
-  const caseFilesNavLabel = useMemo(
-    () => getCaseFilesNavLabel(authSnapshot.role),
-    [authSnapshot.role]
-  );
+  const caseFilesNavLabel = useMemo(() => {
+    if (authSnapshot.role === USER_ROLES.AGENT) return t('nav.myCaseFiles');
+    if (authSnapshot.role === USER_ROLES.ADMIN) return t('nav.allCaseFiles');
+    return t('nav.caseFiles');
+  }, [authSnapshot.role, t]);
 
   const isActive = (path) => {
     if (path === '/documents') {
@@ -131,22 +127,22 @@ function Navbar() {
     return null;
   }
 
-  const userDisplayName = authSnapshot.user?.name || authSnapshot.user?.email || 'User';
+  const userDisplayName = authSnapshot.user?.name || authSnapshot.user?.email || t('nav.userFallback');
   const userInitial = userDisplayName.charAt(0).toUpperCase();
   const roleBadgeClass = ROLE_BADGE_CLASS[authSnapshot.role] || '';
-  const roleLabel = USER_ROLE_LABELS[authSnapshot.role] || authSnapshot.role || '';
+  const roleLabel = getRoleLabel(authSnapshot.role);
 
   return (
     <>
       <nav
         className={`nb-navbar navbar navbar-expand-lg${scrolled ? ' nb-navbar--scrolled' : ''}`}
-        aria-label="Main navigation"
+        aria-label={t('accessibility.mainNavigation')}
       >
         <div className="container nb-navbar__inner">
           <NavLink
             className="navbar-brand nb-brand"
             to={authSnapshot.authenticated ? getDefaultLandingPath(authSnapshot.role) : '/login'}
-            aria-label="CARTE home"
+            aria-label={t('nav.homeAria')}
           >
             <img
               src={companyLogo}
@@ -163,7 +159,7 @@ function Navbar() {
             data-bs-target="#navbarNav"
             aria-controls="navbarNav"
             aria-expanded="false"
-            aria-label="Toggle navigation"
+            aria-label={t('accessibility.toggleNavigation')}
           >
             <span className="navbar-toggler-icon"></span>
           </button>
@@ -179,7 +175,7 @@ function Navbar() {
                       end
                     >
                       <i className="bi bi-files" aria-hidden="true"></i>
-                      Documents
+                      {t('nav.documents')}
                     </NavLink>
                   </li>
 
@@ -200,7 +196,7 @@ function Navbar() {
                         to="/admin/users"
                       >
                         <i className="bi bi-people" aria-hidden="true"></i>
-                        Users
+                        {t('nav.users')}
                       </NavLink>
                     </li>
                   )}
@@ -210,14 +206,23 @@ function Navbar() {
                 <div className="nb-user-area" ref={dropdownRef}>
                   <div className="nb-user-divider" role="separator" aria-hidden="true"></div>
 
+                  <LanguageSwitcher />
                   <NotificationBellButton />
 
                   <button
                     className="nb-user-trigger"
-                    onClick={() => setDropdownOpen((prev) => !prev)}
+                    onClick={() => {
+                      if (isDropdownOpen) {
+                        setDropdownOpen(false);
+                        return;
+                      }
+
+                      setDropdownPath(location.pathname);
+                      setDropdownOpen(true);
+                    }}
                     aria-haspopup="true"
-                    aria-expanded={dropdownOpen}
-                    aria-label="User menu"
+                    aria-expanded={isDropdownOpen}
+                    aria-label={t('accessibility.userMenu')}
                     id="nb-user-menu-btn"
                   >
                     <span className="nb-user-avatar" aria-hidden="true">{userInitial}</span>
@@ -228,12 +233,12 @@ function Navbar() {
                       )}
                     </span>
                     <i
-                      className={`bi bi-chevron-down nb-chevron ${dropdownOpen ? 'nb-chevron--open' : ''}`}
+                      className={`bi bi-chevron-down nb-chevron ${isDropdownOpen ? 'nb-chevron--open' : ''}`}
                       aria-hidden="true"
                     ></i>
                   </button>
 
-                  {dropdownOpen && (
+                  {isDropdownOpen && (
                     <div className="nb-dropdown" role="menu" aria-labelledby="nb-user-menu-btn">
                       <div className="nb-dropdown__header">
                         <span className="nb-dropdown__name">{userDisplayName}</span>
@@ -253,7 +258,7 @@ function Navbar() {
                         role="menuitem"
                       >
                         <i className="bi bi-shield-lock" aria-hidden="true"></i>
-                        Change password
+                        {t('userMenu.changePassword')}
                       </button>
 
                       <div className="nb-dropdown__divider" role="separator"></div>
@@ -264,7 +269,7 @@ function Navbar() {
                         role="menuitem"
                       >
                         <i className="bi bi-box-arrow-right" aria-hidden="true"></i>
-                        Sign out
+                        {t('userMenu.signOut')}
                       </button>
                     </div>
                   )}
@@ -278,7 +283,7 @@ function Navbar() {
                     to="/login"
                   >
                     <i className="bi bi-box-arrow-in-right" aria-hidden="true"></i>
-                    Login
+                    {t('nav.login')}
                   </NavLink>
                 </li>
               </ul>

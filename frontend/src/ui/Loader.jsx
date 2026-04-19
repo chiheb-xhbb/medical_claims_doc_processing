@@ -1,4 +1,8 @@
-function Loader({ message = 'Loading...', size = 'md', fullHeight = true }) {
+import { useTranslation } from 'react-i18next';
+
+function Loader({ message, size = 'md', fullHeight = true }) {
+  const { t } = useTranslation();
+  const displayMessage = message !== undefined ? message : t('notifications.loading');
   const sizeStyles = {
     sm: { width: '1.5rem', height: '1.5rem', borderWidth: '0.15rem' },
     md: { width: '3rem', height: '3rem', borderWidth: '0.25rem' },
@@ -21,10 +25,10 @@ function Loader({ message = 'Loading...', size = 'md', fullHeight = true }) {
         role="status"
         style={spinnerStyle}
       >
-        <span className="visually-hidden">{message}</span>
+        <span className="visually-hidden">{displayMessage}</span>
       </div>
-      {message && (
-        <p className="text-muted mb-0">{message}</p>
+      {displayMessage && (
+        <p className="text-muted mb-0">{displayMessage}</p>
       )}
     </div>
   );

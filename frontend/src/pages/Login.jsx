@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { getDefaultLandingPath, consumeAuthFeedback } from '../services/auth';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 import { ErrorAlert, SuccessAlert } from '../ui';
 import companyLogo from '../assets/logo.svg';
 import './Login/Login.css';
@@ -9,6 +11,7 @@ import './Login/Login.css';
 const LOGIN_SUCCESS_FEEDBACK_PREFIX = 'success:';
 
 function Login() {
+  const { t } = useTranslation();
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -44,13 +47,13 @@ function Login() {
     const errors = {};
 
     if (!email.trim()) {
-      errors.email = 'Email is required';
+      errors.email = t('login.emailRequired');
     } else if (!isValidEmail(email)) {
-      errors.email = 'Please enter a valid email address';
+      errors.email = t('login.emailInvalid');
     }
 
     if (!password) {
-      errors.password = 'Password is required';
+      errors.password = t('login.passwordRequired');
     }
 
     setValidationErrors(errors);
@@ -74,7 +77,7 @@ function Login() {
       navigate(getDefaultLandingPath(user?.role), { replace: true });
     } catch (err) {
       if (err.response?.status === 401) {
-        setError('Invalid credentials. Please check your email and password.');
+        setError(t('login.invalidCredentials'));
       } else if (err.response?.status === 422) {
         // Handle Laravel validation errors
         const serverErrors = err.response.data.errors;
@@ -82,12 +85,12 @@ function Login() {
           const firstError = Object.values(serverErrors)[0];
           setError(Array.isArray(firstError) ? firstError[0] : firstError);
         } else {
-          setError(err.response.data.message || 'Validation failed.');
+          setError(err.response.data.message || t('login.validationFailed'));
         }
       } else if (err.code === 'ERR_NETWORK' || !err.response) {
-        setError('Connection failed. Please check if the server is running.');
+        setError(t('login.connectionFailed'));
       } else {
-        setError(err.response?.data?.message || 'Login failed. Please try again.');
+        setError(err.response?.data?.message || t('login.loginFailed'));
       }
     } finally {
       setLoading(false);
@@ -102,21 +105,24 @@ function Login() {
             <div className="card shadow-lg login-card">
               {/* Header */}
               <div className="card-header bg-primary text-white text-center py-4">
+                <div className="login-card__lang-switcher">
+                  <LanguageSwitcher />
+                </div>
                 <div className="brand-title">
                   <img
                     src={companyLogo}
-                    alt="Company logo"
+                    alt={t('login.companyLogoAlt')}
                     className="brand-logo"
                   />
                 </div>
                 <small className="text-white brand-subtitle">
-                  Internal Medical Claims Workspace
+                  {t('login.subtitle')}
                 </small>
               </div>
 
               {/* Body */}
               <div className="card-body">
-                <h5 className="form-title">Sign In</h5>
+                <h5 className="form-title">{t('login.signIn')}</h5>
 
                 {/* Error Alert */}
                 {error && (
@@ -136,13 +142,13 @@ function Login() {
                   <div className="form-group">
                     <label htmlFor="email" className="form-label">
                       <i className="bi bi-envelope me-1"></i>
-                      Email Address
+                      {t('login.emailLabel')}
                     </label>
                     <input
                       type="email"
                       id="email"
                       className={`form-control ${validationErrors.email ? 'is-invalid' : ''}`}
-                      placeholder="agent@carte.com.tn"
+                      placeholder={t('login.emailPlaceholder')}
                       value={email}
                       onChange={(e) => {
                         setEmail(e.target.value);
@@ -163,13 +169,13 @@ function Login() {
                   <div className="form-group form-group--password">
                     <label htmlFor="password" className="form-label">
                       <i className="bi bi-lock me-1"></i>
-                      Password
+                      {t('login.passwordLabel')}
                     </label>
                     <input
                       type="password"
                       id="password"
                       className={`form-control ${validationErrors.password ? 'is-invalid' : ''}`}
-                      placeholder="Enter your password"
+                      placeholder={t('login.passwordPlaceholder')}
                       value={password}
                       onChange={(e) => {
                         setPassword(e.target.value);
@@ -187,7 +193,7 @@ function Login() {
 
                   <div className="forgot-password-row">
                     <Link to="/forgot-password" className="forgot-password-link">
-                      Forgot password?
+                      {t('login.forgotPassword')}
                     </Link>
                   </div>
 
@@ -203,12 +209,12 @@ function Login() {
                           role="status"
                           aria-hidden="true"
                         ></span>
-                        Logging in...
+                        {t('login.loggingIn')}
                       </>
                     ) : (
                       <>
                         <i className="bi bi-box-arrow-in-right me-2"></i>
-                        Sign In
+                        {t('login.signIn')}
                       </>
                     )}
                   </button>
@@ -219,7 +225,7 @@ function Login() {
               <div className="card-footer">
                 <small>
                   <i className="bi bi-shield-lock me-1"></i>
-                  Internal use only - Contact admin for access
+                  {t('login.footer')}
                 </small>
               </div>
             </div>

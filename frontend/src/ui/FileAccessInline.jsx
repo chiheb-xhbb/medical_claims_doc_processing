@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import './FileAccessInline.css';
 
 const getFileIcon = (filename, mimeType) => {
@@ -29,7 +30,8 @@ function FileAccessInline({
   title,
   inverted = false,
 }) {
-  const displayName = filename || 'Unnamed document';
+  const { t } = useTranslation();
+  const displayName = filename || t('domain.unnamedDocument');
   const iconClass = getFileIcon(filename, mimeType);
   const canPreview = typeof onPreview === 'function';
   const canDownload = typeof onDownload === 'function';
@@ -67,7 +69,7 @@ function FileAccessInline({
         onClick={handlePreviewClick}
         disabled={isPreviewBusy}
         title={title || displayName}
-        aria-label={`Preview ${displayName}`}
+        aria-label={t('actions.previewDocument', { name: displayName })}
       >
         {isPreviewing ? (
           <span
@@ -90,8 +92,8 @@ function FileAccessInline({
         className="file-access-inline__download"
         onClick={handleDownloadClick}
         disabled={isDownloadBusy}
-        title="Download original document"
-        aria-label={`Download ${displayName}`}
+        title={t('actions.downloadOriginal')}
+        aria-label={t('actions.downloadDocument', { name: displayName })}
       >
         {isDownloading ? (
           <span className="spinner-border" role="status" aria-hidden="true" />

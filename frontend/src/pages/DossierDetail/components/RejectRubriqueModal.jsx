@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import DossierModalShell from './DossierModalShell';
 
 function RejectRubriqueModal({
@@ -10,6 +11,7 @@ function RejectRubriqueModal({
   handleRejectRubriqueConfirm,
   isRejectingRubriqueById
 }) {
+  const { t } = useTranslation();
   const cancelButtonRef = useRef(null);
   const rejectButtonRef = useRef(null);
   const rejectRubriqueNoteRef = useRef(null);
@@ -24,10 +26,10 @@ function RejectRubriqueModal({
   return (
     <DossierModalShell
       isOpen={isOpen}
-      title="Reject Entire Section"
+      title={t('workflow.rejectSectionTitle')}
       description={
         <>
-          Section: <strong>{rejectRubriqueTarget?.title || `#${rejectRubriqueTarget?.id || ''}`}</strong>
+          {t('domain.section')}: <strong>{rejectRubriqueTarget?.title || `#${rejectRubriqueTarget?.id || ''}`}</strong>
         </>
       }
       onClose={closeRejectRubriqueModal}
@@ -44,7 +46,7 @@ function RejectRubriqueModal({
             onClick={closeRejectRubriqueModal}
             disabled={isRejecting}
           >
-            Cancel
+            {t('actions.cancel')}
           </button>
           <button
             type="button"
@@ -53,16 +55,16 @@ function RejectRubriqueModal({
             onClick={handleRejectRubriqueConfirm}
             disabled={isRejecting || !hasDecisionNote}
           >
-            {isRejecting ? 'Rejecting...' : 'Reject All Documents'}
+            {isRejecting ? t('workflow.rejectingSection') : t('workflow.rejectAllDocuments')}
           </button>
         </>
       )}
     >
       <p className="text-muted small mb-3">
-        All documents in this section will be marked as <strong>REJECTED</strong>.
+        {t('workflow.rejectSectionImpact')} <strong>{t('decision.REJECTED')}</strong>.
       </p>
       <div>
-        <label htmlFor="rejectRubriqueNote" className="form-label">Decision Note (required)</label>
+        <label htmlFor="rejectRubriqueNote" className="form-label">{t('workflow.decisionNoteRequired')}</label>
         <textarea
           ref={rejectRubriqueNoteRef}
           id="rejectRubriqueNote"
@@ -70,7 +72,7 @@ function RejectRubriqueModal({
           rows={3}
           value={rejectRubriqueNote}
           onChange={(event) => setRejectRubriqueNote(event.target.value)}
-          placeholder="Explain why this section is rejected"
+          placeholder={t('workflow.rejectSectionReasonPlaceholder')}
           disabled={isRejecting}
         />
       </div>

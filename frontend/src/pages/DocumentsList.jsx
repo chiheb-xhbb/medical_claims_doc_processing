@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   getToastMessage,
   notifySuccess,
@@ -9,7 +10,7 @@ import {
 import api, { getApiErrorMessage } from '../services/api';
 import { AUTH_CHANGED_EVENT, getStoredRole, getStoredUser } from '../services/auth';
 import { previewDocument, downloadDocument } from '../services/documentAccess';
-import { USER_ROLES } from '../constants/domainLabels';
+import { USER_ROLES, getDocumentStatusLabel } from '../constants/domainLabels';
 import DocumentUploadModal from '../components/DocumentUploadModal';
 import {
   StatusBadge,
@@ -46,6 +47,7 @@ const DEFAULT_DOCUMENT_SORT = {
 };
 
 function DocumentsList() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const [role, setRole] = useState(() => getStoredRole());
@@ -110,7 +112,7 @@ function DocumentsList() {
   // Normalizes noisy backend / pipeline error text before showing it in the table.
   const formatDocumentError = (message) => {
     if (!message) {
-      return 'Processing failed.';
+      return t('documentsPage.processingFailed');
     }
 
     let cleaned = message.trim();
@@ -121,7 +123,7 @@ function DocumentsList() {
     cleaned = cleaned.replace(/^Pipeline failed:\s*/i, '');
     cleaned = cleaned.replace(/^[A-Za-z]+Error:\s*/i, '');
 
-    return cleaned || 'Processing failed.';
+    return cleaned || t('documentsPage.processingFailed');
   };
 
   // Main loader used by initial fetch, filters, sort, pagination, and polling.
@@ -140,13 +142,13 @@ function DocumentsList() {
 
         return data.data || [];
       } catch (err) {
-        notifyError(getApiErrorMessage(err, 'Failed to load documents. Please try again.'));
+        notifyError(getApiErrorMessage(err, t('feedback.loadDocumentsFailed')));
         return [];
       } finally {
         setLoading(false);
       }
     },
-    []
+    [t]
   );
 
   // Poll only while at least one document is still pending technical processing.
@@ -210,7 +212,7 @@ function DocumentsList() {
   };
 
   const handleUploadModalFinished = async () => {
-    notifySuccess('Document(s) uploaded successfully.');
+    notifySuccess(t('documentsPage.uploadSuccess'));
     setLoading(true);
     const docs = await fetchDocuments(
       currentPageRef.current,
@@ -283,7 +285,7 @@ function DocumentsList() {
       );
       setupPolling(docs);
     } catch (err) {
-      notifyError(getApiErrorMessage(err, 'Failed to retry document.'));
+      notifyError(getApiErrorMessage(err, t('feedback.retryDocumentFailed')));
     } finally {
       setRetryingIds((prev) => prev.filter((id) => id !== documentId));
     }
@@ -318,8 +320,8 @@ function DocumentsList() {
       await previewDocument(doc.id);
     } catch (error) {
       const message = error?.response
-        ? getApiErrorMessage(error, 'Failed to open original document.')
-        : error?.message || 'Failed to open original document.';
+        ? getApiErrorMessage(error, t('feedback.openOriginalDocumentFailed'))
+        : error?.message || t('feedback.openOriginalDocumentFailed');
 
       notifyError(message);
     } finally {
@@ -337,8 +339,8 @@ function DocumentsList() {
       await downloadDocument(doc.id, doc.original_filename);
     } catch (error) {
       const message = error?.response
-        ? getApiErrorMessage(error, 'Failed to download original document.')
-        : error?.message || 'Failed to download original document.';
+        ? getApiErrorMessage(error, t('feedback.downloadOriginalDocumentFailed'))
+        : error?.message || t('feedback.downloadOriginalDocumentFailed');
 
       notifyError(message);
     } finally {
@@ -398,7 +400,7 @@ function DocumentsList() {
 
     try {
       const response = await api.delete(`/documents/${targetId}`);
-      notifyDangerSuccess(getToastMessage(response, 'Document deleted successfully.'));
+      notifyDangerSuccess(getToastMessage(response, t('feedback.documentDeletedSuccess')));
       setDeleteTargetDocument(null);
 
       const nextPage = documents.length === 1 && currentPageRef.current > 1
@@ -413,7 +415,7 @@ function DocumentsList() {
       );
       setupPolling(docs);
     } catch (err) {
-      notifyError(getApiErrorMessage(err, 'Failed to delete document.'));
+      notifyError(getApiErrorMessage(err, t('feedback.deleteDocumentFailed')));
     } finally {
       setIsDeleteConfirming(false);
       setDeletingDocumentId(null);
@@ -465,7 +467,7 @@ function DocumentsList() {
             className={`btn btn-${canValidate ? 'primary' : 'success'} btn-sm document-action-btn document-action-btn--${canValidate ? 'validate' : 'view'}`}
             onClick={() => navigate(`/documents/${doc.id}/validate`)}
           >
-            {canValidate ? 'Validate' : 'View'}
+            {canValidate ? t('actions.validate') : t('actions.view')}
           </button>
         );
         break;
@@ -477,7 +479,7 @@ function DocumentsList() {
             className="btn btn-success btn-sm document-action-btn document-action-btn--view"
             onClick={() => navigate(`/documents/${doc.id}/validate`)}
           >
-            View
+            {t('actions.view')}
           </button>
         );
         break;
@@ -494,7 +496,7 @@ function DocumentsList() {
             onClick={() => handleRetry(doc.id)}
             disabled={isRetrying}
           >
-            {isRetrying ? 'Retrying...' : 'Retry'}
+            {isRetrying ? t('documentsPage.retrying') : t('actions.retry')}
           </button>
         );
         break;
@@ -502,7 +504,7 @@ function DocumentsList() {
       case 'PROCESSING':
         primaryAction = (
           <button className="btn btn-secondary btn-sm document-action-btn" disabled>
-            Processing...
+            {t('documentsPage.processing')}
           </button>
         );
         break;
@@ -511,7 +513,7 @@ function DocumentsList() {
       default:
         primaryAction = (
           <button className="btn btn-secondary btn-sm document-action-btn" disabled>
-            Pending...
+            {t('documentsPage.pending')}
           </button>
         );
         break;
@@ -530,18 +532,21 @@ function DocumentsList() {
           onClick={() => requestDeleteDocument(doc)}
           disabled={isDeleting || isDeleteConfirming}
         >
-          {isDeleting ? 'Deleting...' : 'Delete'}
+          {isDeleting ? t('documentsPage.deleting') : t('actions.delete')}
         </button>
       </div>
     );
   };
 
-  const emptyTitle = hasActiveFilters ? 'No Documents Match Your Filters' : 'No Documents Found';
+  const emptyTitle = hasActiveFilters ? t('documentsPage.emptyFilterTitle') : t('documentsPage.emptyTitle');
   const emptyDescription = hasActiveFilters
-    ? 'Try adjusting your search, status, or date range and apply again.'
+    ? t('documentsPage.emptyFilterDescription')
     : canUpload
-      ? 'Upload documents to get started.'
-      : 'No documents are available for your role right now.';
+      ? t('documentsPage.emptyDescription')
+      : t('documentsPage.emptyNoRole');
+  const deleteTargetFilename = deleteTargetDocument
+    ? (deleteTargetDocument.original_filename || `${t('domain.document')} #${deleteTargetDocument.id}`)
+    : '';
 
   return (
     <div className="container py-4 documents-list">
@@ -554,8 +559,8 @@ function DocumentsList() {
 
       <PageHeader
         icon="bi-files"
-        title="Documents"
-        subtitle="Upload documents and review AI-extracted fields before validation."
+        title={t('documentsPage.title')}
+        subtitle={t('documentsPage.subtitle')}
         action={
           canUpload && (
             <button
@@ -564,7 +569,7 @@ function DocumentsList() {
               onClick={() => setUploadModalOpen(true)}
             >
               <i className="bi bi-cloud-upload me-2" aria-hidden="true" />
-              Upload Documents
+              {t('documentsPage.uploadButton')}
             </button>
           )
         }
@@ -573,12 +578,12 @@ function DocumentsList() {
       <ListFiltersCard className="documents-filters-card">
         <form className="row g-3 align-items-end enterprise-filters-form" onSubmit={handleApplyFilters}>
           <div className="col-12 col-lg-4">
-            <label htmlFor="documentsSearch" className="form-label mb-1">Search</label>
+            <label htmlFor="documentsSearch" className="form-label mb-1">{t('filters.search')}</label>
             <input
               id="documentsSearch"
               type="text"
               className="form-control"
-              placeholder="Search by document ID or filename"
+              placeholder={t('documentsPage.searchPlaceholder')}
               value={filtersDraft.search}
               onChange={(event) => handleFiltersDraftChange('search', event.target.value)}
               disabled={loading}
@@ -586,7 +591,7 @@ function DocumentsList() {
           </div>
 
           <div className="col-12 col-md-6 col-lg-2">
-            <label htmlFor="documentsStatusFilter" className="form-label mb-1">Status</label>
+            <label htmlFor="documentsStatusFilter" className="form-label mb-1">{t('filters.status')}</label>
             <select
               id="documentsStatusFilter"
               className="form-select"
@@ -594,17 +599,17 @@ function DocumentsList() {
               onChange={(event) => handleFiltersDraftChange('status', event.target.value)}
               disabled={loading}
             >
-              <option value="">All Statuses</option>
+              <option value="">{t('filters.allStatuses')}</option>
               {DOCUMENT_STATUS_OPTIONS.map((status) => (
                 <option key={status} value={status}>
-                  {status}
+                  {getDocumentStatusLabel(status)}
                 </option>
               ))}
             </select>
           </div>
 
           <div className="col-12 col-md-6 col-lg-2">
-            <label htmlFor="documentsFromDate" className="form-label mb-1">From Date</label>
+            <label htmlFor="documentsFromDate" className="form-label mb-1">{t('filters.fromDate')}</label>
             <input
               id="documentsFromDate"
               type="date"
@@ -616,7 +621,7 @@ function DocumentsList() {
           </div>
 
           <div className="col-12 col-md-6 col-lg-2">
-            <label htmlFor="documentsToDate" className="form-label mb-1">To Date</label>
+            <label htmlFor="documentsToDate" className="form-label mb-1">{t('filters.toDate')}</label>
             <input
               id="documentsToDate"
               type="date"
@@ -630,7 +635,7 @@ function DocumentsList() {
           <div className="col-12 col-md-6 col-lg-2 d-flex gap-2 enterprise-filters-actions">
             <button type="submit" className="btn btn-primary flex-grow-1" disabled={loading}>
               <i className="bi bi-funnel"></i>
-              Apply
+              {t('actions.apply')}
             </button>
             <button
               type="button"
@@ -638,7 +643,7 @@ function DocumentsList() {
               onClick={handleResetFilters}
               disabled={loading || (!hasActiveFilters && !hasDraftFilters && !hasSortOverride)}
             >
-              Reset
+              {t('actions.reset')}
             </button>
           </div>
         </form>
@@ -647,9 +652,9 @@ function DocumentsList() {
       <div className="card">
         <div className="table-section-shell">
           {loading && documents.length > 0 && (
-            <div className="table-loading-overlay" role="status" aria-live="polite" aria-label="Updating list">
+            <div className="table-loading-overlay" role="status" aria-live="polite" aria-label={t('accessibility.updatingList')}>
               <span className="spinner-border spinner-border-sm text-primary" aria-hidden="true"></span>
-              <span>Updating documents...</span>
+              <span>{t('documentsPage.updatingDocuments')}</span>
             </div>
           )}
 
@@ -658,36 +663,36 @@ function DocumentsList() {
               <thead className="table-light">
                 <tr>
                   <SortableHeader
-                    label="ID"
+                    label={t('documentsPage.columns.id')}
                     sortBy="id"
                     sortState={sortState}
                     onSortChange={handleSortChange}
                     disabled={loading}
                   />
-                  <th scope="col">Filename</th>
+                  <th scope="col">{t('documentsPage.columns.filename')}</th>
                   <SortableHeader
-                    label="Status"
+                    label={t('documentsPage.columns.status')}
                     sortBy="status"
                     sortState={sortState}
                     onSortChange={handleSortChange}
                     disabled={loading}
                   />
                   <SortableHeader
-                    label="Date"
+                    label={t('documentsPage.columns.date')}
                     sortBy="created_at"
                     sortState={sortState}
                     onSortChange={handleSortChange}
                     disabled={loading}
                   />
-                  <th scope="col">Error</th>
-                  <th scope="col">Actions</th>
+                  <th scope="col">{t('documentsPage.columns.error')}</th>
+                  <th scope="col">{t('documentsPage.columns.actions')}</th>
                 </tr>
               </thead>
 
               <tbody>
                 {documents.length > 0 ? documents.map((doc) => {
                   const formattedError = formatDocumentError(doc.error_message);
-                  const displayFilename = doc.original_filename || `Document #${doc.id}`;
+                  const displayFilename = doc.original_filename || `${t('domain.document')} #${doc.id}`;
                   const isPreviewing = Boolean(previewingById[doc.id]);
                   const isDownloading = Boolean(downloadingById[doc.id]);
 
@@ -747,7 +752,7 @@ function DocumentsList() {
                                 onClick={handleResetFilters}
                               >
                                 <i className="bi bi-arrow-counterclockwise me-2"></i>
-                                Reset
+                                {t('actions.reset')}
                               </button>
                             )
                             : canUpload ? (
@@ -757,7 +762,7 @@ function DocumentsList() {
                                 onClick={() => setUploadModalOpen(true)}
                               >
                                 <i className="bi bi-cloud-upload me-2"></i>
-                                Upload Documents
+                                {t('documentsPage.uploadButton')}
                               </button>
                             ) : null}
                         />
@@ -774,7 +779,7 @@ function DocumentsList() {
           currentPage={currentPage}
           lastPage={lastPage}
           total={total}
-          summaryLabel="documents"
+          summaryLabel={t('domain.documents').toLowerCase()}
           onPageChange={handlePageChange}
         />
       </div>
@@ -787,14 +792,14 @@ function DocumentsList() {
 
       <ConfirmationModal
         isOpen={Boolean(deleteTargetDocument)}
-        title="Delete Document"
+        title={t('documentsPage.deleteTitle')}
         message={
           deleteTargetDocument
-            ? `Delete "${deleteTargetDocument.original_filename}"? This action cannot be undone.`
+            ? t('documentsPage.deleteMessage', { filename: deleteTargetFilename })
             : ''
         }
-        confirmLabel="Delete"
-        confirmingLabel="Deleting..."
+        confirmLabel={t('documentsPage.deleteConfirm')}
+        confirmingLabel={t('documentsPage.deleteConfirming')}
         confirmVariant="danger"
         initialFocus="cancel"
         isConfirming={isDeleteConfirming}

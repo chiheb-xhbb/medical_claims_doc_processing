@@ -1,9 +1,11 @@
 import { useState, useId, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import { ErrorAlert } from '../ui';
 import '../pages/DossierCreate/DossierCreate.css';
 
 function DossierCreateForm({ onCancel, onSuccess, onBusyChange }) {
+  const { t } = useTranslation();
   const baseId = useId();
   const assuredId = `${baseId}-assured`;
   const episodeId = `${baseId}-episode`;
@@ -26,9 +28,9 @@ function DossierCreateForm({ onCancel, onSuccess, onBusyChange }) {
     const normalizedIdentifier = assuredIdentifier.trim();
 
     if (!normalizedIdentifier) {
-      formErrors.assured_identifier = 'Assured identifier is required.';
+      formErrors.assured_identifier = t('dossierCreate.assuredRequired');
     } else if (normalizedIdentifier.length !== 8) {
-      formErrors.assured_identifier = 'Assured identifier must be exactly 8 characters.';
+      formErrors.assured_identifier = t('dossierCreate.assuredLength');
     }
 
     setValidationErrors(formErrors);
@@ -70,10 +72,10 @@ function DossierCreateForm({ onCancel, onSuccess, onBusyChange }) {
         if (firstError) {
           setError(Array.isArray(firstError) ? firstError[0] : firstError);
         } else {
-          setError(err.response?.data?.message || 'Validation failed. Please check your input.');
+          setError(err.response?.data?.message || t('dossierCreate.validationFailed'));
         }
       } else {
-        setError(err.response?.data?.message || 'Failed to create case file. Please try again.');
+        setError(err.response?.data?.message || t('dossierCreate.createFailed'));
       }
     } finally {
       setSubmitting(false);
@@ -91,7 +93,7 @@ function DossierCreateForm({ onCancel, onSuccess, onBusyChange }) {
       <form onSubmit={handleSubmit} noValidate>
         <div className="mb-4">
           <label htmlFor={assuredId} className="form-label">
-            Assured Identifier <span className="text-danger">*</span>
+            {t('dossierCreate.assuredIdentifier')} <span className="text-danger">*</span>
           </label>
           <input
             id={assuredId}
@@ -105,18 +107,18 @@ function DossierCreateForm({ onCancel, onSuccess, onBusyChange }) {
               }
             }}
             maxLength={8}
-            placeholder="Ex: AB1234CD"
+            placeholder={t('dossierCreate.assuredPlaceholder')}
             disabled={submitting}
           />
           {validationErrors.assured_identifier && (
             <div className="invalid-feedback">{validationErrors.assured_identifier}</div>
           )}
-          <small className="text-muted">Exactly 8 characters.</small>
+          <small className="text-muted">{t('dossierCreate.assuredHint')}</small>
         </div>
 
         <div className="mb-4">
           <label htmlFor={episodeId} className="form-label">
-            Episode Description
+            {t('dossierCreate.episodeDescription')}
           </label>
           <textarea
             id={episodeId}
@@ -124,14 +126,14 @@ function DossierCreateForm({ onCancel, onSuccess, onBusyChange }) {
             rows={3}
             value={episodeDescription}
             onChange={(event) => setEpisodeDescription(event.target.value)}
-            placeholder="Describe the medical episode or context"
+            placeholder={t('dossierCreate.episodePlaceholder')}
             disabled={submitting}
           />
         </div>
 
         <div className="mb-4">
           <label htmlFor={notesId} className="form-label">
-            Notes
+            {t('dossierCreate.notes')}
           </label>
           <textarea
             id={notesId}
@@ -139,7 +141,7 @@ function DossierCreateForm({ onCancel, onSuccess, onBusyChange }) {
             rows={4}
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
-            placeholder="Optional internal notes"
+            placeholder={t('dossierCreate.notesPlaceholder')}
             disabled={submitting}
           />
         </div>
@@ -151,18 +153,18 @@ function DossierCreateForm({ onCancel, onSuccess, onBusyChange }) {
             onClick={onCancel}
             disabled={submitting}
           >
-            Cancel
+            {t('actions.cancel')}
           </button>
           <button type="submit" className="btn btn-primary" disabled={submitting}>
             {submitting ? (
               <>
                 <span className="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
-                Creating...
+                {t('dossierCreate.creating')}
               </>
             ) : (
               <>
                 <i className="bi bi-check2-circle me-2"></i>
-                Create Case File
+                {t('dossierCreate.createCaseFile')}
               </>
             )}
           </button>

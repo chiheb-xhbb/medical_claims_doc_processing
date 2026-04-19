@@ -1,8 +1,10 @@
 import { Navigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { getStoredRole, getDefaultLandingPath } from '../services/auth';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 
 function ProtectedRoute({ children, allowedRoles }) {
+  const { t } = useTranslation();
   const location = useLocation();
   const { token, isHydrating } = useAuth();
 
@@ -28,7 +30,7 @@ function ProtectedRoute({ children, allowedRoles }) {
           state={
             redirectPath !== '/login'
               ? {
-                  accessDeniedMessage: 'Access denied for your role on this page.',
+                  accessDeniedMessage: t('feedback.forbiddenAction'),
                   deniedPath: location.pathname
                 }
               : null

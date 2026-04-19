@@ -11,7 +11,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import { MainLayout } from './layout';
 import { getDefaultLandingPath } from './services/auth';
 import { USER_ROLES } from './constants/domainLabels';
-import { useAuth } from './context/AuthContext';
+import { useAuth } from './context/useAuth';
 
 function App() {
   const { token, isHydrating } = useAuth();

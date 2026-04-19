@@ -1,11 +1,10 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import api, { AUTH_CHANGED_EVENT } from '../services/api';
 import { USER_ROLES } from '../constants/domainLabels';
+import AuthContext from './authContext';
 
 const AUTH_TOKEN_KEY = 'token';
 const AUTH_USER_KEY = 'auth_user';
-
-const AuthContext = createContext(null);
 
 const normalizeUser = (user) => {
   if (!user || typeof user !== 'object') {
@@ -175,14 +174,4 @@ export function AuthProvider({ children }) {
   }), [clearAuthState, isHydrating, login, logout, token, user]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-
-  return context;
 }

@@ -1,5 +1,9 @@
+import { useTranslation } from 'react-i18next';
+
 function ErrorAlert({ message, title = 'Error', showIcon = true }) {
+  const { t } = useTranslation();
   if (!message) return null;
+  const resolvedTitle = title === 'Error' ? t('common.error') : title;
 
   return (
     <div 
@@ -15,7 +19,7 @@ function ErrorAlert({ message, title = 'Error', showIcon = true }) {
         <i className="bi bi-exclamation-triangle-fill me-3 flex-shrink-0" style={{ fontSize: '1.25rem' }}></i>
       )}
       <div>
-        {title && <h6 className="alert-heading mb-1 fw-semibold">{title}</h6>}
+        {resolvedTitle && <h6 className="alert-heading mb-1 fw-semibold">{resolvedTitle}</h6>}
         <p className="mb-0">{message}</p>
       </div>
     </div>

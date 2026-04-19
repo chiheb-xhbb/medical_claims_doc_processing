@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import WorkspaceModalShell from './WorkspaceModalShell';
 
 const EMPTY_FORM = { password: '', confirmPassword: '' };
@@ -14,19 +15,11 @@ function AdminPasswordModal({
   serverErrors,
   onClearServerError,
 }) {
+  const { t } = useTranslation();
   const [form, setForm] = useState(EMPTY_FORM);
   const [fieldErrors, setFieldErrors] = useState({});
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      setForm(EMPTY_FORM);
-      setFieldErrors({});
-      setShowNew(false);
-      setShowConfirm(false);
-    }
-  }, [isOpen]);
 
   const clearFieldError = (field) => {
     if (fieldErrors[field]) {
@@ -51,15 +44,15 @@ function AdminPasswordModal({
     const errors = {};
 
     if (!form.password) {
-      errors.password = 'New password is required.';
+      errors.password = t('changePassword.newRequired');
     } else if (form.password.length < 8) {
-      errors.password = 'Password must be at least 8 characters.';
+      errors.password = t('changePassword.newMinLength');
     }
 
     if (!form.confirmPassword) {
-      errors.confirmPassword = 'Please confirm the new password.';
+      errors.confirmPassword = t('changePassword.confirmRequired');
     } else if (form.confirmPassword !== form.password) {
-      errors.confirmPassword = 'Passwords do not match.';
+      errors.confirmPassword = t('changePassword.confirmMismatch');
     }
 
     setFieldErrors(errors);
@@ -93,7 +86,7 @@ function AdminPasswordModal({
   return (
     <WorkspaceModalShell
       isOpen={isOpen}
-      title="Reset Password"
+      title={t('auth.resetPassword')}
       iconClass="bi-key"
       onClose={handleClose}
       isBusy={isBusy}
@@ -102,14 +95,14 @@ function AdminPasswordModal({
       {user && (
         <form onSubmit={handleSubmit} noValidate className="chpw-form">
           <div className="admin-modal-target-user mb-4">
-            <span className="admin-modal-target-label">Resetting password for</span>
+            <span className="admin-modal-target-label">{t('adminUsers.resettingFor')}</span>
             <span className="admin-modal-target-name">{user.name}</span>
             <span className="admin-modal-target-email">{user.email}</span>
           </div>
 
           <div className="mb-4">
             <label htmlFor="admin-pw-new" className="form-label">
-              New password
+              {t('changePassword.newPassword')}
             </label>
             <div className="position-relative">
               <input
@@ -125,8 +118,8 @@ function AdminPasswordModal({
                 type="button"
                 className="btn btn-link position-absolute end-0 top-50 translate-middle-y text-muted text-decoration-none shadow-none border-0 p-2"
                 onClick={() => setShowNew((prev) => !prev)}
-                aria-label={showNew ? 'Hide password' : 'Show password'}
-                title={showNew ? 'Hide password' : 'Show password'}
+                aria-label={showNew ? t('changePassword.hidePassword') : t('changePassword.showPassword')}
+                title={showNew ? t('changePassword.hidePassword') : t('changePassword.showPassword')}
                 disabled={isBusy}
               >
                 <i
@@ -136,12 +129,12 @@ function AdminPasswordModal({
               </button>
             </div>
             {pwError && <div className="invalid-feedback d-block">{pwError}</div>}
-            <div className="form-text mt-1">Minimum 8 characters.</div>
+            <div className="form-text mt-1">{t('changePassword.minChars')}</div>
           </div>
 
           <div className="mb-5">
             <label htmlFor="admin-pw-confirm" className="form-label">
-              Confirm new password
+              {t('changePassword.confirmPassword')}
             </label>
             <div className="position-relative">
               <input
@@ -157,8 +150,8 @@ function AdminPasswordModal({
                 type="button"
                 className="btn btn-link position-absolute end-0 top-50 translate-middle-y text-muted text-decoration-none shadow-none border-0 p-2"
                 onClick={() => setShowConfirm((prev) => !prev)}
-                aria-label={showConfirm ? 'Hide password' : 'Show password'}
-                title={showConfirm ? 'Hide password' : 'Show password'}
+                aria-label={showConfirm ? t('changePassword.hidePassword') : t('changePassword.showPassword')}
+                title={showConfirm ? t('changePassword.hidePassword') : t('changePassword.showPassword')}
                 disabled={isBusy}
               >
                 <i
@@ -177,18 +170,18 @@ function AdminPasswordModal({
               onClick={handleClose}
               disabled={isBusy}
             >
-              Cancel
+              {t('actions.cancel')}
             </button>
             <button type="submit" className="btn btn-primary" disabled={isBusy}>
               {isBusy ? (
                 <>
                   <span className="spinner-border spinner-border-sm" aria-hidden="true" />
-                  Saving...
+                  {t('changePassword.saving')}
                 </>
               ) : (
                 <>
                   <i className="bi bi-key" aria-hidden="true" />
-                  Reset password
+                  {t('auth.resetPassword')}
                 </>
               )}
             </button>

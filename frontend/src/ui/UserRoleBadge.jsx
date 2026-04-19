@@ -1,4 +1,4 @@
-import { USER_ROLES, USER_ROLE_LABELS } from '../constants/domainLabels';
+import { USER_ROLES, getRoleLabel } from '../constants/domainLabels';
 
 const ROLE_VARIANT_CLASS = {
   [USER_ROLES.AGENT]: 'user-role-badge--agent',
@@ -9,7 +9,7 @@ const ROLE_VARIANT_CLASS = {
 
 function UserRoleBadge({ role, className = '' }) {
   const normalizedRole = (role || '').toString().toUpperCase();
-  const label = USER_ROLE_LABELS[normalizedRole] || normalizedRole || '-';
+  const label = getRoleLabel(normalizedRole);
 
   return (
     <span

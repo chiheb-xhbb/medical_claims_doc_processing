@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   getToastMessage,
   notifyDangerSuccess,
@@ -10,7 +11,7 @@ import { AUTH_CHANGED_EVENT, getStoredRole, getStoredUser } from '../services/au
 import {
   USER_ROLES,
   DOSSIER_STATUSES,
-  DOSSIER_STATUS_LABELS
+  getDossierStatusLabel,
 } from '../constants/domainLabels';
 import DossierCreateModal from '../components/DossierCreateModal';
 import {
@@ -78,62 +79,16 @@ const DEFAULT_DOSSIER_SORT = {
   sortDirection: 'desc'
 };
 
-const getRolePageConfig = (role) => {
-  if (role === USER_ROLES.AGENT) {
-    return {
-      title: 'My Case Files',
-      subtitle: 'Prepare, submit, and track your case file history.',
-      emptyTitle: 'No Case Files Yet',
-      emptyDescription: 'Create your first case file to group validated medical documents.',
-      createButtonLabel: 'New Case File',
-      canCreateDossier: true
-    };
-  }
-
-  if (role === USER_ROLES.CLAIMS_MANAGER) {
-    return {
-      title: 'Case Files',
-      subtitle: 'Create case files and review items awaiting business decisions.',
-      emptyTitle: 'No Case Files Found',
-      emptyDescription: 'No case file is currently available. You can create a new case file to get started.',
-      createButtonLabel: 'New Case File',
-      canCreateDossier: true
-    };
-  }
-
-  if (role === USER_ROLES.SUPERVISOR) {
-    return {
-      title: 'Case Files',
-      subtitle: 'Prepare case files or review escalated ones requiring supervisor decisions.',
-      emptyTitle: 'No Case Files Found',
-      emptyDescription: 'Create a new case file or wait for escalated ones.',
-      createButtonLabel: 'New Case File',
-      canCreateDossier: true
-    };
-  }
-
-  if (role === USER_ROLES.ADMIN) {
-    return {
-      title: 'All Case Files',
-      subtitle: 'Supervise case file activity across preparation and review.',
-      emptyTitle: 'No Case Files Found',
-      emptyDescription: 'No case file is currently available in the system.',
-      createButtonLabel: 'New Case File',
-      canCreateDossier: true
-    };
-  }
-
-  return {
-    title: 'Case Files',
-    subtitle: 'Track case file preparation and review workflow.',
-    emptyTitle: 'No Case Files Found',
-    emptyDescription: 'No case file is currently available.',
-    createButtonLabel: 'New Case File',
-    canCreateDossier: false
-  };
+const getRoleConfigKey = (role) => {
+  if (role === USER_ROLES.AGENT) return 'agent';
+  if (role === USER_ROLES.CLAIMS_MANAGER) return 'claimsManager';
+  if (role === USER_ROLES.SUPERVISOR) return 'supervisor';
+  if (role === USER_ROLES.ADMIN) return 'admin';
+  return 'default';
 };
 
 function DossiersList() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -184,7 +139,8 @@ function DossiersList() {
     };
   }, []);
 
-  const pageConfig = useMemo(() => getRolePageConfig(role), [role]);
+  const roleConfigKey = useMemo(() => getRoleConfigKey(role), [role]);
+  const canCreateDossier = role !== null;
   const dossierStatusOptions = useMemo(
     () => DOSSIER_STATUS_OPTIONS[role] || DOSSIER_STATUS_OPTIONS[USER_ROLES.ADMIN],
     [role]
@@ -226,12 +182,12 @@ function DossiersList() {
         setLastPage(payload?.last_page ?? 1);
         setTotal(payload?.total ?? list.length);
       } catch (err) {
-        notifyError(getApiErrorMessage(err, 'Failed to load case files. Please try again.'));
+        notifyError(getApiErrorMessage(err, t('feedback.loadCaseFilesFailed')));
       } finally {
         setLoading(false);
       }
     },
-    []
+    [t]
   );
 
   useEffect(() => {
@@ -352,7 +308,7 @@ function DossiersList() {
 
     try {
       const response = await api.delete(`/dossiers/${targetId}`);
-      notifyDangerSuccess(getToastMessage(response, 'Case file deleted successfully.'));
+      notifyDangerSuccess(getToastMessage(response, t('feedback.caseFileDeletedSuccess')));
       setDeleteTargetDossier(null);
 
       const nextPage = dossiers.length === 1 && currentPage > 1
@@ -362,7 +318,7 @@ function DossiersList() {
       setLoading(true);
       await fetchDossiers(nextPage, appliedFiltersRef.current, appliedSortRef.current);
     } catch (err) {
-      notifyError(getApiErrorMessage(err, 'Failed to delete case file.'));
+      notifyError(getApiErrorMessage(err, t('feedback.deleteCaseFileFailed')));
     } finally {
       setIsDeleteConfirming(false);
       setDeletingDossierId(null);
@@ -373,26 +329,28 @@ function DossiersList() {
   const hasDraftFilters = hasAnyListFilter(filtersDraft);
   const hasSortOverride = !isDefaultSort(sortState, DEFAULT_DOSSIER_SORT);
 
-  const emptyTitle = hasActiveFilters ? 'No Case Files Match Your Filters' : pageConfig.emptyTitle;
+  const emptyTitle = hasActiveFilters
+    ? t('dossiersPage.emptyFilterTitle')
+    : t(`dossiersPage.${roleConfigKey}.emptyTitle`);
   const emptyDescription = hasActiveFilters
-    ? 'Try adjusting your search, status, or date range and apply again.'
-    : pageConfig.emptyDescription;
+    ? t('dossiersPage.emptyFilterDescription')
+    : t(`dossiersPage.${roleConfigKey}.emptyDescription`);
 
   return (
     <div className="container py-4 dossiers-list">
       <PageHeader
         icon="bi-briefcase"
-        title={pageConfig.title}
-        subtitle={pageConfig.subtitle}
+        title={t(`dossiersPage.${roleConfigKey}.title`)}
+        subtitle={t(`dossiersPage.${roleConfigKey}.subtitle`)}
         action={
-          pageConfig.canCreateDossier && (
+          canCreateDossier && (
             <button
               type="button"
               className="btn btn-primary"
               onClick={() => setCreateModalOpen(true)}
             >
               <i className="bi bi-plus-circle me-2" aria-hidden="true" />
-              {pageConfig.createButtonLabel}
+              {t('dossiersPage.newCaseFile')}
             </button>
           )
         }
@@ -408,12 +366,12 @@ function DossiersList() {
       <ListFiltersCard className="dossiers-filters-card">
         <form className="row g-3 align-items-end enterprise-filters-form" onSubmit={handleApplyFilters}>
           <div className="col-12 col-lg-4">
-            <label htmlFor="dossiersSearch" className="form-label mb-1">Search</label>
+            <label htmlFor="dossiersSearch" className="form-label mb-1">{t('filters.search')}</label>
             <input
               id="dossiersSearch"
               type="text"
               className="form-control"
-              placeholder="Search by case file number or assured identifier"
+              placeholder={t('dossiersPage.searchPlaceholder')}
               value={filtersDraft.search}
               onChange={(event) => handleFiltersDraftChange('search', event.target.value)}
               disabled={loading}
@@ -421,7 +379,7 @@ function DossiersList() {
           </div>
 
           <div className="col-12 col-md-6 col-lg-2">
-            <label htmlFor="dossiersStatusFilter" className="form-label mb-1">Status</label>
+            <label htmlFor="dossiersStatusFilter" className="form-label mb-1">{t('filters.status')}</label>
             <select
               id="dossiersStatusFilter"
               className="form-select"
@@ -429,17 +387,17 @@ function DossiersList() {
               onChange={(event) => handleFiltersDraftChange('status', event.target.value)}
               disabled={loading}
             >
-              <option value="">All Statuses</option>
+              <option value="">{t('filters.allStatuses')}</option>
               {dossierStatusOptions.map((status) => (
                 <option key={status} value={status}>
-                  {DOSSIER_STATUS_LABELS[status] || status}
+                  {getDossierStatusLabel(status)}
                 </option>
               ))}
             </select>
           </div>
 
           <div className="col-12 col-md-6 col-lg-2">
-            <label htmlFor="dossiersFromDate" className="form-label mb-1">From Date</label>
+            <label htmlFor="dossiersFromDate" className="form-label mb-1">{t('filters.fromDate')}</label>
             <input
               id="dossiersFromDate"
               type="date"
@@ -451,7 +409,7 @@ function DossiersList() {
           </div>
 
           <div className="col-12 col-md-6 col-lg-2">
-            <label htmlFor="dossiersToDate" className="form-label mb-1">To Date</label>
+            <label htmlFor="dossiersToDate" className="form-label mb-1">{t('filters.toDate')}</label>
             <input
               id="dossiersToDate"
               type="date"
@@ -465,7 +423,7 @@ function DossiersList() {
           <div className="col-12 col-md-6 col-lg-2 d-flex gap-2 enterprise-filters-actions">
             <button type="submit" className="btn btn-primary flex-grow-1" disabled={loading}>
               <i className="bi bi-funnel"></i>
-              Apply
+              {t('actions.apply')}
             </button>
             <button
               type="button"
@@ -473,7 +431,7 @@ function DossiersList() {
               onClick={handleResetFilters}
               disabled={loading || (!hasActiveFilters && !hasDraftFilters && !hasSortOverride)}
             >
-              Reset
+              {t('actions.reset')}
             </button>
           </div>
         </form>
@@ -482,9 +440,9 @@ function DossiersList() {
       <div className="card">
         <div className="table-section-shell">
           {loading && dossiers.length > 0 && (
-            <div className="table-loading-overlay" role="status" aria-live="polite" aria-label="Updating list">
+            <div className="table-loading-overlay" role="status" aria-live="polite" aria-label={t('accessibility.updatingList')}>
               <span className="spinner-border spinner-border-sm text-primary" aria-hidden="true"></span>
-              <span>Updating case files...</span>
+              <span>{t('dossiersPage.updatingCaseFiles')}</span>
             </div>
           )}
 
@@ -493,36 +451,36 @@ function DossiersList() {
               <thead className="table-light">
                 <tr>
                   <SortableHeader
-                    label="Case File #"
+                    label={t('dossiersPage.columns.caseFileNumber')}
                     sortBy="numero_dossier"
                     sortState={sortState}
                     onSortChange={handleSortChange}
                     disabled={loading}
                   />
-                  <th scope="col">Assured Identifier</th>
+                  <th scope="col">{t('dossiersPage.columns.assuredIdentifier')}</th>
                   <SortableHeader
-                    label="Status"
+                    label={t('dossiersPage.columns.status')}
                     sortBy="status"
                     sortState={sortState}
                     onSortChange={handleSortChange}
                     disabled={loading}
                   />
                   <SortableHeader
-                    label="Total"
+                    label={t('dossiersPage.columns.total')}
                     sortBy="montant_total"
                     sortState={sortState}
                     onSortChange={handleSortChange}
                     disabled={loading}
                   />
-                  <th scope="col">Documents</th>
+                  <th scope="col">{t('dossiersPage.columns.documents')}</th>
                   <SortableHeader
-                    label="Created"
+                    label={t('dossiersPage.columns.created')}
                     sortBy="created_at"
                     sortState={sortState}
                     onSortChange={handleSortChange}
                     disabled={loading}
                   />
-                  <th scope="col">Actions</th>
+                  <th scope="col">{t('dossiersPage.columns.actions')}</th>
                 </tr>
               </thead>
 
@@ -555,7 +513,7 @@ function DossiersList() {
                             onClick={() => navigate(`/dossiers/${dossier.id}`)}
                           >
                             <i className="bi bi-eye dossiers-action-btn__icon" aria-hidden="true"></i>
-                            {role === USER_ROLES.SUPERVISOR ? 'Review' : 'Details'}
+                            {role === USER_ROLES.SUPERVISOR ? t('actions.review') : t('actions.details')}
                           </button>
 
                           {canDeleteDossier(dossier) && (
@@ -565,7 +523,7 @@ function DossiersList() {
                               onClick={() => requestDeleteDossier(dossier)}
                               disabled={isDeleteConfirming || deletingDossierId === dossier.id}
                             >
-                              {deletingDossierId === dossier.id ? 'Deleting...' : 'Delete'}
+                              {deletingDossierId === dossier.id ? t('dossiersPage.deleteConfirming') : t('actions.delete')}
                             </button>
                           )}
                         </div>
@@ -600,16 +558,16 @@ function DossiersList() {
                                 onClick={handleResetFilters}
                               >
                                 <i className="bi bi-arrow-counterclockwise me-2"></i>
-                                Reset
+                                {t('actions.reset')}
                               </button>
-                            ) : pageConfig.canCreateDossier ? (
+                            ) : canCreateDossier ? (
                               <button
                                 type="button"
                                 className="btn btn-primary"
                                 onClick={() => setCreateModalOpen(true)}
                               >
                                 <i className="bi bi-plus-circle me-2"></i>
-                                Create Case File
+                                {t('dossiersPage.createCaseFile')}
                               </button>
                             ) : null
                           }
@@ -627,7 +585,7 @@ function DossiersList() {
           currentPage={currentPage}
           lastPage={lastPage}
           total={total}
-          summaryLabel="case files"
+          summaryLabel={t('dossiersPage.summaryLabel')}
           onPageChange={handlePageChange}
         />
       </div>
@@ -639,14 +597,14 @@ function DossiersList() {
 
       <ConfirmationModal
         isOpen={Boolean(deleteTargetDossier)}
-        title="Delete Case File"
+        title={t('dossiersPage.deleteTitle')}
         message={
           deleteTargetDossier
-            ? `Delete case file "${deleteTargetDossier.numero_dossier}"? This action cannot be undone.`
+            ? t('dossiersPage.deleteMessage', { number: deleteTargetDossier.numero_dossier })
             : ''
         }
-        confirmLabel="Delete"
-        confirmingLabel="Deleting..."
+        confirmLabel={t('dossiersPage.deleteConfirm')}
+        confirmingLabel={t('dossiersPage.deleteConfirming')}
         confirmVariant="danger"
         initialFocus="cancel"
         isConfirming={isDeleteConfirming}

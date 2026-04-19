@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import WorkspaceModalShell from './WorkspaceModalShell';
-import { USER_ROLES, USER_ROLE_LABELS } from '../constants/domainLabels';
+import { USER_ROLES, getRoleLabel } from '../constants/domainLabels';
 
 const ROLE_OPTIONS = [
   USER_ROLES.AGENT,
@@ -10,14 +11,8 @@ const ROLE_OPTIONS = [
 ];
 
 function AdminRoleModal({ isOpen, user, onClose, onConfirm, isBusy }) {
+  const { t } = useTranslation();
   const [selectedRole, setSelectedRole] = useState(user?.role ?? USER_ROLES.AGENT);
-
-  // Reset to the user's current role whenever the modal opens with a (possibly different) user
-  useEffect(() => {
-    if (isOpen && user) {
-      setSelectedRole(user.role);
-    }
-  }, [isOpen, user]);
 
   const roleChanged = selectedRole !== user?.role;
 
@@ -30,7 +25,7 @@ function AdminRoleModal({ isOpen, user, onClose, onConfirm, isBusy }) {
   return (
     <WorkspaceModalShell
       isOpen={isOpen}
-      title="Change Role"
+      title={t('adminUsers.changeRole')}
       iconClass="bi-person-gear"
       onClose={onClose}
       isBusy={isBusy}
@@ -39,14 +34,14 @@ function AdminRoleModal({ isOpen, user, onClose, onConfirm, isBusy }) {
       {user && (
         <form onSubmit={handleSubmit} noValidate className="chpw-form">
           <div className="admin-modal-target-user mb-4">
-            <span className="admin-modal-target-label">User</span>
+            <span className="admin-modal-target-label">{t('adminUsers.user')}</span>
             <span className="admin-modal-target-name">{user.name}</span>
             <span className="admin-modal-target-email">{user.email}</span>
           </div>
 
           <div className="mb-5">
             <label htmlFor="admin-role-select" className="form-label">
-              New role
+              {t('adminUsers.newRole')}
             </label>
             <select
               id="admin-role-select"
@@ -57,7 +52,7 @@ function AdminRoleModal({ isOpen, user, onClose, onConfirm, isBusy }) {
             >
               {ROLE_OPTIONS.map((r) => (
                 <option key={r} value={r}>
-                  {USER_ROLE_LABELS[r]}
+                  {getRoleLabel(r)}
                 </option>
               ))}
             </select>
@@ -70,7 +65,7 @@ function AdminRoleModal({ isOpen, user, onClose, onConfirm, isBusy }) {
               onClick={onClose}
               disabled={isBusy}
             >
-              Cancel
+              {t('actions.cancel')}
             </button>
             <button
               type="submit"
@@ -80,12 +75,12 @@ function AdminRoleModal({ isOpen, user, onClose, onConfirm, isBusy }) {
               {isBusy ? (
                 <>
                   <span className="spinner-border spinner-border-sm" aria-hidden="true" />
-                  Saving...
+                  {t('changePassword.saving')}
                 </>
               ) : (
                 <>
                   <i className="bi bi-check-lg" aria-hidden="true" />
-                  Apply
+                  {t('actions.apply')}
                 </>
               )}
             </button>

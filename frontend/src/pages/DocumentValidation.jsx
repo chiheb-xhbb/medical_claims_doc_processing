@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   getToastMessage,
   notifySuccess,
@@ -27,11 +28,7 @@ import {
 } from '../utils/formatters';
 import './DocumentValidation/DocumentValidation.css';
 
-const FIELD_LABELS = {
-  invoice_date: 'Invoice Date',
-  provider_name: 'Provider Name',
-  total_ttc: 'Total Amount (TTC)',
-};
+const FIELD_KEYS = ['invoice_date', 'provider_name', 'total_ttc'];
 
 const FIELD_TYPES = {
   invoice_date: 'date',
@@ -48,6 +45,7 @@ const FIELD_ICONS = {
 const LOW_CONFIDENCE_THRESHOLD = 0.70;
 
 function DocumentValidation() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -76,9 +74,9 @@ function DocumentValidation() {
     ) {
       const amount = Number(editedFields.total_ttc);
       if (amount <= 0) {
-        activeWarnings.push('Amount must be positive.');
+        activeWarnings.push(t('documentValidation.warnings.amountPositive'));
       } else if (amount > 10000) {
-        activeWarnings.push('High amount detected: requires supervisor review.');
+        activeWarnings.push(t('documentValidation.warnings.highAmountSupervisor'));
       }
     }
 
@@ -88,12 +86,12 @@ function DocumentValidation() {
       today.setHours(0, 0, 0, 0);
 
       if (date > today) {
-        activeWarnings.push('Invoice date is in the future.');
+        activeWarnings.push(t('documentValidation.warnings.futureInvoiceDate'));
       }
     }
 
     setClientWarnings(activeWarnings);
-  }, [editedFields.total_ttc, editedFields.invoice_date]);
+  }, [editedFields.total_ttc, editedFields.invoice_date, t]);
 
   // Fetches the document detail and normalizes extraction values for editing.
   const fetchDocument = useCallback(async () => {
@@ -126,13 +124,13 @@ function DocumentValidation() {
       let errorMessage;
 
       if (err.response?.status === 404) {
-        errorMessage = 'Document not found. Please check the document ID and try again.';
-      } else if (err.code === 'ECONNABORTED' || err.message.includes('timeout')) {
-        errorMessage = 'Request timed out. Please check your connection and try again.';
+        errorMessage = t('documentValidation.errors.notFoundDetailed');
+      } else if (err.code === 'ECONNABORTED' || (err.message || '').includes('timeout')) {
+        errorMessage = t('documentValidation.errors.requestTimeout');
       } else if (err.code === 'ERR_NETWORK') {
-        errorMessage = 'Network error. Please check if the server is running.';
+        errorMessage = t('documentValidation.errors.network');
       } else {
-        errorMessage = err.response?.data?.message || 'Failed to load document. Please try again.';
+        errorMessage = err.response?.data?.message || t('documentValidation.errors.loadFailed');
       }
 
       setLoadErrorMessage(errorMessage);
@@ -140,7 +138,7 @@ function DocumentValidation() {
     } finally {
       setIsLoading(false);
     }
-  }, [id]);
+  }, [id, t]);
 
   useEffect(() => {
     fetchDocument();
@@ -171,7 +169,7 @@ function DocumentValidation() {
       });
 
       setBusinessWarnings(response.data?.warnings || []);
-      notifySuccess(getToastMessage(response, 'Document validated successfully.'));
+      notifySuccess(getToastMessage(response, t('documentValidation.successValidated')));
 
       await fetchDocument();
 
@@ -182,19 +180,19 @@ function DocumentValidation() {
       let errorMessage;
 
       if (err.response?.status === 400) {
-        errorMessage = err.response?.data?.message || 'Validation failed. Please check the field values.';
+        errorMessage = err.response?.data?.message || t('documentValidation.errors.validationFailed');
       } else if (err.response?.status === 404) {
-        errorMessage = 'Document not found.';
+        errorMessage = t('documentValidation.errors.notFound');
       } else if (err.response?.status === 422) {
         const data = err.response?.data;
         const errors = data?.errors || {};
         if (errors.total_ttc && Array.isArray(errors.total_ttc) && errors.total_ttc.length > 0) {
           errorMessage = errors.total_ttc[0];
         } else {
-          errorMessage = data?.message || 'Validation failed. Please check the field values.';
+          errorMessage = data?.message || t('documentValidation.errors.validationFailed');
         }
       } else {
-        errorMessage = err.response?.data?.message || 'Failed to validate document. Please try again.';
+        errorMessage = err.response?.data?.message || t('documentValidation.errors.validateFailed');
       }
 
       notifyError(errorMessage);
@@ -213,8 +211,8 @@ function DocumentValidation() {
       await previewDocument(document.id);
     } catch (error) {
       const message = error?.response
-        ? getApiErrorMessage(error, 'Failed to open original document.')
-        : error?.message || 'Failed to open original document.';
+        ? getApiErrorMessage(error, t('documentValidation.errors.openOriginalFailed'))
+        : error?.message || t('documentValidation.errors.openOriginalFailed');
 
       notifyError(message);
     } finally {
@@ -232,8 +230,8 @@ function DocumentValidation() {
       await downloadDocument(document.id, document.original_filename);
     } catch (error) {
       const message = error?.response
-        ? getApiErrorMessage(error, 'Failed to download original document.')
-        : error?.message || 'Failed to download original document.';
+        ? getApiErrorMessage(error, t('documentValidation.errors.downloadOriginalFailed'))
+        : error?.message || t('documentValidation.errors.downloadOriginalFailed');
 
       notifyError(message);
     } finally {
@@ -270,7 +268,7 @@ function DocumentValidation() {
   if (isLoading) {
     return (
       <div className="container py-5">
-        <Loader message="Loading document..." size="lg" />
+        <Loader message={t('documentValidation.loading')} size="lg" />
       </div>
     );
   }
@@ -284,7 +282,7 @@ function DocumentValidation() {
               <div className="card-body">
                 <EmptyState
                   icon="file-earmark-x"
-                  title="Error Loading Document"
+                  title={t('documentValidation.loadErrorTitle')}
                   description={loadErrorMessage}
                 />
               </div>
@@ -296,15 +294,15 @@ function DocumentValidation() {
   }
 
   const hasExtraction = document?.latest_extraction && Object.keys(editedFields).length > 0;
-  const displayFilename = document?.original_filename || 'Unnamed document';
+  const displayFilename = document?.original_filename || t('domain.unnamedDocument');
   const fileSizeLabel = formatFileSize(document?.file_size, null);
 
   return (
     <div className="container py-4 document-validation">
       <PageHeader
         icon="bi-file-earmark-medical"
-        title="Document Validation"
-        subtitle="Review extracted fields, resolve warnings, and confirm final values for compliant processing."
+        title={t('documentValidation.title')}
+        subtitle={t('documentValidation.subtitle')}
         action={
           <button
             type="button"
@@ -312,7 +310,7 @@ function DocumentValidation() {
             onClick={() => navigate('/documents')}
           >
             <i className="bi bi-arrow-left me-2" aria-hidden="true" />
-            Back to Documents
+            {t('documentValidation.backToDocuments')}
           </button>
         }
       />
@@ -358,7 +356,7 @@ function DocumentValidation() {
         <div className="mb-4">
           <WarningAlert
             warnings={Array.from(new Set([...clientWarnings, ...businessWarnings]))}
-            title="Business Validation Warnings"
+            title={t('documentValidation.warnings.businessTitle')}
           />
         </div>
       )}
@@ -369,9 +367,9 @@ function DocumentValidation() {
             <i className="bi bi-exclamation-triangle-fill"></i>
           </div>
           <div className="dv-warning-panel__body">
-            <p className="dv-warning-panel__title">AI Extraction Warnings</p>
+            <p className="dv-warning-panel__title">{t('documentValidation.warnings.aiTitle')}</p>
             <p className="dv-warning-panel__subtitle">
-              The following issues were detected during extraction and may require your review:
+              {t('documentValidation.warnings.aiSubtitle')}
             </p>
             <ul className="dv-warning-panel__list">
               {warnings.map((warning, index) => (
@@ -384,8 +382,8 @@ function DocumentValidation() {
 
       {!hasExtraction && (
         <InfoAlert
-          message="No extraction data available for this document. Please wait for processing to complete."
-          title="Processing In Progress"
+          message={t('documentValidation.noExtractionData')}
+          title={t('documentValidation.processingTitle')}
         />
       )}
 
@@ -395,9 +393,9 @@ function DocumentValidation() {
             <div className="dv-fields-card__header-left">
               <i className="bi bi-table dv-fields-card__header-icon"></i>
               <div>
-                <h5 className="dv-fields-card__title">Extracted Fields</h5>
+                <h5 className="dv-fields-card__title">{t('documentValidation.fieldsTitle')}</h5>
                 <p className="dv-fields-card__subtitle">
-                  Review and correct the AI-extracted values below before confirming.
+                  {t('documentValidation.fieldsSubtitle')}
                 </p>
               </div>
             </div>
@@ -419,14 +417,14 @@ function DocumentValidation() {
             <table className="table table-hover align-middle mb-0 dv-fields-table">
               <thead>
                 <tr>
-                  <th className="dv-col-field">Field</th>
-                  <th className="dv-col-value">Value</th>
-                  <th className="text-center dv-col-confidence">Confidence</th>
-                  <th className="text-center dv-col-status">Status</th>
+                  <th className="dv-col-field">{t('documentValidation.columns.field')}</th>
+                  <th className="dv-col-value">{t('documentValidation.columns.value')}</th>
+                  <th className="text-center dv-col-confidence">{t('documentValidation.columns.confidence')}</th>
+                  <th className="text-center dv-col-status">{t('documentValidation.columns.status')}</th>
                 </tr>
               </thead>
               <tbody>
-                {Object.keys(FIELD_LABELS).map((fieldKey) => {
+                {FIELD_KEYS.map((fieldKey) => {
                   const lowConfidence = isLowConfidence(fieldKey);
                   const fieldType = FIELD_TYPES[fieldKey];
                   const fieldValue = editedFields[fieldKey];
@@ -439,7 +437,7 @@ function DocumentValidation() {
                       <td className="dv-field-label">
                         <span className="dv-field-label__inner">
                           <i className={`bi ${FIELD_ICONS[fieldKey]} dv-field-label__icon`}></i>
-                          {FIELD_LABELS[fieldKey]}
+                          {t(`documentValidation.fieldLabels.${fieldKey}`)}
                         </span>
                       </td>
 
@@ -478,12 +476,12 @@ function DocumentValidation() {
                         {lowConfidence ? (
                           <i
                             className="bi bi-exclamation-diamond-fill dv-status-icon dv-status-icon--warn"
-                            title="Low confidence — please review this field"
+                            title={t('documentValidation.statusHints.lowConfidence')}
                           ></i>
                         ) : (
                           <i
                             className="bi bi-patch-check-fill dv-status-icon dv-status-icon--ok"
-                            title="High confidence"
+                            title={t('documentValidation.statusHints.highConfidence')}
                           ></i>
                         )}
                       </td>
@@ -499,12 +497,12 @@ function DocumentValidation() {
               {isValidated ? (
                 <span className="dv-action-bar__note dv-action-bar__note--validated">
                   <i className="bi bi-shield-check"></i>
-                  This document has been validated and is now read-only.
+                  {t('documentValidation.validatedReadonlyNote')}
                 </span>
               ) : (
                 <span className="dv-action-bar__note">
                   <i className="bi bi-info-circle"></i>
-                  Confirm all field values are correct before submitting.
+                  {t('documentValidation.confirmBeforeSubmit')}
                 </span>
               )}
             </div>
@@ -522,17 +520,17 @@ function DocumentValidation() {
                     role="status"
                     aria-hidden="true"
                   ></span>
-                  Validating...
+                  {t('documentValidation.buttons.validating')}
                 </>
               ) : isValidated ? (
                 <>
                   <i className="bi bi-shield-check"></i>
-                  Document Validated
+                  {t('documentValidation.buttons.validated')}
                 </>
               ) : (
                 <>
                   <i className="bi bi-clipboard-check"></i>
-                  Validate Document &amp; Submit
+                  {t('documentValidation.buttons.validateSubmit')}
                 </>
               )}
             </button>
@@ -544,7 +542,7 @@ function DocumentValidation() {
         <div className="dv-timestamps">
           <span className="dv-timestamps__item">
             <i className="bi bi-clock-history"></i>
-            <strong>Created</strong>
+            <strong>{t('documentValidation.timestamps.created')}</strong>
             {formatDateTime(document.created_at)}
           </span>
 
@@ -553,7 +551,7 @@ function DocumentValidation() {
               <span className="dv-timestamps__divider" aria-hidden="true"></span>
               <span className="dv-timestamps__item">
                 <i className="bi bi-shield-check"></i>
-                <strong>Validated</strong>
+                <strong>{t('documentValidation.timestamps.validated')}</strong>
                 {formatDateTime(document.validated_at)}
               </span>
             </>
@@ -562,7 +560,7 @@ function DocumentValidation() {
           <span className="dv-timestamps__divider" aria-hidden="true"></span>
           <span className="dv-timestamps__item">
             <i className="bi bi-arrow-repeat"></i>
-            <strong>Updated</strong>
+            <strong>{t('documentValidation.timestamps.updated')}</strong>
             {formatDateTime(document.updated_at)}
           </span>
         </div>
@@ -570,7 +568,7 @@ function DocumentValidation() {
 
       <p className="dv-compliance-note">
         <i className="bi bi-shield-lock"></i>
-        All data is securely processed and validated in compliance with medical data regulations.
+        {t('documentValidation.complianceNote')}
       </p>
     </div>
   );

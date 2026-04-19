@@ -1,16 +1,18 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import WorkspaceModalShell from './WorkspaceModalShell';
 import DossierCreateForm from './DossierCreateForm';
 
 function DossierCreateModal({ isOpen, onClose }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
 
   return (
     <WorkspaceModalShell
       isOpen={isOpen}
-      title="Create Case File"
+      title={t('dossierCreate.createCaseFile')}
       iconClass="bi-folder-plus"
       onClose={onClose}
       isBusy={busy}

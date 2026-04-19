@@ -11,6 +11,7 @@ import './styles/workspace-modals.css'
 import './index.css'
 import './App.css'
 
+import './i18n'
 import App from './App.jsx'
 import { Toaster, ToastBar } from 'react-hot-toast'
 import { AuthProvider } from './context/AuthContext.jsx'

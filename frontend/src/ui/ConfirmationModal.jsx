@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const FOCUSABLE_SELECTOR = [
   'button:not([disabled])',
@@ -39,15 +40,16 @@ function ConfirmationModal({
   isOpen,
   title,
   message,
-  confirmLabel = 'Confirm',
-  confirmingLabel = 'Processing...',
-  cancelLabel = 'Cancel',
+  confirmLabel,
+  confirmingLabel,
+  cancelLabel,
   confirmVariant = 'primary',
   initialFocus = 'confirm',
   isConfirming = false,
   onCancel,
   onConfirm
 }) {
+  const { t } = useTranslation();
   const dialogRef = useRef(null);
   const cancelButtonRef = useRef(null);
   const confirmButtonRef = useRef(null);
@@ -125,6 +127,10 @@ function ConfirmationModal({
     return null;
   }
 
+  const resolvedConfirmLabel = confirmLabel || t('actions.confirm');
+  const resolvedConfirmingLabel = confirmingLabel || t('actions.processing');
+  const resolvedCancelLabel = cancelLabel || t('actions.cancel');
+
   const handleBackdropClick = (event) => {
     if (event.target === event.currentTarget && !isConfirming) {
       onCancel?.();
@@ -162,7 +168,7 @@ function ConfirmationModal({
             onClick={onCancel}
             disabled={isConfirming}
           >
-            {cancelLabel}
+            {resolvedCancelLabel}
           </button>
           <button
             ref={confirmButtonRef}
@@ -170,7 +176,7 @@ function ConfirmationModal({
             onClick={onConfirm}
             disabled={isConfirming}
           >
-            {isConfirming ? confirmingLabel : confirmLabel}
+            {isConfirming ? resolvedConfirmingLabel : resolvedConfirmLabel}
           </button>
         </div>
       </div>

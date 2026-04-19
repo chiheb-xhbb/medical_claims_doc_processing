@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   getToastMessage,
   notifySuccess,
@@ -7,7 +8,7 @@ import {
 } from '../utils/toast';
 import api, { getApiErrorMessage } from '../services/api';
 import { getStoredUser } from '../services/auth';
-import { USER_ROLES, USER_ROLE_LABELS } from '../constants/domainLabels';
+import { USER_ROLES, getRoleLabel } from '../constants/domainLabels';
 import {
   ConfirmationModal,
   EmptyState,
@@ -48,6 +49,7 @@ const getFirstErrorMessage = (errorValue) => {
 };
 
 function AdminUsers() {
+  const { t } = useTranslation();
   const currentUserId = Number(getStoredUser()?.id || 0);
 
   const [users, setUsers] = useState([]);
@@ -73,20 +75,16 @@ function AdminUsers() {
   const [createErrors, setCreateErrors] = useState({});
   const [isCreatingUser, setIsCreatingUser] = useState(false);
 
-  // Modal state for role changes.
   const [roleModal, setRoleModal] = useState(CLOSED_MODAL);
   const [roleModalBusy, setRoleModalBusy] = useState(false);
 
-  // Modal state for admin password reset.
   const [passwordModal, setPasswordModal] = useState(CLOSED_MODAL);
   const [passwordModalBusy, setPasswordModalBusy] = useState(false);
   const [passwordModalServerErrors, setPasswordModalServerErrors] = useState({});
 
-  // Modal state for account activation / deactivation.
   const [statusModal, setStatusModal] = useState(INITIAL_STATUS_MODAL);
   const [statusModalBusy, setStatusModalBusy] = useState(false);
 
-  // Loads the current page of users using the active filters.
   const loadUsers = useCallback(async () => {
     setLoading(true);
     setListError(null);
@@ -108,13 +106,13 @@ function AdminUsers() {
         total: Number(payload.total || list.length),
       });
     } catch (err) {
-      const message = getApiErrorMessage(err, 'Failed to load users. Please try again.');
+      const message = getApiErrorMessage(err, t('feedback.loadUsersFailed'));
       setListError(message);
       notifyError(message);
     } finally {
       setLoading(false);
     }
-  }, [query.page, query.perPage, query.role, query.search, query.status]);
+  }, [query.page, query.perPage, query.role, query.search, query.status, t]);
 
   useEffect(() => {
     loadUsers();
@@ -122,7 +120,6 @@ function AdminUsers() {
 
   const refreshUsers = () => setReloadToken((prev) => prev + 1);
 
-  // Create form helpers.
   const setCreateField = (field, value) => {
     setCreateForm((prev) => ({ ...prev, [field]: value }));
     if (createErrors[field]) {
@@ -134,28 +131,30 @@ function AdminUsers() {
     const formErrors = {};
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    if (!createForm.name.trim()) formErrors.name = 'Name is required.';
+    // We can rely on server validation for the actual creation,
+    // but basic client validation remains active.
+    if (!createForm.name.trim()) formErrors.name = t('adminUsers.nameRequired', { defaultValue: 'Name is required.' });
 
     if (!createForm.email.trim()) {
-      formErrors.email = 'Email is required.';
+      formErrors.email = t('login.emailRequired');
     } else if (!emailRegex.test(createForm.email.trim())) {
-      formErrors.email = 'Please enter a valid email address.';
+      formErrors.email = t('login.emailInvalid');
     }
 
     if (!createForm.password) {
-      formErrors.password = 'Password is required.';
+      formErrors.password = t('login.passwordRequired');
     } else if (createForm.password.length < 8) {
-      formErrors.password = 'Password must be at least 8 characters.';
+      formErrors.password = t('changePassword.newMinLength');
     }
 
     if (!createForm.password_confirmation) {
-      formErrors.password_confirmation = 'Password confirmation is required.';
+      formErrors.password_confirmation = t('changePassword.confirmRequired');
     } else if (createForm.password !== createForm.password_confirmation) {
-      formErrors.password_confirmation = 'Password confirmation does not match.';
+      formErrors.password_confirmation = t('changePassword.confirmMismatch');
     }
 
     if (!ROLE_OPTIONS.includes(createForm.role)) {
-      formErrors.role = 'Please choose a valid role.';
+      formErrors.role = t('adminUsers.selectValidRole');
     }
 
     setCreateErrors(formErrors);
@@ -180,7 +179,7 @@ function AdminUsers() {
 
       const response = await api.post('/admin/users', payload);
 
-      notifySuccess(getToastMessage(response, 'User created successfully.'));
+      notifySuccess(getToastMessage(response, t('feedback.userCreatedSuccess')));
       setCreateForm(CREATE_USER_INITIAL_FORM);
       setCreateErrors({});
 
@@ -191,13 +190,12 @@ function AdminUsers() {
       }
     } catch (err) {
       setCreateErrors(err.response?.data?.errors || {});
-      notifyError(getApiErrorMessage(err, 'Failed to create user. Please try again.'));
+      notifyError(getApiErrorMessage(err, t('feedback.createUserFailed')));
     } finally {
       setIsCreatingUser(false);
     }
   };
 
-  // Filters and pagination stay local to this page.
   const handleSearchSubmit = (event) => {
     event.preventDefault();
     setQuery((prev) => ({ ...prev, page: 1, search: searchInput.trim() }));
@@ -220,22 +218,15 @@ function AdminUsers() {
     if (nextPage < 1 || nextPage > pagination.lastPage || nextPage === query.page) {
       return;
     }
-
     setQuery((prev) => ({ ...prev, page: nextPage }));
   };
 
   const hasActiveFilters = Boolean(query.search || query.role || query.status);
 
-  // Role modal flow.
-  const openRoleModal = (user) => {
-    setRoleModal({ isOpen: true, user });
-  };
-
+  const openRoleModal = (user) => setRoleModal({ isOpen: true, user });
   const closeRoleModal = () => {
-    if (roleModalBusy) return;
-    setRoleModal(CLOSED_MODAL);
+    if (!roleModalBusy) setRoleModal(CLOSED_MODAL);
   };
-
   const handleConfirmRoleChange = async (newRole) => {
     const target = roleModal.user;
     if (!target || newRole === target.role || roleModalBusy) return;
@@ -244,28 +235,25 @@ function AdminUsers() {
 
     try {
       const response = await api.patch(`/admin/users/${target.id}/role`, { role: newRole });
-      notifySuccess(getToastMessage(response, 'Role updated successfully.'));
+      notifySuccess(getToastMessage(response, t('feedback.roleUpdatedSuccess')));
       setRoleModal(CLOSED_MODAL);
       refreshUsers();
     } catch (err) {
-      notifyError(getApiErrorMessage(err, 'Failed to update role.'));
+      notifyError(getApiErrorMessage(err, t('feedback.updateRoleFailed')));
     } finally {
       setRoleModalBusy(false);
     }
   };
 
-  // Password reset flow stays modal-driven and server-validation aware.
   const openPasswordModal = (user) => {
     setPasswordModalServerErrors({});
     setPasswordModal({ isOpen: true, user });
   };
-
   const closePasswordModal = () => {
     if (passwordModalBusy) return;
     setPasswordModal(CLOSED_MODAL);
     setPasswordModalServerErrors({});
   };
-
   const handleConfirmPasswordReset = async (password, passwordConfirmation) => {
     const target = passwordModal.user;
     if (!target || passwordModalBusy) return;
@@ -279,30 +267,26 @@ function AdminUsers() {
         password_confirmation: passwordConfirmation,
       });
 
-      notifySuccess(getToastMessage(response, 'Password reset successfully.'));
+      notifySuccess(getToastMessage(response, t('feedback.passwordResetSuccess')));
       setPasswordModal(CLOSED_MODAL);
     } catch (err) {
       const serverErrors = err.response?.data?.errors;
       if (serverErrors && typeof serverErrors === 'object') {
         setPasswordModalServerErrors(serverErrors);
       } else {
-        notifyError(getApiErrorMessage(err, 'Failed to reset password.'));
+        notifyError(getApiErrorMessage(err, t('feedback.resetPasswordFailed')));
       }
     } finally {
       setPasswordModalBusy(false);
     }
   };
 
-  // Status changes use semantic toasts: activate = green, deactivate = danger-success.
   const openStatusModal = (user) => {
     setStatusModal({ isOpen: true, user, nextIsActive: !user.is_active });
   };
-
   const closeStatusModal = () => {
-    if (statusModalBusy) return;
-    setStatusModal(INITIAL_STATUS_MODAL);
+    if (!statusModalBusy) setStatusModal(INITIAL_STATUS_MODAL);
   };
-
   const handleConfirmStatusChange = async () => {
     const target = statusModal.user;
     if (!target) return;
@@ -317,8 +301,8 @@ function AdminUsers() {
       const successMessage = getToastMessage(
         response,
         statusModal.nextIsActive
-          ? 'User activated successfully.'
-          : 'User deactivated successfully.'
+          ? t('feedback.userActivatedSuccess')
+          : t('feedback.userDeactivatedSuccess')
       );
 
       if (statusModal.nextIsActive) {
@@ -330,46 +314,46 @@ function AdminUsers() {
       setStatusModal(INITIAL_STATUS_MODAL);
       refreshUsers();
     } catch (err) {
-      notifyError(getApiErrorMessage(err, 'Failed to update status.'));
+      notifyError(getApiErrorMessage(err, t('feedback.updateStatusFailed')));
     } finally {
       setStatusModalBusy(false);
     }
   };
 
-  const statusModalTitle = statusModal.nextIsActive ? 'Activate User' : 'Deactivate User';
-  const statusModalConfirmLabel = statusModal.nextIsActive ? 'Activate' : 'Deactivate';
+  const statusModalTitle = statusModal.nextIsActive ? t('adminUsers.activateTitle') : t('adminUsers.deactivateTitle');
+  const statusModalConfirmLabel = statusModal.nextIsActive ? t('adminUsers.activateLabel') : t('adminUsers.deactivateLabel');
   const statusModalVariant = statusModal.nextIsActive ? 'success' : 'danger';
   const statusModalMessage = statusModal.user
     ? statusModal.nextIsActive
-      ? `Activate ${statusModal.user.name}'s account? They will be able to log in again immediately.`
-      : `Deactivate ${statusModal.user.name}'s account? If they are currently connected, they will be logged out.`
+      ? t('adminUsers.activateMessage', { name: statusModal.user.name })
+      : t('adminUsers.deactivateMessage', { name: statusModal.user.name })
     : '';
 
   return (
     <div className="container py-4 admin-users-page">
       <PageHeader
         icon="bi-people"
-        title="User Management"
-        subtitle="Manage platform users, role assignments, and account activation status."
+        title={t('adminUsers.pageTitle')}
+        subtitle={t('adminUsers.pageSubtitle')}
       />
 
       <div className="card mb-4 admin-users-create-card" id="admin-users-create-form">
         <div className="card-header">
           <h6 className="mb-0 d-flex align-items-center">
             <i className="bi bi-person-plus me-2"></i>
-            Create User
+            {t('adminUsers.createTitle')}
           </h6>
         </div>
 
         <div className="card-body">
           <form onSubmit={handleCreateUser} noValidate>
             <p className="text-muted mb-3 admin-users-create-lead">
-              Add a platform user account with the appropriate role and activation state.
+              {t('adminUsers.createLead')}
             </p>
 
             <div className="row g-3 admin-users-create-grid">
               <div className="col-md-6">
-                <label htmlFor="newUserName" className="form-label">Name</label>
+                <label htmlFor="newUserName" className="form-label">{t('adminUsers.name')}</label>
                 <input
                   id="newUserName"
                   type="text"
@@ -384,7 +368,7 @@ function AdminUsers() {
               </div>
 
               <div className="col-md-6">
-                <label htmlFor="newUserEmail" className="form-label">Email</label>
+                <label htmlFor="newUserEmail" className="form-label">{t('adminUsers.email')}</label>
                 <input
                   id="newUserEmail"
                   type="email"
@@ -399,7 +383,7 @@ function AdminUsers() {
               </div>
 
               <div className="col-md-4">
-                <label htmlFor="newUserRole" className="form-label">Role</label>
+                <label htmlFor="newUserRole" className="form-label">{t('filters.role')}</label>
                 <select
                   id="newUserRole"
                   className={`form-select ${getFirstErrorMessage(createErrors.role) ? 'is-invalid' : ''}`}
@@ -409,7 +393,7 @@ function AdminUsers() {
                 >
                   {ROLE_OPTIONS.map((roleValue) => (
                     <option key={roleValue} value={roleValue}>
-                      {USER_ROLE_LABELS[roleValue]}
+                      {getRoleLabel(roleValue)}
                     </option>
                   ))}
                 </select>
@@ -419,7 +403,7 @@ function AdminUsers() {
               </div>
 
               <div className="col-md-4">
-                <label htmlFor="newUserPassword" className="form-label">Password</label>
+                <label htmlFor="newUserPassword" className="form-label">{t('adminUsers.password')}</label>
                 <input
                   id="newUserPassword"
                   type="password"
@@ -434,7 +418,7 @@ function AdminUsers() {
               </div>
 
               <div className="col-md-4">
-                <label htmlFor="newUserPasswordConfirmation" className="form-label">Confirm Password</label>
+                <label htmlFor="newUserPasswordConfirmation" className="form-label">{t('adminUsers.confirmPassword')}</label>
                 <input
                   id="newUserPasswordConfirmation"
                   type="password"
@@ -460,7 +444,7 @@ function AdminUsers() {
                   disabled={isCreatingUser}
                 />
                 <label className="form-check-label" htmlFor="newUserActive">
-                  Account active
+                  {t('adminUsers.accountActive')}
                 </label>
               </div>
 
@@ -468,12 +452,12 @@ function AdminUsers() {
                 {isCreatingUser ? (
                   <>
                     <span className="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
-                    Creating...
+                    {t('adminUsers.creating')}
                   </>
                 ) : (
                   <>
                     <i className="bi bi-check2-circle me-2"></i>
-                    Create User
+                    {t('adminUsers.createUser')}
                   </>
                 )}
               </button>
@@ -485,12 +469,12 @@ function AdminUsers() {
       <ListFiltersCard className="admin-users-filters-card">
         <form className="row g-3 align-items-end enterprise-filters-form" onSubmit={handleSearchSubmit}>
           <div className="col-12 col-lg-5">
-            <label htmlFor="userSearch" className="form-label mb-1">Search</label>
+            <label htmlFor="userSearch" className="form-label mb-1">{t('filters.search')}</label>
             <input
               id="userSearch"
               type="text"
               className="form-control"
-              placeholder="Search by name or email"
+              placeholder={t('adminUsers.searchPlaceholder')}
               value={searchInput}
               onChange={(event) => setSearchInput(event.target.value)}
               disabled={loading}
@@ -498,7 +482,7 @@ function AdminUsers() {
           </div>
 
           <div className="col-12 col-md-6 col-lg-2">
-            <label htmlFor="roleFilter" className="form-label mb-1">Role</label>
+            <label htmlFor="roleFilter" className="form-label mb-1">{t('filters.role')}</label>
             <select
               id="roleFilter"
               className="form-select"
@@ -506,17 +490,17 @@ function AdminUsers() {
               onChange={handleRoleFilterChange}
               disabled={loading}
             >
-              <option value="">All Roles</option>
+              <option value="">{t('filters.allRoles')}</option>
               {ROLE_OPTIONS.map((roleValue) => (
                 <option key={roleValue} value={roleValue}>
-                  {USER_ROLE_LABELS[roleValue]}
+                  {getRoleLabel(roleValue)}
                 </option>
               ))}
             </select>
           </div>
 
           <div className="col-12 col-md-6 col-lg-2">
-            <label htmlFor="statusFilter" className="form-label mb-1">Status</label>
+            <label htmlFor="statusFilter" className="form-label mb-1">{t('filters.status')}</label>
             <select
               id="statusFilter"
               className="form-select"
@@ -524,16 +508,16 @@ function AdminUsers() {
               onChange={handleStatusFilterChange}
               disabled={loading}
             >
-              <option value="">All Statuses</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
+              <option value="">{t('filters.allStatuses')}</option>
+              <option value="active">{t('accountStatus.active')}</option>
+              <option value="inactive">{t('accountStatus.inactive')}</option>
             </select>
           </div>
 
           <div className="col-12 col-md-6 col-lg-3 d-flex gap-2 enterprise-filters-actions">
             <button type="submit" className="btn btn-primary flex-grow-1" disabled={loading}>
-              <i className="bi bi-search" aria-hidden="true"></i>
-              Search
+              <i className="bi bi-search me-2" aria-hidden="true"></i>
+              {t('actions.search')}
             </button>
             <button
               type="button"
@@ -541,7 +525,7 @@ function AdminUsers() {
               onClick={handleResetFilters}
               disabled={loading || !hasActiveFilters}
             >
-              Reset
+              {t('actions.reset')}
             </button>
           </div>
         </form>
@@ -550,21 +534,21 @@ function AdminUsers() {
       <div className="card">
         {loading && users.length === 0 ? (
           <div className="card-body">
-            <Loader message="Loading users..." size="md" />
+            <Loader message={t('adminUsers.loadingUsers')} size="md" />
           </div>
         ) : users.length === 0 ? (
           <div className="card-body">
             {listError ? (
               <EmptyState
                 icon="exclamation-triangle"
-                title="Unable to Load Users"
+                title={t('adminUsers.errorTitle')}
                 description={listError}
               />
             ) : (
               <EmptyState
                 icon="people"
-                title="No Users Found"
-                description="No user matches the current search and filter criteria."
+                title={t('adminUsers.noUsersTitle')}
+                description={t('adminUsers.noUsersDescription')}
               />
             )}
           </div>
@@ -583,12 +567,12 @@ function AdminUsers() {
 
                 <thead className="table-light">
                   <tr>
-                    <th scope="col" className="admin-users-head-name">Name</th>
-                    <th scope="col" className="admin-users-head-email">Email</th>
-                    <th scope="col" className="admin-users-head-role">Role</th>
-                    <th scope="col" className="admin-users-head-status">Status</th>
-                    <th scope="col" className="admin-users-head-created">Created</th>
-                    <th scope="col" className="admin-users-head-actions">Actions</th>
+                    <th scope="col" className="admin-users-head-name">{t('adminUsers.columns.name')}</th>
+                    <th scope="col" className="admin-users-head-email">{t('adminUsers.columns.email')}</th>
+                    <th scope="col" className="admin-users-head-role">{t('adminUsers.columns.role')}</th>
+                    <th scope="col" className="admin-users-head-status">{t('adminUsers.columns.status')}</th>
+                    <th scope="col" className="admin-users-head-created">{t('adminUsers.columns.created')}</th>
+                    <th scope="col" className="admin-users-head-actions">{t('adminUsers.columns.actions')}</th>
                   </tr>
                 </thead>
 
@@ -614,8 +598,8 @@ function AdminUsers() {
                               type="button"
                               className="user-action-btn"
                               onClick={() => openRoleModal(user)}
-                              title={`Change role for ${user.name}`}
-                              aria-label={`Change role for ${user.name}`}
+                              title={t('adminUsers.changeRoleFor', { name: user.name })}
+                              aria-label={t('adminUsers.changeRoleFor', { name: user.name })}
                             >
                               <i className="bi bi-pencil" aria-hidden="true" />
                             </button>
@@ -624,8 +608,8 @@ function AdminUsers() {
                               type="button"
                               className="user-action-btn"
                               onClick={() => openPasswordModal(user)}
-                              title={`Reset password for ${user.name}`}
-                              aria-label={`Reset password for ${user.name}`}
+                              title={t('adminUsers.resetPasswordFor', { name: user.name })}
+                              aria-label={t('adminUsers.resetPasswordFor', { name: user.name })}
                             >
                               <i className="bi bi-arrow-clockwise" aria-hidden="true" />
                             </button>
@@ -637,15 +621,10 @@ function AdminUsers() {
                               disabled={!canDeactivate}
                               title={
                                 !canDeactivate
-                                  ? 'You cannot deactivate your own account.'
+                                  ? t('adminUsers.cannotDeactivateSelf')
                                   : user.is_active
-                                    ? `Deactivate ${user.name}`
-                                    : `Activate ${user.name}`
-                              }
-                              aria-label={
-                                user.is_active
-                                  ? `Deactivate ${user.name}`
-                                  : `Activate ${user.name}`
+                                    ? t('adminUsers.deactivateUser', { name: user.name })
+                                    : t('adminUsers.activateUser', { name: user.name })
                               }
                             >
                               {user.is_active ? (
@@ -667,7 +646,7 @@ function AdminUsers() {
               currentPage={pagination.currentPage}
               lastPage={pagination.lastPage}
               total={pagination.total}
-              summaryLabel="users"
+              summaryLabel={t('adminUsers.summaryLabel')}
               onPageChange={handlePageChange}
               disabled={loading}
             />
@@ -697,7 +676,7 @@ function AdminUsers() {
         title={statusModalTitle}
         message={statusModalMessage}
         confirmLabel={statusModalConfirmLabel}
-        confirmingLabel="Applying..."
+        confirmingLabel={t('adminUsers.applying')}
         confirmVariant={statusModalVariant}
         isConfirming={statusModalBusy}
         onCancel={closeStatusModal}

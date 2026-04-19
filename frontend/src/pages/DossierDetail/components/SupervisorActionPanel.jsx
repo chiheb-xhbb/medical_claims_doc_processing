@@ -1,51 +1,53 @@
 import { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import DossierModalShell from './DossierModalShell';
 
-const ACTIONS = {
-  approve: {
-    label: 'Approve Escalation',
-    icon: 'bi-check-circle',
-    btnClass: 'btn-outline-success',
-    noteRequired: false,
-    notePlaceholder: 'Optional approval note...',
-    noteLabel: 'Approval Note',
-    noteOptional: true,
-    confirmLabel: 'Approve',
-    confirmingLabel: 'Approving...',
-    confirmClass: 'btn-success',
-  },
-  return: {
-    label: 'Return to Claims Manager',
-    icon: 'bi-arrow-return-left',
-    btnClass: 'btn-outline-warning',
-    noteRequired: true,
-    notePlaceholder: 'Explain the reason for returning this case file...',
-    noteLabel: 'Return Note',
-    noteOptional: false,
-    confirmLabel: 'Return',
-    confirmingLabel: 'Returning...',
-    confirmClass: 'btn-warning',
-  },
-  complement: {
-    label: 'Request Complement',
-    icon: 'bi-file-earmark-plus',
-    btnClass: 'btn-outline-secondary',
-    noteRequired: true,
-    notePlaceholder: 'Describe what information is missing...',
-    noteLabel: 'Complement Request',
-    noteOptional: false,
-    confirmLabel: 'Send Request',
-    confirmingLabel: 'Sending...',
-    confirmClass: 'btn-primary',
-  },
-};
-
 function SupervisorActionPanel({ onApprove, onReturn, onComplement, isBusy }) {
+  const { t } = useTranslation();
   const [activeAction, setActiveAction] = useState(null);
   const [note, setNote] = useState('');
   const [noteError, setNoteError] = useState('');
   const noteRef = useRef(null);
   const confirmRef = useRef(null);
+
+  const ACTIONS = {
+    approve: {
+      label: t('supervisor.approveEscalation'),
+      icon: 'bi-check-circle',
+      btnClass: 'btn-outline-success',
+      noteRequired: false,
+      notePlaceholder: t('supervisor.approvalNotePlaceholder'),
+      noteLabel: t('supervisor.approvalNote'),
+      noteOptional: true,
+      confirmLabel: t('supervisor.approve'),
+      confirmingLabel: t('supervisor.approving'),
+      confirmClass: 'btn-success',
+    },
+    return: {
+      label: t('supervisor.returnToClaimsManager'),
+      icon: 'bi-arrow-return-left',
+      btnClass: 'btn-outline-warning',
+      noteRequired: true,
+      notePlaceholder: t('supervisor.returnNotePlaceholder'),
+      noteLabel: t('supervisor.returnNote'),
+      noteOptional: false,
+      confirmLabel: t('supervisor.return'),
+      confirmingLabel: t('workflow.returning'),
+      confirmClass: 'btn-warning',
+    },
+    complement: {
+      label: t('supervisor.requestComplement'),
+      icon: 'bi-file-earmark-plus',
+      btnClass: 'btn-outline-secondary',
+      noteRequired: true,
+      notePlaceholder: t('supervisor.complementPlaceholder'),
+      noteLabel: t('supervisor.complementRequest'),
+      noteOptional: false,
+      confirmLabel: t('supervisor.sendRequest'),
+      confirmingLabel: t('supervisor.sending'),
+      confirmClass: 'btn-primary',
+    },
+  };
 
   const openAction = (actionKey) => {
     setActiveAction(actionKey);
@@ -66,7 +68,7 @@ function SupervisorActionPanel({ onApprove, onReturn, onComplement, isBusy }) {
     const trimmedNote = note.trim();
 
     if (config.noteRequired && !trimmedNote) {
-      setNoteError(`${config.noteLabel} is required.`);
+      setNoteError(t('supervisor.noteRequired', { label: config.noteLabel }));
       noteRef.current?.focus();
       return;
     }
@@ -92,7 +94,7 @@ function SupervisorActionPanel({ onApprove, onReturn, onComplement, isBusy }) {
         <div className="workflow-action-toolbar">
           <h6 className="mb-0 d-flex align-items-center workflow-action-toolbar__title">
             <i className="bi bi-shield-check me-2" aria-hidden="true" />
-            Supervisor Decision
+            {t('supervisor.decisionTitle')}
           </h6>
           <div className="workflow-action-toolbar__controls">
             {Object.entries(ACTIONS).map(([key, cfg]) => (
@@ -129,7 +131,7 @@ function SupervisorActionPanel({ onApprove, onReturn, onComplement, isBusy }) {
                 onClick={closeAction}
                 disabled={isBusy}
               >
-                Cancel
+                {t('actions.cancel')}
               </button>
               <button
                 ref={confirmRef}
@@ -150,7 +152,7 @@ function SupervisorActionPanel({ onApprove, onReturn, onComplement, isBusy }) {
             >
               {config.noteLabel}
               {config.noteOptional
-                ? <span className="text-muted fw-normal ms-1">(optional)</span>
+                ? <span className="text-muted fw-normal ms-1">{t('supervisor.optional')}</span>
                 : <span className="text-danger ms-1">*</span>
               }
             </label>

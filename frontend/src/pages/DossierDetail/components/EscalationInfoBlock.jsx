@@ -1,6 +1,8 @@
+import { useTranslation } from 'react-i18next';
 import { AuditTimeline } from '../../../ui';
 
 function EscalationInfoBlock({ dossier, formatDateTime }) {
+  const { t } = useTranslation();
   const returnNote = dossier?.returned_to_preparation_note;
   const returnAt = dossier?.returned_to_preparation_at;
 
@@ -16,7 +18,7 @@ function EscalationInfoBlock({ dossier, formatDateTime }) {
         <div className="card mb-4">
           <div className="card-header d-flex align-items-center gap-2">
             <i className="bi bi-arrow-return-left text-muted" aria-hidden="true" />
-            <h6 className="mb-0">Return to Preparation</h6>
+            <h6 className="mb-0">{t('workflow.returnToPreparation')}</h6>
             {returnAt && (
               <span className="ms-auto text-muted small">{renderTimestamp(returnAt)}</span>
             )}
