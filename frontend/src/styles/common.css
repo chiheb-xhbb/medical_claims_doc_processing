@@ -1741,6 +1741,7 @@ h2 i {
 
 .enterprise-filters-actions .btn {
   min-height: 42px;
+  font-size: 0.9rem;
 }
 
 .enterprise-filters-actions .btn-outline-secondary {
