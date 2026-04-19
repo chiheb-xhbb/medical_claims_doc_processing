@@ -12,12 +12,18 @@ use App\Http\Requests\ChefReturnRequest;
 use App\Http\Requests\EscalateDossierRequest;
 use App\Models\Dossier;
 use App\Models\User;
+use App\Services\NotificationService;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 
 class DossierEscalationController extends Controller
 {
+    public function __construct(
+        private NotificationService $notificationService
+    ) {
+    }
+
     public function escalate(EscalateDossierRequest $request, Dossier $dossier): JsonResponse
     {
         /** @var User $user */
@@ -69,7 +75,7 @@ class DossierEscalationController extends Controller
 
             $lockedDossier->save();
 
-            return $lockedDossier->fresh([
+            $fresh = $lockedDossier->fresh([
                 'creator',
                 'submitter',
                 'processor',
@@ -78,6 +84,19 @@ class DossierEscalationController extends Controller
                 'returnedToPreparationBy',
                 'awaitingComplementBy',
             ]);
+
+            // Notify all active supervisors after this transaction commits.
+            DB::afterCommit(function () use ($user, $fresh) {
+                $this->notificationService->notifySupervisors(
+                    actor: $user,
+                    dossier: $fresh,
+                    type: 'DOSSIER_ESCALATED',
+                    title: 'Case file escalated for review',
+                    message: "Case file {$fresh->numero_dossier} has been escalated and requires your review."
+                );
+            });
+
+            return $fresh;
         });
 
         return response()->json([
@@ -204,7 +223,7 @@ class DossierEscalationController extends Controller
 
             $lockedDossier->save();
 
-            return $lockedDossier->fresh([
+            $fresh = $lockedDossier->fresh([
                 'creator',
                 'submitter',
                 'processor',
@@ -213,6 +232,19 @@ class DossierEscalationController extends Controller
                 'returnedToPreparationBy',
                 'awaitingComplementBy',
             ]);
+
+            // Notify all active claims managers after commit.
+            DB::afterCommit(function () use ($user, $fresh) {
+                $this->notificationService->notifyAllClaimsManagers(
+                    actor: $user,
+                    dossier: $fresh,
+                    type: 'DOSSIER_RETURNED_TO_CLAIMS_MANAGER',
+                    title: 'Case file returned to review',
+                    message: "Case file {$fresh->numero_dossier} was returned by the supervisor and requires your attention."
+                );
+            });
+
+            return $fresh;
         });
 
         return response()->json([
@@ -270,7 +302,7 @@ class DossierEscalationController extends Controller
 
             $lockedDossier->save();
 
-            return $lockedDossier->fresh([
+            $fresh = $lockedDossier->fresh([
                 'creator',
                 'submitter',
                 'processor',
@@ -279,6 +311,19 @@ class DossierEscalationController extends Controller
                 'returnedToPreparationBy',
                 'awaitingComplementBy',
             ]);
+
+            // Notify the preparation owner (dossier creator) after commit.
+            DB::afterCommit(function () use ($user, $fresh) {
+                $this->notificationService->notifyPreparationOwner(
+                    dossier: $fresh,
+                    actor: $user,
+                    type: 'DOSSIER_COMPLEMENT_REQUESTED',
+                    title: 'Complement requested for your case file',
+                    message: "The supervisor requested a complement for case file {$fresh->numero_dossier}."
+                );
+            });
+
+            return $fresh;
         });
 
         return response()->json([
