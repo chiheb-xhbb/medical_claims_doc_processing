@@ -5,8 +5,8 @@ import { getApiErrorMessage } from '../../../services/api';
 import { previewDocument, downloadDocument } from '../../../services/documentAccess';
 import { EmptyState, FileAccessInline, DecisionBadge } from '../../../ui';
 
-const ACCEPTED_DECISION_STATUSES = new Set(['ACCEPTED', 'APPROVED', 'VALIDATED']);
-const REJECTED_DECISION_STATUSES = new Set(['REJECTED', 'FAILED', 'ERROR']);
+const ACCEPTED_DECISION_STATUSES = new Set(['ACCEPTED']);
+const REJECTED_DECISION_STATUSES = new Set(['REJECTED']);
 
 const getDocumentExtractionTotal = (document) => {
   const extractions = Array.isArray(document?.extractions) ? document.extractions : [];
@@ -43,32 +43,25 @@ const getDecisionRowClass = (decisionStatus) => {
 const mapRubriqueStatusToBadge = (status) => {
   const normalized = (status || 'PENDING').toString().toUpperCase();
 
-  if (
-    ['ACCEPTED', 'APPROVED', 'VALIDATED', 'PROCESSED', 'COMPLETED', 'COMPLETE'].includes(
-      normalized
-    )
-  ) {
-    return 'APPROVED';
+  if (normalized === 'ACCEPTED') {
+    return 'ACCEPTED';
   }
 
-  if (['REJECTED', 'FAILED', 'ERROR'].includes(normalized)) {
+  if (normalized === 'REJECTED') {
     return 'REJECTED';
   }
 
-  if (normalized.includes('PARTIAL')) {
+  if (normalized === 'PARTIAL') {
     return 'PARTIAL';
   }
 
-  if (normalized.includes('REVIEW')) {
-    return 'UNDER_REVIEW';
-  }
-
-  if (normalized.includes('PENDING')) {
+  if (normalized === 'PENDING') {
     return 'PENDING';
   }
 
-  return normalized;
+  return 'PENDING';
 };
+
 
 function RubriquesSection({
   rubriques,
@@ -314,7 +307,7 @@ function RubriquesSection({
                           <tbody>
                             {rubriqueDocuments.map((document) => {
                               const extractionTotal = getDocumentExtractionTotal(document);
-                              const decisionStatus = (document.decision_status || 'PENDING')
+                              const decisionStatus = (document?.decision_status ?? document?.decisionStatus ?? 'PENDING')
                                 .toString()
                                 .toUpperCase();
                               const documentId = document.id;
@@ -324,8 +317,7 @@ function RubriquesSection({
                               const isDownloading = Boolean(downloadingById[documentId]);
                               const isDecided =
                                 decisionStatus === 'ACCEPTED' ||
-                                decisionStatus === 'REJECTED' ||
-                                decisionStatus === 'APPROVED';
+                                decisionStatus === 'REJECTED';
 
                               // Claims Manager decides pending documents in normal review.
                               // Supervisor/Admin can override both pending and already-decided rows in escalation.
