@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\DossierEscalationController;
 use App\Http\Controllers\Api\RubriqueController;
 use App\Http\Controllers\Api\DocumentDecisionController;
 use App\Http\Controllers\Api\AdminUserController;
+use App\Http\Controllers\Api\NotificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -78,5 +79,13 @@ Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
         Route::patch('/users/{user}/role', [AdminUserController::class, 'updateRole']);
         Route::patch('/users/{user}/status', [AdminUserController::class, 'updateStatus']);
         Route::patch('/users/{user}/password', [AdminUserController::class, 'resetPassword']);
+    });
+
+    // Notifications
+    Route::prefix('notifications')->group(function () {
+        Route::get('/', [NotificationController::class, 'index']);
+        Route::get('/unread-count', [NotificationController::class, 'unreadCount']);
+        Route::post('/read-all', [NotificationController::class, 'markAllRead']);
+        Route::post('/{notification}/read', [NotificationController::class, 'markRead']);
     });
 });

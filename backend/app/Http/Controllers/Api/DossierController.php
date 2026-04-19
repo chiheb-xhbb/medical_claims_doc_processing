@@ -11,12 +11,18 @@ use App\Http\Requests\StoreDossierRequest;
 use App\Http\Requests\UpdateDossierRequest;
 use App\Models\Dossier;
 use App\Models\User;
+use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class DossierController extends Controller
 {
+    public function __construct(
+        private NotificationService $notificationService
+    ) {
+    }
+
     public function index(Request $request): JsonResponse
     {
         /** @var User $user */
@@ -299,6 +305,8 @@ class DossierController extends Controller
             ], 422);
         }
 
+        $wasResubmission = $dossier->status === DossierStatus::AWAITING_COMPLEMENT;
+
         $dossier->status = DossierStatus::UNDER_REVIEW;
         $dossier->submitted_at = now();
         $dossier->submitted_by = $user->id;
@@ -319,6 +327,22 @@ class DossierController extends Controller
             'returnedToPreparationBy',
             'awaitingComplementBy',
         ]);
+
+        DB::afterCommit(function () use ($user, $dossier, $wasResubmission) {
+            $this->notificationService->notifyAllClaimsManagers(
+                actor: $user,
+                dossier: $dossier,
+                type: $wasResubmission
+                    ? 'DOSSIER_RESUBMITTED_FOR_REVIEW'
+                    : 'DOSSIER_SUBMITTED_FOR_REVIEW',
+                title: $wasResubmission
+                    ? 'Case file resubmitted for review'
+                    : 'Case file submitted for review',
+                message: $wasResubmission
+                    ? "Case file {$dossier->numero_dossier} has been resubmitted for review."
+                    : "Case file {$dossier->numero_dossier} has been submitted for review."
+            );
+        });
 
         return response()->json([
             'message' => 'Case file submitted successfully.',
@@ -454,6 +478,16 @@ class DossierController extends Controller
                 'returnedToPreparationBy',
                 'awaitingComplementBy',
             ]);
+
+            DB::afterCommit(function () use ($user, $lockedDossier) {
+                $this->notificationService->notifyPreparationOwner(
+                    dossier: $lockedDossier,
+                    actor: $user,
+                    type: 'DOSSIER_RETURNED_TO_PREPARATION',
+                    title: 'Case file returned to preparation',
+                    message: "Case file {$lockedDossier->numero_dossier} was returned to preparation."
+                );
+            });
 
             return response()->json([
                 'message' => 'Case file returned to preparation successfully.',
