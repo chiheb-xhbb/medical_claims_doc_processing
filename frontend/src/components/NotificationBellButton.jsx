@@ -10,6 +10,7 @@ import {
 import { getStoredRole, AUTH_CHANGED_EVENT } from '../services/auth';
 import { USER_ROLES } from '../constants/domainLabels';
 import { notifyError } from '../utils/toast';
+import { getLocalizedNotificationContent } from '../utils/notificationContent';
 
 const BELL_VISIBLE_ROLES = new Set([
   USER_ROLES.AGENT,
@@ -245,7 +246,9 @@ function NotificationBellButton() {
               notifications.map((notification) => {
                 const isUnread = !notification.is_read;
                 const isBusy = activeNotificationId === notification.id;
-                const actorName = notification.actor?.name || t('notifications.actorSystem');
+                const actorName =
+                  notification.actor?.name || notification.meta?.actor_name || t('notifications.actorSystem');
+                const content = getLocalizedNotificationContent(notification);
 
                 return (
                   <button
@@ -257,7 +260,7 @@ function NotificationBellButton() {
                   >
                     <div className="nb-bell-item__row">
                       {isUnread && <span className="nb-bell-item__dot" aria-hidden="true" />}
-                      <span className="nb-bell-item__title">{notification.title}</span>
+                      <span className="nb-bell-item__title">{content.title}</span>
                       {isBusy && (
                         <span
                           className="spinner-border spinner-border-sm text-primary ms-auto"
@@ -265,7 +268,7 @@ function NotificationBellButton() {
                         />
                       )}
                     </div>
-                    <p className="nb-bell-item__message">{notification.message}</p>
+                    <p className="nb-bell-item__message">{content.message}</p>
                     <div className="nb-bell-item__meta">
                       <span className="nb-bell-item__actor">{actorName}</span>
                       <span className="nb-bell-item__sep" aria-hidden="true">·</span>

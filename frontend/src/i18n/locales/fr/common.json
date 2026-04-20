@@ -90,7 +90,25 @@
     "failedLoad": "Impossible de charger les notifications.",
     "failedOpen": "Impossible d'ouvrir la notification.",
     "failedMarkAll": "Impossible de marquer toutes les notifications comme lues.",
-    "actorSystem": "Système"
+    "actorSystem": "Système",
+    "eventTitles": {
+      "DOSSIER_SUBMITTED_FOR_REVIEW": "Dossier soumis pour révision",
+      "DOSSIER_RESUBMITTED_FOR_REVIEW": "Dossier soumis de nouveau pour révision",
+      "DOSSIER_ESCALATED": "Dossier escaladé pour révision hiérarchique",
+      "DOSSIER_RETURNED_TO_CLAIMS_MANAGER": "Dossier retourné en révision",
+      "DOSSIER_COMPLEMENT_REQUESTED": "Complément demandé pour votre dossier",
+      "DOSSIER_RETURNED_TO_PREPARATION": "Dossier retourné en préparation",
+      "DEFAULT": "Notification"
+    },
+    "eventMessages": {
+      "DOSSIER_SUBMITTED_FOR_REVIEW": "{{caseFileRef}} a été soumis pour révision.",
+      "DOSSIER_RESUBMITTED_FOR_REVIEW": "{{caseFileRef}} a été soumis de nouveau pour révision.",
+      "DOSSIER_ESCALATED": "{{caseFileRef}} a été escaladé et nécessite la révision du {{supervisor}}.",
+      "DOSSIER_RETURNED_TO_CLAIMS_MANAGER": "{{caseFileRef}} a été retourné par le {{supervisor}} et requiert l'attention du {{claimsManager}}.",
+      "DOSSIER_COMPLEMENT_REQUESTED": "Le {{supervisor}} a demandé un complément pour {{caseFileRef}}.",
+      "DOSSIER_RETURNED_TO_PREPARATION": "{{caseFileRef}} a été retourné en préparation par le {{claimsManager}}.",
+      "DEFAULT": "Ouvrez les détails du {{caseFile}} pour plus d'informations."
+    }
   },
   "actions": {
     "save": "Enregistrer",

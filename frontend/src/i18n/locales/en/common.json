@@ -90,7 +90,25 @@
     "failedLoad": "Failed to load notifications.",
     "failedOpen": "Failed to open notification.",
     "failedMarkAll": "Failed to mark all notifications as read.",
-    "actorSystem": "System"
+    "actorSystem": "System",
+    "eventTitles": {
+      "DOSSIER_SUBMITTED_FOR_REVIEW": "Case file submitted for review",
+      "DOSSIER_RESUBMITTED_FOR_REVIEW": "Case file resubmitted for review",
+      "DOSSIER_ESCALATED": "Case file escalated for supervisor review",
+      "DOSSIER_RETURNED_TO_CLAIMS_MANAGER": "Case file returned to review",
+      "DOSSIER_COMPLEMENT_REQUESTED": "Complement requested for your case file",
+      "DOSSIER_RETURNED_TO_PREPARATION": "Case file returned to preparation",
+      "DEFAULT": "Notification"
+    },
+    "eventMessages": {
+      "DOSSIER_SUBMITTED_FOR_REVIEW": "{{caseFileRef}} has been submitted for review.",
+      "DOSSIER_RESUBMITTED_FOR_REVIEW": "{{caseFileRef}} has been resubmitted for review.",
+      "DOSSIER_ESCALATED": "{{caseFileRef}} has been escalated and requires {{supervisor}} review.",
+      "DOSSIER_RETURNED_TO_CLAIMS_MANAGER": "{{caseFileRef}} was returned by the {{supervisor}} and requires {{claimsManager}} attention.",
+      "DOSSIER_COMPLEMENT_REQUESTED": "The {{supervisor}} requested a complement for {{caseFileRef}}.",
+      "DOSSIER_RETURNED_TO_PREPARATION": "{{caseFileRef}} was returned to preparation by the {{claimsManager}}.",
+      "DEFAULT": "Open {{caseFile}} details for more information."
+    }
   },
   "actions": {
     "save": "Save",

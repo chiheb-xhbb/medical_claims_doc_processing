@@ -145,6 +145,8 @@ class NotificationService
             'meta' => [
                 'numero_dossier' => $dossier->numero_dossier,
                 'dossier_status' => $dossier->status?->value ?? $dossier->status,
+                'actor_name' => $actor->name,
+                'actor_role' => $actor->role?->value ?? $actor->role,
             ],
         ];
     }
