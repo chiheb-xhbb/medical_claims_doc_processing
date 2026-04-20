@@ -360,6 +360,9 @@
     "rejectingSection": "Rejecting...",
     "rejectSectionImpact": "All documents in this section will be marked as",
     "rejectSectionReasonPlaceholder": "Explain why this section is rejected",
+    "currentEscalationContext": "Current Hierarchical Context",
+    "currentReturnToPreparationContext": "Current Return-to-Preparation Context",
+    "currentReturnNoteLabel": "Latest return note",
     "escalationReview": "Escalation & Supervisor Review",
     "labelEscalated": "Escalated",
     "labelReturned": "Returned",
@@ -368,6 +371,42 @@
     "labelSupervisorRejected": "Supervisor Rejected",
     "labelSupervisorDecision": "Supervisor Decision",
     "labelWorkflowEvent": "Workflow Event"
+  },
+  "workflowHistory": {
+    "title": "Workflow History",
+    "loading": "Loading workflow history...",
+    "eventCount_one": "{{count}} event",
+    "eventCount_other": "{{count}} events",
+    "emptyTitle": "No Workflow Events",
+    "emptyDescription": "No immutable workflow events are available for this case file yet.",
+    "error": "Unable to load workflow history",
+    "errorDescription": "Check your connection and retry.",
+    "systemActor": "System",
+    "transitionLabel": "Transition",
+    "noteLabel": "Note",
+    "eventLabels": {
+      "DOSSIER_CREATED": "Case File Created",
+      "DOSSIER_SUBMITTED_FOR_REVIEW": "Submitted for Review",
+      "DOSSIER_RESUBMITTED_FOR_REVIEW": "Resubmitted for Review",
+      "DOSSIER_RETURNED_TO_PREPARATION": "Returned to Preparation",
+      "DOSSIER_ESCALATED": "Escalated to Supervisor",
+      "SUPERVISOR_APPROVED_ESCALATION": "Escalation Approved",
+      "SUPERVISOR_RETURNED_TO_CLAIMS_MANAGER": "Returned to Claims Manager",
+      "SUPERVISOR_REQUESTED_COMPLEMENT": "Complement Requested",
+      "DOSSIER_PROCESSED": "Case File Processed",
+      "DEFAULT": "Workflow Event"
+    },
+    "eventDescriptions": {
+      "DOSSIER_CREATED": "The case file was created.",
+      "DOSSIER_SUBMITTED_FOR_REVIEW": "The case file was submitted for review.",
+      "DOSSIER_RESUBMITTED_FOR_REVIEW": "The case file was resubmitted for review.",
+      "DOSSIER_RETURNED_TO_PREPARATION": "The case file was returned to preparation.",
+      "DOSSIER_ESCALATED": "The case file was escalated for supervisor review.",
+      "SUPERVISOR_APPROVED_ESCALATION": "The supervisor approved the escalation.",
+      "SUPERVISOR_RETURNED_TO_CLAIMS_MANAGER": "The supervisor returned the case file to the Claims Manager.",
+      "SUPERVISOR_REQUESTED_COMPLEMENT": "The supervisor requested additional information.",
+      "DOSSIER_PROCESSED": "The case file was processed."
+    }
   },
   "supervisor": {
     "decisionTitle": "Supervisor Decision",

@@ -360,6 +360,9 @@
     "rejectingSection": "Rejet…",
     "rejectSectionImpact": "Tous les documents de cette rubrique seront marqués",
     "rejectSectionReasonPlaceholder": "Expliquez pourquoi cette rubrique est rejetée",
+    "currentEscalationContext": "Contexte hiérarchique actuel",
+    "currentReturnToPreparationContext": "Contexte actuel de retour en préparation",
+    "currentReturnNoteLabel": "Dernière note de retour",
     "escalationReview": "Escalade et révision hiérarchique",
     "labelEscalated": "Escaladé",
     "labelReturned": "Retourné",
@@ -368,6 +371,42 @@
     "labelSupervisorRejected": "Rejeté par le Chef hiérarchique",
     "labelSupervisorDecision": "Décision hiérarchique",
     "labelWorkflowEvent": "Événement de traitement"
+  },
+  "workflowHistory": {
+    "title": "Historique du traitement",
+    "loading": "Chargement de l'historique du traitement…",
+    "eventCount_one": "{{count}} événement",
+    "eventCount_other": "{{count}} événements",
+    "emptyTitle": "Aucun événement de traitement",
+    "emptyDescription": "Aucun événement immuable n'est disponible pour ce dossier pour le moment.",
+    "error": "Impossible de charger l'historique du traitement",
+    "errorDescription": "Vérifiez votre connexion puis réessayez.",
+    "systemActor": "Système",
+    "transitionLabel": "Transition",
+    "noteLabel": "Note",
+    "eventLabels": {
+      "DOSSIER_CREATED": "Dossier créé",
+      "DOSSIER_SUBMITTED_FOR_REVIEW": "Soumis pour révision",
+      "DOSSIER_RESUBMITTED_FOR_REVIEW": "Soumis de nouveau pour révision",
+      "DOSSIER_RETURNED_TO_PREPARATION": "Retourné en préparation",
+      "DOSSIER_ESCALATED": "Escaladé au Chef hiérarchique",
+      "SUPERVISOR_APPROVED_ESCALATION": "Escalade approuvée",
+      "SUPERVISOR_RETURNED_TO_CLAIMS_MANAGER": "Retourné au Gestionnaire",
+      "SUPERVISOR_REQUESTED_COMPLEMENT": "Complément demandé",
+      "DOSSIER_PROCESSED": "Dossier traité",
+      "DEFAULT": "Événement de traitement"
+    },
+    "eventDescriptions": {
+      "DOSSIER_CREATED": "Le dossier a été créé.",
+      "DOSSIER_SUBMITTED_FOR_REVIEW": "Le dossier a été soumis pour révision.",
+      "DOSSIER_RESUBMITTED_FOR_REVIEW": "Le dossier a été soumis de nouveau pour révision.",
+      "DOSSIER_RETURNED_TO_PREPARATION": "Le dossier a été retourné en préparation.",
+      "DOSSIER_ESCALATED": "Le dossier a été escaladé pour révision hiérarchique.",
+      "SUPERVISOR_APPROVED_ESCALATION": "Le Chef hiérarchique a approuvé l'escalade.",
+      "SUPERVISOR_RETURNED_TO_CLAIMS_MANAGER": "Le Chef hiérarchique a retourné le dossier au Gestionnaire.",
+      "SUPERVISOR_REQUESTED_COMPLEMENT": "Le Chef hiérarchique a demandé un complément.",
+      "DOSSIER_PROCESSED": "Le dossier a été traité."
+    }
   },
   "supervisor": {
     "decisionTitle": "Décision hiérarchique",

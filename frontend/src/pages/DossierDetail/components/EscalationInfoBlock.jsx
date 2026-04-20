@@ -15,16 +15,21 @@ function EscalationInfoBlock({ dossier, formatDateTime }) {
     <>
       <AuditTimeline dossier={dossier} formatDateTime={formatDateTime} />
       {returnNote && (
-        <div className="card mb-4">
-          <div className="card-header d-flex align-items-center gap-2">
-            <i className="bi bi-arrow-return-left text-muted" aria-hidden="true" />
-            <h6 className="mb-0">{t('workflow.returnToPreparation')}</h6>
+        <div className="card mb-4 workflow-context-card workflow-context-card--return">
+          <div className="card-header d-flex justify-content-between align-items-center">
+            <h6 className="mb-0 d-flex align-items-center">
+              <i className="bi bi-arrow-return-left me-2 text-muted" aria-hidden="true" />
+              {t('workflow.currentReturnToPreparationContext')}
+            </h6>
             {returnAt && (
               <span className="ms-auto text-muted small">{renderTimestamp(returnAt)}</span>
             )}
           </div>
           <div className="card-body py-3">
-            <p className="mb-0 text-muted">{returnNote}</p>
+            <p className="mb-0 text-muted workflow-context-card__note">
+              <strong>{t('workflow.currentReturnNoteLabel')}:</strong>{' '}
+              {returnNote}
+            </p>
           </div>
         </div>
       )}

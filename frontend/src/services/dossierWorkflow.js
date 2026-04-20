@@ -18,6 +18,25 @@ export async function getDossierDetail(id) {
   return response.data || {};
 }
 
+export async function getDossierWorkflowEvents(id) {
+  const response = await api.get(`/dossiers/${id}/workflow-events`);
+  const payload = response.data || {};
+
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (Array.isArray(payload.events)) {
+    return payload.events;
+  }
+
+  if (Array.isArray(payload.data)) {
+    return payload.data;
+  }
+
+  return [];
+}
+
 export async function createRubrique(dossierId, payload) {
   const response = await api.post(`/dossiers/${dossierId}/rubriques`, payload);
   return response.data || {};

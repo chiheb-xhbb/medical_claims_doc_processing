@@ -359,10 +359,12 @@ function AuditTimeline({ dossier, formatDateTime }) {
   }
 
   return (
-    <div className="card mb-4">
-      <div className="card-header d-flex align-items-center gap-2">
-        <i className="bi bi-diagram-3 text-muted" aria-hidden="true" />
-        <h6 className="mb-0">{t('workflow.escalationReview', { defaultValue: 'Escalation & Supervisor Review' })}</h6>
+    <div className="card mb-4 workflow-context-card">
+      <div className="card-header d-flex justify-content-between align-items-center">
+        <h6 className="mb-0 d-flex align-items-center">
+          <i className="bi bi-diagram-3 me-2 text-muted" aria-hidden="true" />
+          {t('workflow.currentEscalationContext', { defaultValue: 'Current Hierarchical Context' })}
+        </h6>
       </div>
       <div className="card-body p-0">
         <div className="audit-timeline">

@@ -16,6 +16,7 @@ import {
 } from '../constants/domainLabels';
 import {
   getDossierDetail,
+  getDossierWorkflowEvents,
   createRubrique,
   attachDocuments,
   detachDocument,
@@ -41,6 +42,7 @@ import AttachDocumentsModal from './DossierDetail/components/AttachDocumentsModa
 import RejectDocumentModal from './DossierDetail/components/RejectDocumentModal';
 import RejectRubriqueModal from './DossierDetail/components/RejectRubriqueModal';
 import EscalationInfoBlock from './DossierDetail/components/EscalationInfoBlock';
+import WorkflowHistoryCard from './DossierDetail/components/WorkflowHistoryCard';
 import SupervisorActionPanel from './DossierDetail/components/SupervisorActionPanel';
 import DossierModalShell from './DossierDetail/components/DossierModalShell';
 import './DossierDetail/DossierDetail.css';
@@ -121,6 +123,9 @@ function DossierDetail() {
   const [isLoadingDetail, setIsLoadingDetail] = useState(true);
   const [isRefreshingDetail, setIsRefreshingDetail] = useState(false);
   const [loadErrorMessage, setLoadErrorMessage] = useState(null);
+  const [workflowEvents, setWorkflowEvents] = useState([]);
+  const [isLoadingWorkflowHistory, setIsLoadingWorkflowHistory] = useState(true);
+  const [workflowHistoryLoadFailed, setWorkflowHistoryLoadFailed] = useState(false);
 
   const [rubriqueTitle, setRubriqueTitle] = useState('');
   const [rubriqueNotes, setRubriqueNotes] = useState('');
@@ -196,6 +201,30 @@ function DossierDetail() {
   useEffect(() => {
     refreshDetail();
   }, [refreshDetail]);
+
+  const refreshWorkflowHistory = useCallback(async () => {
+    setIsLoadingWorkflowHistory(true);
+    setWorkflowHistoryLoadFailed(false);
+
+    try {
+      const events = await getDossierWorkflowEvents(id);
+      setWorkflowEvents(Array.isArray(events) ? events : []);
+    } catch {
+      setWorkflowHistoryLoadFailed(true);
+      setWorkflowEvents([]);
+    } finally {
+      setIsLoadingWorkflowHistory(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    refreshWorkflowHistory();
+  }, [refreshWorkflowHistory]);
+
+  const refreshDossierView = useCallback(async () => {
+    await refreshDetailSilently();
+    await refreshWorkflowHistory();
+  }, [refreshDetailSilently, refreshWorkflowHistory]);
 
   const [role, setRole] = useState(() => getStoredRole());
   const [currentUserId, setCurrentUserId] = useState(() => Number(getStoredUser()?.id || 0));
@@ -499,7 +528,7 @@ function DossierDetail() {
 
       const response = await submitDossier(id);
       notifySuccess(getToastMessage(response, t('feedback.caseFileSubmittedSuccess')));
-      await refreshDetailSilently();
+      await refreshDossierView();
     } catch (error) {
       notifyError(formatApiError(error, t('feedback.submitCaseFileFailed'), t));
     } finally {
@@ -513,7 +542,7 @@ function DossierDetail() {
 
       const response = await processDossier(id);
       notifySuccess(getToastMessage(response, t('feedback.caseFileProcessedSuccess')));
-      await refreshDetailSilently();
+      await refreshDossierView();
     } catch (error) {
       notifyError(formatApiError(error, t('feedback.processCaseFileFailed'), t));
     } finally {
@@ -534,7 +563,7 @@ function DossierDetail() {
       notifySuccess(getToastMessage(response, t('feedback.caseFileEscalatedSuccess')));
       setEscalateModalOpen(false);
       setEscalationReason('');
-      await refreshDetailSilently();
+      await refreshDossierView();
     } catch (error) {
       notifyError(formatApiError(error, t('feedback.escalateCaseFileFailed'), t));
     } finally {
@@ -547,7 +576,7 @@ function DossierDetail() {
       setIsSupervisorActing(true);
       const response = await approveEscalation(id, note);
       notifySuccess(getToastMessage(response, t('feedback.escalationApprovedProcessed')));
-      await refreshDetailSilently();
+      await refreshDossierView();
     } catch (error) {
       notifyError(formatApiError(error, t('feedback.approveEscalationFailed'), t));
     } finally {
@@ -562,7 +591,7 @@ function DossierDetail() {
       notifyWorkflowSuccess(
         getToastMessage(response, t('feedback.caseFileReturnedToClaims'))
       );
-      await refreshDetailSilently();
+      await refreshDossierView();
     } catch (error) {
       notifyError(formatApiError(error, t('feedback.returnCaseFileFailed'), t));
     } finally {
@@ -577,7 +606,7 @@ function DossierDetail() {
       notifyWorkflowSuccess(
         getToastMessage(response, t('feedback.complementRequestedPreparationOwner'))
       );
-      await refreshDetailSilently();
+      await refreshDossierView();
     } catch (error) {
       notifyError(formatApiError(error, t('feedback.requestComplementFailed'), t));
     } finally {
@@ -598,7 +627,7 @@ function DossierDetail() {
       notifyWorkflowSuccess(getToastMessage(response, t('feedback.caseFileReturnedPreparation')));
       setReturnToPreparationModalOpen(false);
       setReturnToPreparationNote('');
-      await refreshDetailSilently();
+      await refreshDossierView();
     } catch (error) {
       notifyError(formatApiError(error, t('feedback.returnCaseFileToPreparationFailed'), t));
     } finally {
@@ -939,6 +968,14 @@ function DossierDetail() {
       />
 
       <EscalationInfoBlock dossier={dossier} formatDateTime={formatDateTime} />
+
+      <WorkflowHistoryCard
+        events={workflowEvents}
+        isLoading={isLoadingWorkflowHistory}
+        hasError={workflowHistoryLoadFailed}
+        onRetry={refreshWorkflowHistory}
+        formatDateTime={formatDateTime}
+      />
 
       {canSupervisorAct && (
         <SupervisorActionPanel
