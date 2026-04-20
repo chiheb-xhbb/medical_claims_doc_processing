@@ -330,17 +330,6 @@
   box-shadow: none;
 }
 
-.dossier-detail-page .workflow-context-card .card-header {
-  padding-top: 0.7rem;
-  padding-bottom: 0.7rem;
-}
-
-.dossier-detail-page .workflow-context-card .card-header h6 {
-  font-size: 0.9rem;
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-gray-800);
-}
-
 .dossier-detail-page .audit-timeline__event-time,
 .dossier-detail-page .workflow-history-card__event-time {
   font-size: 0.79rem;
