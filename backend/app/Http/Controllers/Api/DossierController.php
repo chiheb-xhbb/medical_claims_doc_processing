@@ -11,6 +11,7 @@ use App\Http\Requests\StoreDossierRequest;
 use App\Http\Requests\UpdateDossierRequest;
 use App\Models\Dossier;
 use App\Models\User;
+use App\Services\DossierWorkflowEventService;
 use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,8 +20,10 @@ use Illuminate\Support\Facades\DB;
 class DossierController extends Controller
 {
     public function __construct(
+        private DossierWorkflowEventService $workflowEventService,
         private NotificationService $notificationService
     ) {
+        // Keep workflow side effects centralized in dedicated services.
     }
 
     public function index(Request $request): JsonResponse
@@ -127,29 +130,37 @@ class DossierController extends Controller
 
         $validated = $request->validated();
 
-        $dossier = Dossier::create([
-            'assured_identifier' => $validated['assured_identifier'],
-            'episode_description' => $validated['episode_description'] ?? null,
-            'notes' => $validated['notes'] ?? null,
-            'created_by' => $user->id,
-            'status' => DossierStatus::RECEIVED,
-        ])->fresh([
-            'creator',
-            'submitter',
-            'processor',
-            'escalator',
-            'chefDecisionMaker',
-            'returnedToPreparationBy',
-            'awaitingComplementBy',
-        ]);
+        return DB::transaction(function () use ($validated, $user) {
+            $dossier = Dossier::create([
+                'assured_identifier' => $validated['assured_identifier'],
+                'episode_description' => $validated['episode_description'] ?? null,
+                'notes' => $validated['notes'] ?? null,
+                'created_by' => $user->id,
+                'status' => DossierStatus::RECEIVED,
+            ]);
 
-        return response()->json([
-            'message' => 'Case file created successfully.',
-            'dossier' => $this->formatDossierDetail($dossier),
-            'requested_total' => $dossier->getRequestedTotal(),
-            'current_total' => $dossier->getCurrentTotal(),
-            'display_total' => $dossier->getDisplayTotal(),
-        ], 201);
+            DB::afterCommit(function () use ($user, $dossier) {
+                $this->workflowEventService->recordCreation($dossier, $user);
+            });
+
+            $dossier = $dossier->fresh([
+                'creator',
+                'submitter',
+                'processor',
+                'escalator',
+                'chefDecisionMaker',
+                'returnedToPreparationBy',
+                'awaitingComplementBy',
+            ]);
+
+            return response()->json([
+                'message' => 'Case file created successfully.',
+                'dossier' => $this->formatDossierDetail($dossier),
+                'requested_total' => $dossier->getRequestedTotal(),
+                'current_total' => $dossier->getCurrentTotal(),
+                'display_total' => $dossier->getDisplayTotal(),
+            ], 201);
+        });
     }
 
     public function show(Request $request, Dossier $dossier): JsonResponse
@@ -186,6 +197,45 @@ class DossierController extends Controller
             'requested_total' => $dossier->getRequestedTotal(),
             'current_total' => $dossier->getCurrentTotal(),
             'display_total' => $dossier->getDisplayTotal(),
+        ], 200);
+    }
+
+    public function workflowEvents(Request $request, Dossier $dossier): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        if (! $this->canViewDossier($user, $dossier)) {
+            return response()->json([
+                'message' => 'You are not allowed to view this case file.',
+            ], 403);
+        }
+
+        $events = $dossier->workflowEvents()
+            ->with('actor')
+            ->orderBy('created_at', 'asc')
+            ->get()
+            ->map(fn ($event) => [
+                'id' => $event->id,
+                'event_type' => $event->event_type,
+                'from_status' => $event->from_status,
+                'to_status' => $event->to_status,
+                'title' => $event->title,
+                'description' => $event->description,
+                'note' => $event->note,
+                'meta' => $event->meta,
+                'created_at' => $event->created_at,
+                'actor' => $event->actor ? [
+                    'id' => $event->actor->id,
+                    'name' => $event->actor->name,
+                    'role' => $event->actor->role instanceof \BackedEnum
+                        ? $event->actor->role->value
+                        : $event->actor->role,
+                ] : null,
+            ]);
+
+        return response()->json([
+            'events' => $events,
         ], 200);
     }
 
@@ -284,73 +334,98 @@ class DossierController extends Controller
             ], 403);
         }
 
-        if ($dossier->isFrozen()) {
+        return DB::transaction(function () use ($dossier, $user) {
+            /** @var Dossier $lockedDossier */
+            $lockedDossier = Dossier::query()
+                ->whereKey($dossier->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($lockedDossier->isFrozen()) {
+                return response()->json([
+                    'message' => 'This case file is frozen and cannot be submitted.',
+                ], 422);
+            }
+
+            if (! in_array($lockedDossier->status, [
+                DossierStatus::IN_PROGRESS,
+                DossierStatus::AWAITING_COMPLEMENT,
+            ], true)) {
+                return response()->json([
+                    'message' => 'Only case files in IN_PROGRESS or AWAITING_COMPLEMENT can be submitted.',
+                ], 422);
+            }
+
+            if (! $lockedDossier->rubriques()->exists() || ! $lockedDossier->documents()->exists()) {
+                return response()->json([
+                    'message' => 'This case file is not ready to be submitted.',
+                ], 422);
+            }
+
+            $fromStatus = $lockedDossier->status->value;
+            $wasResubmission = $lockedDossier->status === DossierStatus::AWAITING_COMPLEMENT;
+
+            $lockedDossier->status = DossierStatus::UNDER_REVIEW;
+            $lockedDossier->submitted_at = now();
+            $lockedDossier->submitted_by = $user->id;
+
+            $lockedDossier->awaiting_complement_source = null;
+            $lockedDossier->awaiting_complement_by = null;
+            $lockedDossier->awaiting_complement_at = null;
+            $lockedDossier->awaiting_complement_note = null;
+
+            $lockedDossier->save();
+
+            $lockedDossier = $lockedDossier->fresh([
+                'creator',
+                'submitter',
+                'processor',
+                'escalator',
+                'chefDecisionMaker',
+                'returnedToPreparationBy',
+                'awaitingComplementBy',
+            ]);
+
+            DB::afterCommit(function () use ($user, $lockedDossier, $fromStatus, $wasResubmission) {
+                $this->notificationService->notifyAllClaimsManagers(
+                    actor: $user,
+                    dossier: $lockedDossier,
+                    type: $wasResubmission
+                        ? 'DOSSIER_RESUBMITTED_FOR_REVIEW'
+                        : 'DOSSIER_SUBMITTED_FOR_REVIEW',
+                    title: $wasResubmission
+                        ? 'Case file resubmitted for review'
+                        : 'Case file submitted for review',
+                    message: $wasResubmission
+                        ? "Case file {$lockedDossier->numero_dossier} has been resubmitted for review."
+                        : "Case file {$lockedDossier->numero_dossier} has been submitted for review."
+                );
+
+                if ($wasResubmission) {
+                    $this->workflowEventService->recordResubmission(
+                        dossier: $lockedDossier,
+                        actor: $user,
+                        fromStatus: $fromStatus,
+                        toStatus: DossierStatus::UNDER_REVIEW->value
+                    );
+                } else {
+                    $this->workflowEventService->recordSubmission(
+                        dossier: $lockedDossier,
+                        actor: $user,
+                        fromStatus: $fromStatus,
+                        toStatus: DossierStatus::UNDER_REVIEW->value
+                    );
+                }
+            });
+
             return response()->json([
-                'message' => 'This case file is frozen and cannot be submitted.',
-            ], 422);
-        }
-
-        if (! in_array($dossier->status, [
-            DossierStatus::IN_PROGRESS,
-            DossierStatus::AWAITING_COMPLEMENT,
-        ], true)) {
-            return response()->json([
-                'message' => 'Only case files in IN_PROGRESS or AWAITING_COMPLEMENT can be submitted.',
-            ], 422);
-        }
-
-        if (! $dossier->rubriques()->exists() || ! $dossier->documents()->exists()) {
-            return response()->json([
-                'message' => 'This case file is not ready to be submitted.',
-            ], 422);
-        }
-
-        $wasResubmission = $dossier->status === DossierStatus::AWAITING_COMPLEMENT;
-
-        $dossier->status = DossierStatus::UNDER_REVIEW;
-        $dossier->submitted_at = now();
-        $dossier->submitted_by = $user->id;
-
-        $dossier->awaiting_complement_source = null;
-        $dossier->awaiting_complement_by = null;
-        $dossier->awaiting_complement_at = null;
-        $dossier->awaiting_complement_note = null;
-
-        $dossier->save();
-
-        $dossier = $dossier->fresh([
-            'creator',
-            'submitter',
-            'processor',
-            'escalator',
-            'chefDecisionMaker',
-            'returnedToPreparationBy',
-            'awaitingComplementBy',
-        ]);
-
-        DB::afterCommit(function () use ($user, $dossier, $wasResubmission) {
-            $this->notificationService->notifyAllClaimsManagers(
-                actor: $user,
-                dossier: $dossier,
-                type: $wasResubmission
-                    ? 'DOSSIER_RESUBMITTED_FOR_REVIEW'
-                    : 'DOSSIER_SUBMITTED_FOR_REVIEW',
-                title: $wasResubmission
-                    ? 'Case file resubmitted for review'
-                    : 'Case file submitted for review',
-                message: $wasResubmission
-                    ? "Case file {$dossier->numero_dossier} has been resubmitted for review."
-                    : "Case file {$dossier->numero_dossier} has been submitted for review."
-            );
+                'message' => 'Case file submitted successfully.',
+                'dossier' => $this->formatDossierDetail($lockedDossier),
+                'requested_total' => $lockedDossier->getRequestedTotal(),
+                'current_total' => $lockedDossier->getCurrentTotal(),
+                'display_total' => $lockedDossier->getDisplayTotal(),
+            ], 200);
         });
-
-        return response()->json([
-            'message' => 'Case file submitted successfully.',
-            'dossier' => $this->formatDossierDetail($dossier),
-            'requested_total' => $dossier->getRequestedTotal(),
-            'current_total' => $dossier->getCurrentTotal(),
-            'display_total' => $dossier->getDisplayTotal(),
-        ], 200);
     }
 
     public function process(Request $request, Dossier $dossier): JsonResponse
@@ -364,57 +439,76 @@ class DossierController extends Controller
             ], 403);
         }
 
-        if ($dossier->isFrozen()) {
+        return DB::transaction(function () use ($dossier, $user) {
+            /** @var Dossier $lockedDossier */
+            $lockedDossier = Dossier::query()
+                ->whereKey($dossier->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($lockedDossier->isFrozen()) {
+                return response()->json([
+                    'message' => 'This case file is already frozen.',
+                ], 422);
+            }
+
+            if ($lockedDossier->status !== DossierStatus::UNDER_REVIEW) {
+                return response()->json([
+                    'message' => 'Only case files in UNDER_REVIEW status can be processed.',
+                ], 422);
+            }
+
+            if (! $lockedDossier->documents()->exists()) {
+                return response()->json([
+                    'message' => 'This case file cannot be processed yet.',
+                ], 422);
+            }
+
+            $hasPendingDecisions = $lockedDossier->documents()
+                ->where('documents.decision_status', DocumentDecisionStatus::PENDING->value)
+                ->exists();
+
+            if ($hasPendingDecisions) {
+                return response()->json([
+                    'message' => 'All document decisions must be completed before processing the case file.',
+                ], 422);
+            }
+
+            $fromStatus = $lockedDossier->status->value;
+
+            $lockedDossier->status = DossierStatus::PROCESSED;
+            $lockedDossier->montant_total = $lockedDossier->getCurrentTotal();
+            $lockedDossier->processed_by = $user->id;
+            $lockedDossier->processed_at = now();
+            $lockedDossier->save();
+
+            $lockedDossier = $lockedDossier->fresh([
+                'creator',
+                'submitter',
+                'processor',
+                'escalator',
+                'chefDecisionMaker',
+                'returnedToPreparationBy',
+                'awaitingComplementBy',
+            ]);
+
+            DB::afterCommit(function () use ($user, $lockedDossier, $fromStatus) {
+                $this->workflowEventService->recordProcessing(
+                    dossier: $lockedDossier,
+                    actor: $user,
+                    fromStatus: $fromStatus,
+                    toStatus: DossierStatus::PROCESSED->value
+                );
+            });
+
             return response()->json([
-                'message' => 'This case file is already frozen.',
-            ], 422);
-        }
-
-        if ($dossier->status !== DossierStatus::UNDER_REVIEW) {
-            return response()->json([
-                'message' => 'Only case files in UNDER_REVIEW status can be processed.',
-            ], 422);
-        }
-
-        if (! $dossier->documents()->exists()) {
-            return response()->json([
-                'message' => 'This case file cannot be processed yet.',
-            ], 422);
-        }
-
-        $hasPendingDecisions = $dossier->documents()
-            ->where('documents.decision_status', DocumentDecisionStatus::PENDING->value)
-            ->exists();
-
-        if ($hasPendingDecisions) {
-            return response()->json([
-                'message' => 'All document decisions must be completed before processing the case file.',
-            ], 422);
-        }
-
-        $dossier->status = DossierStatus::PROCESSED;
-        $dossier->montant_total = $dossier->getCurrentTotal();
-        $dossier->processed_by = $user->id;
-        $dossier->processed_at = now();
-        $dossier->save();
-
-        $dossier = $dossier->fresh([
-            'creator',
-            'submitter',
-            'processor',
-            'escalator',
-            'chefDecisionMaker',
-            'returnedToPreparationBy',
-            'awaitingComplementBy',
-        ]);
-
-        return response()->json([
-            'message' => 'Case file processed successfully.',
-            'dossier' => $this->formatDossierDetail($dossier),
-            'requested_total' => $dossier->getRequestedTotal(),
-            'current_total' => $dossier->getCurrentTotal(),
-            'display_total' => $dossier->getDisplayTotal(),
-        ], 200);
+                'message' => 'Case file processed successfully.',
+                'dossier' => $this->formatDossierDetail($lockedDossier),
+                'requested_total' => $lockedDossier->getRequestedTotal(),
+                'current_total' => $lockedDossier->getCurrentTotal(),
+                'display_total' => $lockedDossier->getDisplayTotal(),
+            ], 200);
+        });
     }
 
     public function returnToPreparation(ClaimsManagerReturnRequest $request, Dossier $dossier): JsonResponse
@@ -455,6 +549,7 @@ class DossierController extends Controller
             }
 
             $returnNote = $request->validated('return_note');
+            $fromStatus = $lockedDossier->status->value;
 
             $lockedDossier->status = DossierStatus::AWAITING_COMPLEMENT;
 
@@ -479,13 +574,21 @@ class DossierController extends Controller
                 'awaitingComplementBy',
             ]);
 
-            DB::afterCommit(function () use ($user, $lockedDossier) {
+            DB::afterCommit(function () use ($user, $lockedDossier, $fromStatus, $returnNote) {
                 $this->notificationService->notifyPreparationOwner(
                     dossier: $lockedDossier,
                     actor: $user,
                     type: 'DOSSIER_RETURNED_TO_PREPARATION',
                     title: 'Case file returned to preparation',
                     message: "Case file {$lockedDossier->numero_dossier} was returned to preparation."
+                );
+
+                $this->workflowEventService->recordReturnToPreparation(
+                    dossier: $lockedDossier,
+                    actor: $user,
+                    fromStatus: $fromStatus,
+                    toStatus: DossierStatus::AWAITING_COMPLEMENT->value,
+                    note: $returnNote
                 );
             });
 

@@ -12,6 +12,7 @@ use App\Http\Requests\ChefReturnRequest;
 use App\Http\Requests\EscalateDossierRequest;
 use App\Models\Dossier;
 use App\Models\User;
+use App\Services\DossierWorkflowEventService;
 use App\Services\NotificationService;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
@@ -20,8 +21,10 @@ use Illuminate\Support\Facades\DB;
 class DossierEscalationController extends Controller
 {
     public function __construct(
+        private DossierWorkflowEventService $workflowEventService,
         private NotificationService $notificationService
     ) {
+        // Keep workflow side effects centralized and best-effort.
     }
 
     public function escalate(EscalateDossierRequest $request, Dossier $dossier): JsonResponse
@@ -58,10 +61,14 @@ class DossierEscalationController extends Controller
                 $this->unprocessable('All document decisions must be completed before escalation.');
             }
 
+            // Capture the old status before mutating the dossier.
+            $fromStatus = $lockedDossier->status->value;
+            $escalationReason = $request->validated('escalation_reason');
+
             $lockedDossier->status = DossierStatus::IN_ESCALATION;
             $lockedDossier->escalated_by = $user->id;
             $lockedDossier->escalated_at = now();
-            $lockedDossier->escalation_reason = $request->validated('escalation_reason');
+            $lockedDossier->escalation_reason = $escalationReason;
 
             $lockedDossier->chef_decision_type = null;
             $lockedDossier->chef_decision_by = null;
@@ -85,14 +92,21 @@ class DossierEscalationController extends Controller
                 'awaitingComplementBy',
             ]);
 
-            // Notify all active supervisors after this transaction commits.
-            DB::afterCommit(function () use ($user, $fresh) {
+            DB::afterCommit(function () use ($user, $fresh, $fromStatus, $escalationReason) {
                 $this->notificationService->notifySupervisors(
                     actor: $user,
                     dossier: $fresh,
                     type: 'DOSSIER_ESCALATED',
                     title: 'Case file escalated for review',
                     message: "Case file {$fresh->numero_dossier} has been escalated and requires your review."
+                );
+
+                $this->workflowEventService->recordEscalation(
+                    dossier: $fresh,
+                    actor: $user,
+                    fromStatus: $fromStatus,
+                    toStatus: DossierStatus::IN_ESCALATION->value,
+                    note: $escalationReason
                 );
             });
 
@@ -142,6 +156,9 @@ class DossierEscalationController extends Controller
                 $this->unprocessable('All document decisions must be completed before final approval.');
             }
 
+            $fromStatus = $lockedDossier->status->value;
+            $decisionNote = $request->validated('decision_note');
+
             $lockedDossier->status = DossierStatus::PROCESSED;
             $lockedDossier->montant_total = $lockedDossier->getCurrentTotal();
             $lockedDossier->processed_by = $user->id;
@@ -150,7 +167,7 @@ class DossierEscalationController extends Controller
             $lockedDossier->chef_decision_type = 'APPROVED';
             $lockedDossier->chef_decision_by = $user->id;
             $lockedDossier->chef_decision_at = now();
-            $lockedDossier->chef_decision_note = $request->validated('decision_note');
+            $lockedDossier->chef_decision_note = $decisionNote;
 
             $lockedDossier->awaiting_complement_source = null;
             $lockedDossier->awaiting_complement_by = null;
@@ -159,7 +176,7 @@ class DossierEscalationController extends Controller
 
             $lockedDossier->save();
 
-            return $lockedDossier->fresh([
+            $fresh = $lockedDossier->fresh([
                 'creator',
                 'submitter',
                 'processor',
@@ -168,6 +185,18 @@ class DossierEscalationController extends Controller
                 'returnedToPreparationBy',
                 'awaitingComplementBy',
             ]);
+
+            DB::afterCommit(function () use ($user, $fresh, $fromStatus, $decisionNote) {
+                $this->workflowEventService->recordSupervisorApproval(
+                    dossier: $fresh,
+                    actor: $user,
+                    fromStatus: $fromStatus,
+                    toStatus: DossierStatus::PROCESSED->value,
+                    note: $decisionNote
+                );
+            });
+
+            return $fresh;
         });
 
         return response()->json([
@@ -209,12 +238,15 @@ class DossierEscalationController extends Controller
                 $this->unprocessable('Only case files in IN_ESCALATION status can be returned to the Claims Manager.');
             }
 
+            $fromStatus = $lockedDossier->status->value;
+            $decisionNote = $request->validated('decision_note');
+
             $lockedDossier->status = DossierStatus::UNDER_REVIEW;
 
             $lockedDossier->chef_decision_type = 'RETURNED';
             $lockedDossier->chef_decision_by = $user->id;
             $lockedDossier->chef_decision_at = now();
-            $lockedDossier->chef_decision_note = $request->validated('decision_note');
+            $lockedDossier->chef_decision_note = $decisionNote;
 
             $lockedDossier->awaiting_complement_source = null;
             $lockedDossier->awaiting_complement_by = null;
@@ -233,14 +265,21 @@ class DossierEscalationController extends Controller
                 'awaitingComplementBy',
             ]);
 
-            // Notify all active claims managers after commit.
-            DB::afterCommit(function () use ($user, $fresh) {
+            DB::afterCommit(function () use ($user, $fresh, $fromStatus, $decisionNote) {
                 $this->notificationService->notifyAllClaimsManagers(
                     actor: $user,
                     dossier: $fresh,
                     type: 'DOSSIER_RETURNED_TO_CLAIMS_MANAGER',
                     title: 'Case file returned to review',
                     message: "Case file {$fresh->numero_dossier} was returned by the supervisor and requires your attention."
+                );
+
+                $this->workflowEventService->recordSupervisorReturn(
+                    dossier: $fresh,
+                    actor: $user,
+                    fromStatus: $fromStatus,
+                    toStatus: DossierStatus::UNDER_REVIEW->value,
+                    note: $decisionNote
                 );
             });
 
@@ -286,6 +325,7 @@ class DossierEscalationController extends Controller
                 $this->unprocessable('Only case files in IN_ESCALATION status can receive a complement request.');
             }
 
+            $fromStatus = $lockedDossier->status->value;
             $decisionNote = $request->validated('decision_note');
 
             $lockedDossier->status = DossierStatus::AWAITING_COMPLEMENT;
@@ -312,14 +352,21 @@ class DossierEscalationController extends Controller
                 'awaitingComplementBy',
             ]);
 
-            // Notify the preparation owner (dossier creator) after commit.
-            DB::afterCommit(function () use ($user, $fresh) {
+            DB::afterCommit(function () use ($user, $fresh, $fromStatus, $decisionNote) {
                 $this->notificationService->notifyPreparationOwner(
                     dossier: $fresh,
                     actor: $user,
                     type: 'DOSSIER_COMPLEMENT_REQUESTED',
                     title: 'Complement requested for your case file',
                     message: "The supervisor requested a complement for case file {$fresh->numero_dossier}."
+                );
+
+                $this->workflowEventService->recordSupervisorComplement(
+                    dossier: $fresh,
+                    actor: $user,
+                    fromStatus: $fromStatus,
+                    toStatus: DossierStatus::AWAITING_COMPLEMENT->value,
+                    note: $decisionNote
                 );
             });
 

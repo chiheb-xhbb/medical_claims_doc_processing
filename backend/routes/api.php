@@ -58,9 +58,11 @@ Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
         Route::post('/{dossier}/chef/approve', [DossierEscalationController::class, 'approveDerogation']);
         Route::post('/{dossier}/chef/return', [DossierEscalationController::class, 'returnToGestionnaire']);
         Route::post('/{dossier}/chef/request-complement', [DossierEscalationController::class, 'requestComplement']);
-
+        Route::get('/{dossier}/workflow-events', [DossierController::class, 'workflowEvents']);
         // Rubriques inside a dossier
         Route::post('/{dossier}/rubriques', [RubriqueController::class, 'store']);
+
+        
     });
 
     // Rubriques

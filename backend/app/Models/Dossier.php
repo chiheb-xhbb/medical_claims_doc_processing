@@ -100,6 +100,12 @@ class Dossier extends Model
         return $this->belongsTo(User::class, 'awaiting_complement_by');
     }
 
+    public function workflowEvents(): HasMany
+    {
+        return $this->hasMany(DossierWorkflowEvent::class)
+            ->orderBy('created_at', 'asc');
+    }
+
     public function isFrozen(): bool
     {
         return $this->status === DossierStatus::PROCESSED;
