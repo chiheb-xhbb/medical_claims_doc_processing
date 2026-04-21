@@ -397,24 +397,25 @@
 }
 
 .dossier-detail-page .workflow-history-card__timeline {
-  padding: 1rem 1.25rem;
+  padding: 0.92rem 1.25rem 0.9rem;
 }
 
 .dossier-detail-page .workflow-history-card__event {
   position: relative;
   display: flex;
-  gap: 0.75rem;
-  padding-bottom: 0.95rem;
+  align-items: flex-start;
+  gap: 0.68rem;
+  padding-bottom: 0.72rem;
 }
 
 .dossier-detail-page .workflow-history-card__event::before {
   content: '';
   position: absolute;
-  left: 16px;
-  top: 17px;
-  bottom: -10px;
+  left: 17px;
+  top: 40px;
+  bottom: 0;
   width: 2px;
-  background-color: rgba(148, 163, 184, 0.5);
+  background-color: rgba(148, 163, 184, 0.44);
   z-index: 0;
 }
 
@@ -427,48 +428,54 @@
 }
 
 .dossier-detail-page .workflow-history-card__marker {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-full);
-  border: 1px solid var(--color-gray-200);
+  border: 1px solid;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  font-size: 0.84rem;
+  font-size: 0.88rem;
   line-height: 1;
   position: relative;
   z-index: 2;
 }
 
 .dossier-detail-page .workflow-history-card__marker--created {
-  background-color: #eff6ff;
-  border-color: #bfdbfe;
-  color: #1d4ed8;
+  background-color: #e6f1fb;
+  border-color: #185fa5;
+  color: #185fa5;
 }
 
 .dossier-detail-page .workflow-history-card__marker--review {
-  background-color: #ecfeff;
-  border-color: #bae6fd;
-  color: #0e7490;
+  background-color: #eaf3de;
+  border-color: #3b6d11;
+  color: #3b6d11;
 }
 
-.dossier-detail-page .workflow-history-card__marker--warning {
-  background-color: #fffbeb;
-  border-color: #fde68a;
-  color: #b45309;
+.dossier-detail-page .workflow-history-card__marker--returned {
+  background-color: #faeeda;
+  border-color: #854f0b;
+  color: #854f0b;
 }
 
 .dossier-detail-page .workflow-history-card__marker--escalation {
-  background-color: #fff7ed;
-  border-color: #fed7aa;
-  color: #9a3412;
+  background-color: #faece7;
+  border-color: #993c1d;
+  color: #993c1d;
+}
+
+.dossier-detail-page .workflow-history-card__marker--complement {
+  background-color: #eeedfe;
+  border-color: #534ab7;
+  color: #534ab7;
 }
 
 .dossier-detail-page .workflow-history-card__marker--success {
-  background-color: #ecfdf5;
-  border-color: #bbf7d0;
-  color: #047857;
+  background-color: #eaf3de;
+  border-color: #3b6d11;
+  color: #2f5b0e;
 }
 
 .dossier-detail-page .workflow-history-card__marker--neutral {
@@ -482,7 +489,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.32rem;
   position: relative;
   z-index: 1;
 }
@@ -507,7 +514,7 @@
 
 .dossier-detail-page .workflow-history-card__event-description {
   margin-top: 0.15rem;
-  font-size: 0.79rem;
+  font-size: 0.78rem;
   color: var(--color-gray-600);
   line-height: 1.35;
 }
@@ -524,14 +531,14 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.35rem 0.5rem;
+  gap: 0.3rem 0.45rem;
 }
 
 .dossier-detail-page .workflow-history-card__actor {
   display: inline-flex;
   align-items: center;
   gap: 0.32rem;
-  font-size: 0.79rem;
+  font-size: 0.77rem;
   color: var(--color-gray-600);
 }
 
@@ -543,49 +550,96 @@
 .dossier-detail-page .workflow-history-card__actor-role {
   display: inline-flex;
   align-items: center;
-  padding: 0.16rem 0.45rem;
+  padding: 0.14rem 0.44rem;
   border-radius: 999px;
   border: 1px solid var(--color-gray-200);
   background-color: var(--color-gray-50);
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   color: var(--color-gray-600);
   line-height: 1;
+}
+
+.dossier-detail-page .workflow-history-card__actor-role--agent {
+  background-color: #e6f1fb;
+  border-color: #bcd5ee;
+  color: #0c447c;
+}
+
+.dossier-detail-page .workflow-history-card__actor-role--claims-manager {
+  background-color: #eaf3de;
+  border-color: #cbdfb6;
+  color: #27500a;
+}
+
+.dossier-detail-page .workflow-history-card__actor-role--supervisor {
+  background-color: #eeedfe;
+  border-color: #ceccf3;
+  color: #3c3489;
+}
+
+.dossier-detail-page .workflow-history-card__actor-role--neutral {
+  border-color: var(--color-gray-200);
+  background-color: var(--color-gray-50);
+  color: var(--color-gray-600);
 }
 
 .dossier-detail-page .workflow-history-card__transition {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.16rem 0.5rem;
-  border-radius: 999px;
+  gap: 0.14rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-md);
   border: 1px solid var(--color-gray-200);
-  background-color: #ffffff;
-  font-size: 0.72rem;
-  color: var(--color-gray-600);
-}
-
-.dossier-detail-page .workflow-history-card__transition-label {
-  color: var(--color-gray-500);
-}
-
-.dossier-detail-page .workflow-history-card__transition-value {
-  font-weight: var(--font-weight-medium);
+  background-color: var(--color-gray-50);
+  font-size: 0.69rem;
   color: var(--color-gray-700);
+  white-space: nowrap;
+}
+
+.dossier-detail-page .workflow-history-card__transition strong {
+  font-weight: var(--font-weight-semibold);
 }
 
 .dossier-detail-page .workflow-history-card__note {
-  font-size: 0.79rem;
-  color: var(--color-gray-700);
-  line-height: 1.45;
-  background-color: var(--color-gray-50);
-  border-left: 3px solid rgba(148, 163, 184, 0.42);
-  border-radius: var(--radius-sm);
-  padding: 0.45rem 0.62rem;
+  font-size: 0.75rem;
+  color: var(--color-gray-600);
+  line-height: 1.42;
+  border-left: 2px solid var(--color-gray-300);
+  border-radius: 0;
+  padding: 0.38rem 0.62rem;
+  background-color: rgba(248, 250, 252, 0.8);
 }
 
 .dossier-detail-page .workflow-history-card__note-label {
   font-weight: var(--font-weight-semibold);
-  color: var(--color-gray-600);
+  color: var(--color-gray-700);
+}
+
+.dossier-detail-page .workflow-history-card__end {
+  display: flex;
+  align-items: center;
+  gap: 0.44rem;
+  padding-left: 44px;
+  margin-top: 0.1rem;
+}
+
+.dossier-detail-page .workflow-history-card__end-line {
+  height: 1px;
+  flex: 1;
+  background-color: rgba(148, 163, 184, 0.38);
+}
+
+.dossier-detail-page .workflow-history-card__end-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background-color: rgba(148, 163, 184, 0.52);
+}
+
+.dossier-detail-page .workflow-history-card__end-label {
+  font-size: 0.69rem;
+  color: var(--color-gray-500);
+  white-space: nowrap;
 }
 
 /* ─── Modal shells ────────────────────────────────────────────────────────── */
@@ -769,5 +823,15 @@
 
   .dossier-detail-page .workflow-history-card__event-time {
     white-space: normal;
+  }
+
+  .dossier-detail-page .workflow-history-card__end {
+    padding-left: 42px;
+  }
+
+  .dossier-detail-page .workflow-history-card__end-label {
+    white-space: normal;
+    text-align: center;
+    line-height: 1.2;
   }
 }

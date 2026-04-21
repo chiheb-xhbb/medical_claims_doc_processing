@@ -5,7 +5,7 @@ import { Loader } from '../../../ui';
 
 const EVENT_PRESENTATION = Object.freeze({
   DOSSIER_CREATED: {
-    icon: 'bi-file-earmark-plus',
+    icon: 'bi-folder-plus',
     markerClass: 'workflow-history-card__marker--created',
   },
   DOSSIER_SUBMITTED_FOR_REVIEW: {
@@ -18,7 +18,7 @@ const EVENT_PRESENTATION = Object.freeze({
   },
   DOSSIER_RETURNED_TO_PREPARATION: {
     icon: 'bi-arrow-return-left',
-    markerClass: 'workflow-history-card__marker--warning',
+    markerClass: 'workflow-history-card__marker--returned',
   },
   DOSSIER_ESCALATED: {
     icon: 'bi-diagram-3',
@@ -30,11 +30,11 @@ const EVENT_PRESENTATION = Object.freeze({
   },
   SUPERVISOR_RETURNED_TO_CLAIMS_MANAGER: {
     icon: 'bi-arrow-counterclockwise',
-    markerClass: 'workflow-history-card__marker--warning',
+    markerClass: 'workflow-history-card__marker--returned',
   },
   SUPERVISOR_REQUESTED_COMPLEMENT: {
     icon: 'bi-file-earmark-plus',
-    markerClass: 'workflow-history-card__marker--warning',
+    markerClass: 'workflow-history-card__marker--complement',
   },
   DOSSIER_PROCESSED: {
     icon: 'bi-check2-circle',
@@ -77,15 +77,36 @@ const getActorRole = (event) => {
   return role || '';
 };
 
-const buildTransitionLabel = (fromStatus, toStatus) => {
+const ACTOR_ROLE_BADGE_CLASS = Object.freeze({
+  AGENT: 'workflow-history-card__actor-role--agent',
+  CLAIMS_MANAGER: 'workflow-history-card__actor-role--claims-manager',
+  SUPERVISOR: 'workflow-history-card__actor-role--supervisor',
+});
+
+const getActorRoleBadgeClass = (role) =>
+  ACTOR_ROLE_BADGE_CLASS[normalizeEnum(role)] || 'workflow-history-card__actor-role--neutral';
+
+const buildTransitionData = ({ fromStatus, toStatus, eventType, t }) => {
   const normalizedFromStatus = normalizeEnum(fromStatus);
   const normalizedToStatus = normalizeEnum(toStatus);
+  const normalizedEventType = normalizeEnum(eventType);
+  const isCreationEvent = normalizedEventType === 'DOSSIER_CREATED';
 
-  if (!normalizedFromStatus || !normalizedToStatus) {
-    return '';
+  if (isCreationEvent && !normalizedFromStatus) {
+    return {
+      fromLabel: t('workflowHistory.initialState'),
+      toLabel: getDossierStatusLabel(normalizedToStatus || 'RECEIVED'),
+    };
   }
 
-  return `${getDossierStatusLabel(normalizedFromStatus)} -> ${getDossierStatusLabel(normalizedToStatus)}`;
+  if (!normalizedFromStatus || !normalizedToStatus) {
+    return null;
+  }
+
+  return {
+    fromLabel: getDossierStatusLabel(normalizedFromStatus),
+    toLabel: getDossierStatusLabel(normalizedToStatus),
+  };
 };
 
 function WorkflowHistoryCard({
@@ -139,6 +160,10 @@ function WorkflowHistoryCard({
     return value;
   };
 
+  const eventUnitLabel =
+    timelineEvents.length === 1 ? t('workflowHistory.event') : t('workflowHistory.events');
+  const timelineAriaLabel = `${t('workflowHistory.immutableLog')}: ${timelineEvents.length} ${eventUnitLabel}`;
+
   return (
     <div className="card mb-4 workflow-history-card workflow-context-card workflow-context-card--history">
       <div className="card-header d-flex justify-content-between align-items-center">
@@ -188,17 +213,14 @@ function WorkflowHistoryCard({
           <div className="workflow-history-card__state">
             <div className="workflow-history-card__state-inner">
               <p className="workflow-history-card__state-title mb-1">
-                {t('workflowHistory.emptyTitle')}
-              </p>
-              <p className="workflow-history-card__state-message mb-0">
-                {t('workflowHistory.emptyDescription')}
+                {t('workflowHistory.empty')}
               </p>
             </div>
           </div>
         )}
 
         {!isLoading && !hasError && timelineEvents.length > 0 && (
-          <div className="workflow-history-card__timeline">
+          <div className="workflow-history-card__timeline" role="list" aria-label={timelineAriaLabel}>
             {timelineEvents.map((event, index) => {
               const eventType = normalizeEnum(event?.event_type);
               const eventPresentation = EVENT_PRESENTATION[eventType] || {
@@ -220,7 +242,15 @@ function WorkflowHistoryCard({
               const actorName = getActorName(event) || t('workflowHistory.systemActor');
               const actorRole = getActorRole(event);
               const actorRoleLabel = actorRole ? getRoleLabel(actorRole) : '';
-              const transitionLabel = buildTransitionLabel(event?.from_status, event?.to_status);
+              const actorRoleClass = actorRole
+                ? getActorRoleBadgeClass(actorRole)
+                : 'workflow-history-card__actor-role--neutral';
+              const transition = buildTransitionData({
+                fromStatus: event?.from_status,
+                toStatus: event?.to_status,
+                eventType,
+                t,
+              });
               const timestampLabel = renderTimestamp(event?.created_at);
               const isLast = index === timelineEvents.length - 1;
 
@@ -228,6 +258,7 @@ function WorkflowHistoryCard({
                 <div
                   key={event?.id || `${eventType}-${event?.created_at || index}`}
                   className={`workflow-history-card__event${isLast ? ' workflow-history-card__event--last' : ''}`}
+                  role="listitem"
                 >
                   <div className={`workflow-history-card__marker ${eventPresentation.markerClass}`}>
                     <i className={`bi ${eventPresentation.icon}`} aria-hidden="true" />
@@ -255,33 +286,45 @@ function WorkflowHistoryCard({
                       </span>
 
                       {actorRoleLabel && (
-                        <span className="workflow-history-card__actor-role">{actorRoleLabel}</span>
+                        <span className={`workflow-history-card__actor-role ${actorRoleClass}`}>
+                          {actorRoleLabel}
+                        </span>
                       )}
 
-                      {transitionLabel && (
-                        <span className="workflow-history-card__transition">
-                          <span className="workflow-history-card__transition-label">
-                            {t('workflowHistory.transitionLabel')}:
-                          </span>
-                          <span className="workflow-history-card__transition-value">
-                            {transitionLabel}
-                          </span>
+                      {transition && (
+                        <span
+                          className="workflow-history-card__transition"
+                          aria-label={`${t('workflowHistory.transition')}: ${transition.fromLabel} → ${transition.toLabel}`}
+                        >
+                          <strong>{transition.fromLabel}</strong>
+                          {' → '}
+                          <strong>{transition.toLabel}</strong>
                         </span>
                       )}
                     </div>
 
                     {note && (
-                      <p className="workflow-history-card__note mb-0">
-                        <span className="workflow-history-card__note-label">
-                          {t('workflowHistory.noteLabel')}:
-                        </span>{' '}
+                      <div className="workflow-history-card__note">
+                        <strong className="workflow-history-card__note-label">
+                          {t('workflowHistory.note')}:
+                        </strong>{' '}
                         {note}
-                      </p>
+                      </div>
                     )}
                   </div>
                 </div>
               );
             })}
+
+            <div className="workflow-history-card__end">
+              <div className="workflow-history-card__end-line" />
+              <div className="workflow-history-card__end-dot" />
+              <span className="workflow-history-card__end-label">
+                {t('workflowHistory.endOfHistory')}
+              </span>
+              <div className="workflow-history-card__end-dot" />
+              <div className="workflow-history-card__end-line" />
+            </div>
           </div>
         )}
       </div>
