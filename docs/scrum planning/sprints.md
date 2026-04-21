@@ -2,357 +2,347 @@
 
 ## Introduction
 
-Après révision de votre ancien découpage et des rapports tunisiens fournis comme modèles, la version la plus crédible pour le mémoire consiste à conserver **quatre sprints maximum**, avec un **chapitre de planification séparé**, puis un **chapitre par sprint**.  
-Cette organisation est la plus proche du style observé dans les rapports de référence : une planification générale dans le chapitre d’analyse, suivie de sprints présentés chacun avec backlog, analyse, conception et réalisation.
+Dans le cadre du pilotage Scrum adopté pour ce projet de fin d’études, le produit a été structuré en **quatre sprints** successifs. Ce découpage ne cherche pas à reproduire mécaniquement l’ordre chronologique de chaque commit, mais à proposer une **lecture académique cohérente, équilibrée et défendable** de la construction du prototype final.
 
-Le découpage proposé ci-dessous tient compte :
+La répartition retenue respecte :
 
-- de votre **projet réellement développé** ;
-- du **style académique tunisien** de présentation ;
-- de la nécessité d’avoir des **sprints équilibrés** ;
-- de l’exclusion des éléments retirés du périmètre final, notamment **les dashboards** et **les exports** ;
-- de l’intégration explicite de fonctionnalités à ne pas oublier dans le mémoire, en particulier :
-  - **la réinitialisation du mot de passe par email** ;
-  - **la table des notifications** et la base de la notification applicative.
+- le périmètre réellement implémenté ;
+- l’architecture effectivement stabilisée du système (**React + Vite / Laravel / FastAPI / MySQL**) ;
+- la progression naturelle d’un projet agile, allant du socle technique vers la gouvernance métier avancée ;
+- la nécessité d’obtenir, dans le mémoire, des chapitres de réalisation relativement équilibrés en charge fonctionnelle.
 
----
+Le prototype final s’appuie sur quatre rôles métier :
 
-# 1. Logique de découpage retenue
+- **Agent** ;
+- **Gestionnaire** ;
+- **Superviseur hiérarchique** ;
+- **Administrateur**.
 
-Le projet est organisé en **quatre sprints principaux**, chacun correspondant à un incrément fonctionnel cohérent :
-
-1. **socle technique et pipeline documentaire** ;
-2. **validation humaine, sécurité et cycle d’accès complet** ;
-3. **workflow métier des dossiers de remboursement** ;
-4. **gouvernance, supervision hiérarchique et consolidation finale**.
-
-Ce découpage est volontairement compact et progressif :
-
-- le **Sprint 1** pose le socle ;
-- le **Sprint 2** rend la plateforme exploitable et sécurisée ;
-- le **Sprint 3** introduit le cœur métier ;
-- le **Sprint 4** finalise la gouvernance, la traçabilité avancée et la stabilisation.
+En revanche, les **tableaux de bord analytiques**, les **exports avancés** et les fonctionnalités de reporting décisionnel ne sont pas retenus dans cette planification finale, car ils ne font pas partie du périmètre effectivement livré.
 
 ---
 
-# 2. Tableau de synthèse des sprints
+## 1. Principes de découpage retenus
 
-| Sprint | Intitulé | Objectif principal | Livrable |
+Le découpage final a été construit autour de quatre incréments fonctionnels majeurs :
+
+1. **le socle technique et le pipeline documentaire intelligent** ;
+2. **la validation humaine, la sécurisation des accès et l’administration des comptes** ;
+3. **le workflow métier de remboursement centré sur le dossier** ;
+4. **la supervision hiérarchique, la traçabilité avancée et la finalisation de l’expérience utilisateur**.
+
+Ce choix permet de présenter une montée en maturité progressive du système :
+
+- d’abord la **preuve technique** du traitement documentaire ;
+- ensuite la **preuve de fiabilité et de sécurité** ;
+- puis la **preuve métier** à travers le cycle complet du dossier ;
+- enfin la **preuve de gouvernance, de traçabilité et de finition** du prototype.
+
+---
+
+## 2. Tableau synthétique des sprints
+
+| Sprint | Intitulé | Objectif principal | Livrable principal |
 |---|---|---|---|
-| Sprint 1 | Socle technique et pipeline documentaire intelligent | Mettre en place l’architecture du système et le premier cycle de traitement documentaire | Pipeline documentaire opérationnel |
-| Sprint 2 | Validation humaine, sécurité et cycle d’accès complet | Rendre la plateforme exploitable, sécurisée, traçable et complète sur le plan de l’authentification | Système sécurisé avec HITL, authentification et réinitialisation par email |
-| Sprint 3 | Workflow métier des dossiers de remboursement | Structurer la logique métier autour des dossiers, rubriques, documents et décisions | Workflow métier complet du remboursement |
-| Sprint 4 | Gouvernance, supervision hiérarchique et consolidation finale | Finaliser l’administration, l’escalade hiérarchique, la traçabilité avancée, les notifications et la robustesse globale | Prototype final stable, gouverné et prêt pour la soutenance |
+| Sprint 1 | Socle technique et pipeline documentaire intelligent | Mettre en place l’architecture générale et le flux de traitement automatique des documents médicaux | Pipeline documentaire asynchrone opérationnel |
+| Sprint 2 | Validation humaine, sécurité et administration des accès | Rendre la plateforme exploitable dans un cadre sécurisé, traçable et administrable | Système sécurisé avec validation HITL et gestion complète des comptes |
+| Sprint 3 | Workflow métier des dossiers de remboursement | Introduire le cœur métier du projet à travers les dossiers, rubriques, décisions et traitement final | Workflow métier complet du dossier de remboursement |
+| Sprint 4 | Supervision hiérarchique, traçabilité avancée et finalisation | Finaliser la gouvernance métier, les notifications, l’historique de workflow et la qualité d’usage globale | Prototype final gouverné, traçable, bilingue et stabilisé |
 
 ---
 
-# 3. Division détaillée des sprints
+## 3. Description détaillée des sprints
 
 ## Sprint 1 : Socle technique et pipeline documentaire intelligent
 
 ### Objectif du sprint
-Mettre en place l’environnement de développement, définir l’architecture générale de la solution et construire un premier pipeline documentaire fonctionnel, depuis le téléversement du document jusqu’au stockage du résultat d’extraction.
 
-### Travaux inclus
+Le premier sprint a pour objectif de mettre en place l’ossature technique du système et de construire un pipeline documentaire capable de recevoir un document médical, de l’envoyer vers le service IA, puis d’enregistrer les résultats d’extraction dans un cadre asynchrone et traçable.
 
-#### 1. Mise en place de l’architecture
-- initialisation du frontend React ;
-- initialisation du backend Laravel ;
-- mise en place du service IA avec FastAPI ;
-- configuration de la base de données MySQL ;
-- structuration générale du projet ;
-- définition des échanges entre React, Laravel et FastAPI ;
-- séparation claire des responsabilités entre les trois couches.
+### Fonctionnalités retenues
 
-#### 2. Pipeline documentaire initial
+#### 1. Mise en place de l’architecture de la solution
+- initialisation du frontend avec **React + Vite** ;
+- initialisation du backend avec **Laravel** ;
+- mise en place du microservice IA avec **FastAPI** ;
+- configuration de la base de données **MySQL** ;
+- définition du contrat d’échange entre Laravel et FastAPI ;
+- séparation des responsabilités entre interface, orchestration métier, persistance et traitement IA.
+
+#### 2. Gestion initiale des documents
 - téléversement des documents médicaux ;
-- validation du type et de la taille des fichiers ;
+- contrôle du type et de la taille des fichiers ;
 - stockage local sécurisé ;
-- traitement asynchrone via file d’attente ;
-- création du job de traitement ;
-- premier contrat d’échange Laravel–FastAPI ;
-- intégration d’un premier moteur OCR ;
-- extraction initiale des champs prioritaires :
-  - date du document ;
-  - prestataire ;
-  - montant total TTC.
-
-#### 3. Traçabilité technique
-- journalisation des appels vers le service IA ;
-- persistance des résultats d’extraction ;
-- gestion des statuts techniques du document :
+- création de l’entité `Document` ;
+- mise en place des statuts techniques du document :
   - `UPLOADED`
   - `PROCESSING`
   - `PROCESSED`
-  - `FAILED`
+  - `FAILED`.
+
+#### 3. Traitement asynchrone et audit technique
+- utilisation d’une file d’attente basée sur la base de données ;
+- mise en place du `ProcessDocumentJob` ;
+- déclenchement du traitement après validation de l’upload ;
+- traçabilité des appels IA dans la table `ai_requests` ;
+- persistance versionnée des résultats d’extraction dans la table `extractions`.
+
+#### 4. Extraction initiale et consolidation du moteur OCR
+- extraction des champs métier principaux d’un document :
+  - date du document ;
+  - nom du prestataire ;
+  - montant total TTC ;
+- persistance du résultat brut retourné par le service IA ;
+- amélioration progressive du moteur OCR avec **PaddleOCR** comme moteur principal ;
+- maintien de **Tesseract** comme solution de secours ;
+- amélioration du post-traitement des extractions et de la robustesse des réponses IA.
+
+#### 5. Robustesse du pipeline documentaire
+- garanties d’idempotence sur les traitements asynchrones ;
+- prévention des traitements concurrents d’un même document ;
+- amélioration de la gestion des erreurs techniques ;
+- mécanisme de reprise des traitements échoués ;
+- commande de réinitialisation des documents bloqués en traitement.
+
+#### 6. Suivi opérateur du traitement documentaire
+- consultation de la liste des documents ;
+- affichage de l’état courant du traitement ;
+- visibilité sur les échecs et les relances possibles ;
+- premier niveau de monitoring du pipeline documentaire.
 
 ### Livrable du sprint
-Un **pipeline documentaire intelligent opérationnel**, capable de téléverser, stocker, traiter et extraire automatiquement les informations principales d’un document médical.
+
+Un **pipeline documentaire intelligent fonctionnel**, capable de téléverser, stocker, traiter et extraire automatiquement les principales informations d’un document médical dans un cadre asynchrone, robuste et traçable.
 
 ---
 
-## Sprint 2 : Validation humaine, sécurité et cycle d’accès complet
+## Sprint 2 : Validation humaine, sécurité et administration des accès
 
 ### Objectif du sprint
-Rendre la plateforme réellement exploitable par des utilisateurs authentifiés, tout en intégrant la validation humaine, la traçabilité des corrections, le contrôle d’accès et la complétude du cycle de sécurité des comptes.
 
-### Travaux inclus
+Le deuxième sprint vise à fiabiliser le résultat documentaire obtenu par l’IA, à sécuriser l’accès à la plateforme et à mettre en place une véritable gouvernance des comptes utilisateurs.
+
+### Fonctionnalités retenues
 
 #### 1. Validation humaine des extractions
-- mise en place de l’interface HITL ;
-- affichage des champs extraits avec score de confiance ;
-- correction manuelle des champs extraits ;
-- historisation des corrections ;
+- mise en place de l’interface **Human-in-the-Loop** ;
+- affichage des champs extraits avec leur niveau de confiance ;
+- correction manuelle des valeurs proposées par l’IA ;
 - création d’une nouvelle version d’extraction après validation ;
 - passage du document à l’état `VALIDATED`.
 
-#### 2. Audit et traçabilité
-- ajout des métadonnées de validation :
+#### 2. Traçabilité des corrections et de la validation
+- historisation des corrections au niveau des champs ;
+- conservation des métadonnées de validation :
   - `validated_by`
-  - `validated_at`
-- distinction entre extraction brute et extraction validée ;
-- conservation de l’historique des modifications.
+  - `validated_at` ;
+- distinction explicite entre extraction brute IA et extraction validée par l’utilisateur ;
+- renforcement de la fiabilité du cycle documentaire.
 
-#### 3. Authentification et protection
-- intégration de Laravel Sanctum ;
-- implémentation de la connexion ;
-- déconnexion ;
+#### 3. Contrôles métier sur les données documentaires
+- validation de la cohérence des dates et des montants ;
+- détection des dates futures ;
+- signalement des montants atypiques ;
+- blocage des montants négatifs ;
+- prévention des régressions de statut sur le document.
+
+#### 4. Authentification et protection des accès
+- intégration de **Laravel Sanctum** ;
+- implémentation de la connexion et de la déconnexion ;
 - récupération de l’utilisateur courant ;
 - protection des routes frontend et backend ;
-- isolation stricte des documents par utilisateur.
+- sécurisation de l’accès aux écrans selon l’état de la session.
 
-#### 4. Contrôle d’accès initial
-- ajout du champ `role` dans la table `users` ;
-- préparation de la structure d’accès pour les rôles :
+#### 5. Contrôle d’accès par rôles
+- introduction du contrôle d’accès par rôles :
   - `AGENT`
   - `CLAIMS_MANAGER`
   - `SUPERVISOR`
-  - `ADMIN`
-- filtrage initial des actions selon le rôle ;
-- adaptation des menus, des pages et des accès de base selon le profil connecté.
+  - `ADMIN` ;
+- adaptation des écrans et des actions selon le rôle connecté ;
+- alignement entre autorisations backend et visibilité frontend ;
+- stabilisation des règles de navigation selon le profil utilisateur.
 
-#### 5. Cycle d’accès complet
-- implémentation de la fonctionnalité **forget password** ;
-- génération du lien ou jeton de réinitialisation ;
-- envoi de l’email de réinitialisation du mot de passe ;
-- page ou flux de redéfinition du mot de passe ;
-- validation sécurisée du changement de mot de passe ;
-- consolidation du cycle de vie du compte utilisateur.
+#### 6. Gestion du cycle de compte utilisateur
+- changement de mot de passe après connexion ;
+- oubli du mot de passe ;
+- envoi d’un email de réinitialisation ;
+- redéfinition sécurisée du mot de passe via lien/token ;
+- durcissement global du cycle de vie du compte.
 
-#### 6. Robustesse technique
-- gestion des documents en échec ;
-- mécanisme de retry ;
-- prévention des doublons d’extraction ;
-- prévention des régressions de statut ;
-- sécurisation des traitements concurrents ;
-- premiers contrôles métier simples sur les dates et les montants.
+#### 7. Administration des utilisateurs
+- création de comptes par l’administrateur ;
+- mise à jour des rôles ;
+- activation et désactivation des comptes ;
+- sécurisation du dernier administrateur actif ;
+- contrôle centralisé du cycle de vie des utilisateurs.
 
 ### Livrable du sprint
-Un **système documentaire sécurisé, traçable et validable**, incluant la validation humaine, l’authentification, le contrôle d’accès initial et la **réinitialisation du mot de passe par email**.
+
+Une **plateforme sécurisée, authentifiée et administrable**, intégrant la validation humaine, la traçabilité des corrections, le contrôle d’accès par rôles et une gestion complète des comptes utilisateurs.
 
 ---
 
 ## Sprint 3 : Workflow métier des dossiers de remboursement
 
 ### Objectif du sprint
-Ajouter la véritable dimension métier du projet à travers la gestion des dossiers de remboursement, l’introduction des rubriques et la mise en œuvre du workflow de décision documentaire.
 
-### Travaux inclus
+Le troisième sprint a pour objectif d’introduire le cœur métier du projet à travers la structuration des dossiers de remboursement, l’organisation en rubriques, l’attachement contrôlé des documents validés et la mise en place du cycle complet de soumission, de révision et de traitement final.
+
+### Fonctionnalités retenues
 
 #### 1. Gestion des dossiers de remboursement
 - création de l’entité `Dossier` ;
-- génération automatique du numéro de dossier ;
-- ajout des attributs métier principaux ;
-- création, consultation, modification et suppression contrôlée des dossiers ;
-- enrichissement de l’identité métier du dossier.
+- génération automatique du `numero_dossier` ;
+- ajout des attributs métier principaux :
+  - identifiant assuré ;
+  - description de l’épisode ;
+  - notes ;
+  - statut ;
+  - montant demandé / montant courant / montant traité ;
+- consultation de la liste et du détail des dossiers ;
+- mise à jour et suppression contrôlée des dossiers selon leur état.
 
-#### 2. Structuration métier
-- passage d’une logique simplifiée vers la structure :
-  - `Dossier -> Rubriques -> Documents`
-- création de l’entité `Rubrique` ;
-- rattachement d’un ou plusieurs documents validés à une rubrique ;
-- gestion des rubriques dans le cycle de préparation.
+#### 2. Structuration en rubriques
+- introduction de l’entité `Rubrique` ;
+- organisation métier selon la hiérarchie :
+  - **Dossier → Rubrique → Document** ;
+- création, modification et suppression des rubriques vides ;
+- organisation des pièces justificatives par rubrique métier.
 
-#### 3. Workflow métier du remboursement
-- mise en place des statuts métier du dossier ;
-- soumission du dossier pour révision ;
-- décisions documentaires :
+#### 3. Préparation métier du dossier
+- rattachement des documents techniquement `VALIDATED` aux rubriques ;
+- interdiction d’attacher des documents non validés ;
+- détachement contrôlé des documents dans les états autorisés ;
+- calcul des montants à partir des documents rattachés ;
+- préparation progressive du dossier avant soumission.
+
+#### 4. Workflow de soumission et de révision
+- soumission du dossier par l’acteur de préparation ;
+- passage du dossier par les états :
+  - `RECEIVED`
+  - `IN_PROGRESS`
+  - `UNDER_REVIEW`
+  - `PROCESSED` ;
+- décisions document par document :
   - `PENDING`
   - `ACCEPTED`
-  - `REJECTED`
-- possibilité de rejeter une rubrique entière ;
-- recalcul automatique du statut des rubriques ;
-- traitement final du dossier ;
-- gel des modifications après finalisation.
+  - `REJECTED` ;
+- rejet global d’une rubrique lorsque nécessaire ;
+- recalcul automatique du statut de la rubrique selon les décisions prises.
 
-#### 4. Calcul métier des montants
-- calcul du montant demandé ;
-- calcul du montant courant ;
-- figement du montant final à la clôture ;
-- cohérence entre montants documentaires, rubriques et dossier.
+#### 5. Traitement final du dossier
+- calcul du montant courant et du montant final retenu ;
+- finalisation du dossier ;
+- gel des modifications structurelles après traitement ;
+- lecture sécurisée des dossiers finalisés.
 
-#### 5. Répartition fonctionnelle des rôles métier
-##### Agent
-- créer un dossier ;
-- créer des rubriques ;
-- rattacher des documents validés ;
-- préparer le dossier ;
-- soumettre le dossier pour révision.
+#### 6. Vérification métier à partir du document source
+- prévisualisation du document source ;
+- téléchargement sécurisé des pièces ;
+- contrôle d’accès sur la consultation des justificatifs ;
+- alignement entre décision métier et preuve documentaire d’origine.
 
-##### Gestionnaire
-- consulter les dossiers soumis ;
-- accepter ou rejeter les documents ;
-- rejeter une rubrique entière ;
-- traiter le dossier une fois les décisions terminées.
-
-##### Chef hiérarchique
-- disposer d’une visibilité sur les dossiers sensibles ou instruits ;
-- suivre l’avancement global ;
-- intervenir dans les cas nécessitant supervision ou arbitrage.
+#### 7. Consolidation de l’expérience opérateur autour du dossier
+- amélioration de l’écran de détail du dossier ;
+- utilisation de modales dédiées pour les actions de préparation et de décision ;
+- cohérence ergonomique entre documents, rubriques et dossiers ;
+- meilleure lisibilité des totaux, statuts et actions disponibles.
 
 ### Livrable du sprint
-Un **workflow métier complet de remboursement**, structuré autour du triplet dossier–rubrique–document, avec règles de calcul et séparation claire entre préparation et décision.
+
+Un **workflow métier complet de remboursement**, structuré autour du triplet **dossier – rubrique – document**, permettant la préparation, la soumission, la décision et le traitement final d’un dossier.
 
 ---
 
-## Sprint 4 : Gouvernance, supervision hiérarchique et consolidation finale
+## Sprint 4 : Supervision hiérarchique, traçabilité avancée et finalisation
 
 ### Objectif du sprint
-Finaliser la gouvernance avancée de la plateforme, stabiliser le cycle de traitement métier, introduire la traçabilité avancée des événements système et consolider le prototype pour la démonstration académique.
 
-### Travaux inclus
+Le quatrième sprint a pour objectif de finaliser la gouvernance métier de la plateforme en introduisant la supervision hiérarchique, la notification applicative persistante, l’historique complet du workflow et les raffinements finaux de l’expérience utilisateur.
 
-#### 1. Administration et gouvernance
-- mise en place de la gestion des utilisateurs par l’administrateur ;
-- création des comptes via l’interface ;
-- mise à jour des rôles ;
-- activation et désactivation des comptes ;
-- supervision transversale des accès et des permissions ;
-- sécurisation du cycle de vie administratif des comptes.
+### Fonctionnalités retenues
 
-#### 2. Supervision hiérarchique et escalade
-- mise en place de la vue dédiée au chef hiérarchique ;
-- consultation des dossiers escaladés ;
-- implémentation du workflow d’escalade ;
-- retour au gestionnaire ;
-- demande de complément ;
-- validation hiérarchique selon le scénario métier ;
-- distinction entre revue normale, revue escaladée et reprise de préparation.
+#### 1. Workflow d’escalade hiérarchique
+- escalade d’un dossier par le gestionnaire ;
+- introduction du cycle hiérarchique avec les états :
+  - `IN_ESCALATION`
+  - `AWAITING_COMPLEMENT` ;
+- approbation hiérarchique ;
+- retour du dossier vers le gestionnaire ;
+- demande de complément depuis la supervision.
 
-#### 3. Retour à la préparation et traçabilité avancée
-- retour du dossier à la préparation par le gestionnaire ;
-- ajout des informations de retour à la préparation ;
-- clarification de l’état de réouverture ;
-- ajout du **contexte canonique de réouverture** ;
-- cohérence entre trace métier et affichage utilisateur.
+#### 2. Réouverture maîtrisée du dossier
+- retour à la préparation par le gestionnaire sans escalade ;
+- distinction claire entre :
+  - retour à la préparation ;
+  - demande de complément du superviseur ;
+- conservation d’un contexte canonique de réouverture ;
+- support du cycle de resoumission après correction.
 
-#### 4. Notifications et suivi applicatif
-- ajout de la **table `notifications`** ;
-- mise en place de la base de la notification applicative ;
-- enregistrement des événements importants du workflow ;
-- préparation d’un canal de notification interne pour les acteurs métier ;
-- meilleure visibilité sur les actions importantes et les transitions du dossier.
+#### 3. Extension du périmètre opérationnel du superviseur
+- accès cohérent du superviseur aux écrans nécessaires ;
+- validation documentaire dans le périmètre autorisé ;
+- gestion des rubriques et attachements dans les états compatibles ;
+- alignement définitif des permissions frontend/backend ;
+- visibilité métier stabilisée sur les dossiers escaladés.
 
-#### 5. Consolidation IA
-- intégration de PaddleOCR comme moteur principal ;
-- maintien de Tesseract comme fallback ;
-- amélioration du post-traitement de l’extraction ;
-- amélioration des scores de confiance ;
-- durcissement de la robustesse du service IA.
+#### 4. Notifications applicatives persistantes
+- création de la table `app_notifications` ;
+- centralisation de la génération des notifications côté backend ;
+- notification des acteurs concernés lors des transitions critiques du dossier ;
+- centre de notifications avec lecture unitaire, lecture globale et compteur de non-lues ;
+- adaptation du contenu des notifications à la langue active de l’interface.
 
-#### 6. Stabilisation et qualité
-- tests manuels des scénarios critiques ;
-- correction des bugs restants ;
-- amélioration ergonomique de l’interface ;
-- vérification finale de la sécurité et des autorisations ;
-- stabilisation de la démonstration.
+#### 5. Traçabilité avancée du workflow
+- création de la table `dossier_workflow_events` ;
+- journal append-only des événements métier ;
+- historisation des créations, soumissions, retours, escalades, demandes de complément et reprises ;
+- mise à disposition d’un endpoint dédié de lecture de l’historique ;
+- affichage d’une timeline complète et chronologique dans le détail du dossier.
 
-#### 7. Finalisation académique
-- préparation des captures d’écran ;
-- intégration des diagrammes UML ;
-- rédaction du rapport final ;
-- préparation des slides ;
-- construction des scénarios de démonstration ;
-- préparation des réponses aux questions probables du jury.
+#### 6. Internationalisation et homogénéisation du vocabulaire
+- mise en place de l’infrastructure i18n ;
+- dictionnaires **anglais / français** ;
+- commutateur de langue dans la barre de navigation et l’écran de connexion ;
+- traduction des écrans métier, badges, actions, notifications et surfaces de workflow ;
+- stabilisation d’un vocabulaire métier cohérent et défendable dans le mémoire.
+
+#### 7. Raffinement UX et stabilisation finale
+- amélioration du branding et de la cohérence visuelle ;
+- toasts sémantiques selon le sens métier de l’action ;
+- pagination avec accès direct à une page ;
+- alignement final des cartes de contexte, de l’historique et des surfaces de travail ;
+- correction des anomalies bloquantes et validation finale des scénarios critiques.
 
 ### Livrable du sprint
-Un **prototype final stable**, intégrant l’administration, la supervision hiérarchique, le workflow d’escalade, la **table des notifications**, la consolidation IA et un niveau de maturité suffisant pour le mémoire et la soutenance.
+
+Un **prototype final gouverné, traçable et stabilisé**, intégrant la supervision hiérarchique, les notifications persistantes, l’historique complet du workflow, l’internationalisation EN/FR et un niveau de finition suffisant pour une démonstration académique crédible.
 
 ---
 
-# 4. Pourquoi cette division est la meilleure
+## 4. Justification du découpage retenu
 
-## 4.1 Elle est équilibrée
-La charge est répartie selon une progression naturelle :
+Le découpage final retenu est pertinent pour quatre raisons principales.
 
-- **Sprint 1** : fondations techniques ;
-- **Sprint 2** : exploitabilité, sécurité et complétude du cycle d’accès ;
-- **Sprint 3** : cœur métier ;
-- **Sprint 4** : gouvernance, supervision, notifications et stabilisation.
+### 4.1 Progression fonctionnelle logique
+Le projet progresse du **traitement documentaire technique** vers la **sécurisation des accès**, puis vers le **cœur métier du dossier**, avant de se conclure par la **gouvernance avancée**, la **traçabilité** et la **stabilisation**.
 
-Ainsi, les fonctionnalités ne sont ni dispersées artificiellement, ni compressées dans un sprint final surchargé.
+### 4.2 Équilibre entre les sprints
+Chaque sprint porte un incrément suffisamment dense pour constituer un chapitre de réalisation crédible, tout en évitant de concentrer toutes les fonctionnalités avancées dans une seule itération.
 
-## 4.2 Elle correspond bien au style des rapports tunisiens
-Les rapports de référence montrent généralement :
+### 4.3 Cohérence avec le prototype réellement livré
+Le contenu retenu reflète le périmètre effectivement implémenté : pipeline OCR, validation humaine, contrôle d’accès, administration des utilisateurs, workflow dossier, supervision hiérarchique, notifications persistantes, historique de workflow et interface bilingue.
 
-- un **chapitre de planification** séparé ;
-- puis **3 ou 4 sprints** ;
-- et pour chaque sprint, une logique du type :
-  - backlog ;
-  - analyse ;
-  - conception ;
-  - réalisation ;
-  - parfois tests et conclusion.
-
-Le présent découpage respecte exactement cette logique académique.
-
-## 4.3 Elle est plus fidèle à votre projet réel
-Cette version reflète mieux votre vrai projet, car elle intègre explicitement :
-
-- la **réinitialisation du mot de passe par email** ;
-- la **table des notifications** ;
-- le **workflow de retour à la préparation** ;
-- la **supervision hiérarchique** ;
-- la **consolidation OCR/IA**.
-
-Elle évite donc de reléguer ces éléments en “perspectives” alors qu’ils font partie du périmètre que vous souhaitez assumer dans le mémoire.
+### 4.4 Défendabilité académique
+Cette planification permet d’expliquer le projet comme une montée en maturité progressive :
+- d’abord la **preuve technique** ;
+- ensuite la **preuve de sécurité et de traçabilité documentaire** ;
+- puis la **preuve métier** ;
+- enfin la **preuve de gouvernance, de supervision et de finition**.
 
 ---
 
-# 5. Recommandation finale à conserver
+## Conclusion
 
-La version à retenir officiellement dans le rapport est donc :
-
-1. **Socle technique et pipeline documentaire intelligent**  
-2. **Validation humaine, sécurité et cycle d’accès complet**  
-3. **Workflow métier des dossiers de remboursement**  
-4. **Gouvernance, supervision hiérarchique et consolidation finale**
-
----
-
-# 6. Formulation courte prête à intégrer dans le rapport
-
-Le projet a été planifié selon une approche Agile Scrum adaptée à un contexte académique individuel. Afin d’obtenir un découpage réaliste, équilibré et défendable, le développement a été structuré en quatre sprints principaux. Le premier sprint a porté sur la mise en place du socle technique et du pipeline documentaire intelligent. Le deuxième sprint a été consacré à la validation humaine, à la sécurité, au contrôle d’accès et à la réinitialisation du mot de passe par email. Le troisième sprint a introduit le workflow métier des dossiers de remboursement, fondé sur les dossiers, les rubriques et les décisions documentaires. Enfin, le quatrième sprint a permis de finaliser la gouvernance du système, la supervision hiérarchique, l’escalade métier, la traçabilité avancée, l’ajout de la table des notifications, la consolidation de la couche IA et la stabilisation du prototype final.
-
----
-
-# 7. Structure conseillée dans le mémoire
-
-Pour garder un style proche des rapports tunisiens les plus crédibles, il est conseillé d’utiliser la structure suivante :
-
-## Dans le chapitre de planification
-- équipe Scrum ;
-- backlog produit ;
-- planification des sprints ;
-- diagrammes globaux.
-
-## Puis, pour chaque sprint
-- objectif du sprint ;
-- backlog du sprint ;
-- analyse ;
-- conception ;
-- réalisation ;
-- tests si nécessaire ;
-- conclusion du sprint.
-
-Cette structure est plus lisible, plus académique et plus facile à défendre devant le jury.
+La division finale proposée organise le projet en quatre sprints cohérents, équilibrés et complémentaires. Elle reflète la version réellement implémentée du prototype, tout en restant adaptée à une présentation académique dans un mémoire de PFE.

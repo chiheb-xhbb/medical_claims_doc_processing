@@ -1,231 +1,372 @@
-# Plateforme intelligente de traitement des documents médicaux
+# Medical Claims Document Processing Platform
 
-[![Status](https://img.shields.io/badge/status-MVP%20Beta-blue)](./)
-[![Frontend](https://img.shields.io/badge/frontend-React%20%2B%20Bootstrap-brightgreen)](./)
-[![Backend](https://img.shields.io/badge/backend-Laravel%20API-orange)](./)
-[![AI](https://img.shields.io/badge/AI-FastAPI%20%2B%20Tesseract%20OCR-red)](./)
-[![Database](https://img.shields.io/badge/database-MySQL-lightgrey)](./)
+[![Frontend](https://img.shields.io/badge/frontend-React%20%2B%20Vite%20%2B%20Bootstrap-61dafb)](#architecture)
+[![Backend](https://img.shields.io/badge/backend-Laravel%2010-red)](#architecture)
+[![AI](https://img.shields.io/badge/ai-FastAPI%20%2B%20PaddleOCR-orange)](#architecture)
+[![Database](https://img.shields.io/badge/database-MySQL-blue)](#architecture)
+[![Auth](https://img.shields.io/badge/auth-Laravel%20Sanctum-success)](#security-and-access-control)
+[![Languages](https://img.shields.io/badge/ui-EN%20%2F%20FR-6f42c1)](#internationalization)
 
-Plateforme MVP d’automatisation du traitement des documents médicaux (factures, notes d’honoraires, etc.) pour l’assurance santé, combinant **OCR**, **règles métiers**, **Human-in-the-Loop**, **versioning** et **audit trail**.
+A production-like academic web platform for **medical claims document processing and reimbursement workflow management**.
 
----
-
-## Table des matières
-
-1. [Présentation du projet](#présentation-du-projet)  
-2. [Architecture du système](#architecture-du-système)  
-   - [Vue d’ensemble](#vue-densemble)  
-3. [Workflow fonctionnel](#workflow-fonctionnel)  
-4. [Fonctionnalités principales](#fonctionnalités-principales)  
-5. [Exemple d’API REST](#exemple-dapi-rest)  
-6. [Prérequis et environnement](#prérequis-et-environnement)  
-7. [Installation et lancement](#installation-et-lancement)  
-8. [Structure du projet](#structure-du-projet)  
-9. [Limitations du MVP](#limitations-du-mvp)  
-10. [Améliorations prévues](#améliorations-prévues)  
-11. [Contexte académique](#contexte-académique)  
-12. [Auteur](#auteur)  
+The system combines:
+- secure document upload and protected file access,
+- OCR and structured extraction,
+- human-in-the-loop validation,
+- dossier-based reimbursement workflow,
+- hierarchical supervisor review for exceptional cases,
+- persistent in-app notifications,
+- immutable workflow traceability,
+- and a bilingual **English / French** user interface.
 
 ---
 
-## Présentation du projet
+## Table of Contents
 
-Ce projet s’inscrit dans le cadre d’un **Projet de Fin d’Études (PFE)** et porte sur la conception et l’implémentation d’une plateforme intelligente dédiée à l’**automatisation du traitement des documents médicaux** dans le domaine de l’assurance santé.
-
-**Objectifs principaux :**
-
-- Réduire le **temps de traitement manuel** des documents
-- Améliorer la **fiabilité des données extraites** (OCR + règles métiers)
-- Mettre en place un système **sécurisé**, avec **traçabilité complète** (audit trail)
-- Intégrer un mécanisme **Human-in-the-Loop** pour la validation des extractions
-- Assurer le **versioning** des extractions et des corrections
-
-La plateforme combine **OCR**, **extraction structurée**, **règles métiers**, **validation humaine**, **versioning** et **journalisation des actions** au sein d’une architecture distribuée.
-
----
-
-## Architecture du système
-
-### Vue d’ensemble
-
-L’application repose sur une **architecture distribuée multi-couches** :
-
-| Couche          | Technologie                        | Rôle principal                                              |
-| --------------- | ---------------------------------- | ----------------------------------------------------------- |
-| Frontend        | React + Bootstrap                  | Interface utilisateur, visualisation, validation/correction |
-| Backend         | Laravel (API REST, Sanctum)        | Logique métier, sécurité, orchestration, audit, versioning  |
-| Service IA      | FastAPI (Python, Tesseract, OpenCV)| OCR, prétraitement d’images, extraction de champs           |
-| Base de données | MySQL                              | Persistance, cohérence, audit trail, historique des versions|
-
-**Principes architecturaux :**
-
-- **Séparation claire des responsabilités** : UI, logique métier et traitement d’image sont découplés.
-- **Service IA stateless** : FastAPI gère le prétraitement et l’OCR, puis renvoie les données extraites au backend.
-- **Backend comme source de vérité** : statuts, versioning, audit trail, règles métiers et transactions atomiques.
-- **Communication REST** entre les composants (frontend ↔ backend ↔ service IA).
-
+- [Project Overview](#project-overview)
+- [Core Capabilities](#core-capabilities)
+- [Architecture](#architecture)
+- [Business Model](#business-model)
+- [Workflows](#workflows)
+- [Security and Access Control](#security-and-access-control)
+- [Internationalization](#internationalization)
+- [Repository Structure](#repository-structure)
+- [Getting Started](#getting-started)
+- [Environment Notes](#environment-notes)
+- [API Overview](#api-overview)
+- [Current Scope](#current-scope)
+- [Academic Context](#academic-context)
 
 ---
 
-## Workflow fonctionnel
+## Project Overview
 
-### Cycle de traitement d’un document
+This project was developed as a **PFE (Projet de Fin d’Études)** in Software Engineering / Information Systems.
 
-1. **Upload du document** (image ou PDF) via l’interface React  
-2. **Appel du service IA FastAPI** pour :
-   - Prétraitement d’image (OpenCV – niveau MVP)
-   - Reconnaissance optique de caractères (**Tesseract OCR**)
-   - Extraction structurée des champs :
-     - Date de facture
-     - Prestataire / fournisseur
-     - Montant total TTC
-3. **Calcul d’un score de confiance** par champ (OCR / extraction)
-4. **Application des règles métiers** dans le backend Laravel
-5. **Intervention Human-in-the-Loop** :
-   - Visualisation du document et des champs extraits
-   - Correction des champs à faible confiance ou incohérents
-6. **Validation** et **enregistrement** :
-   - Création d’une nouvelle **version** d’extraction
-   - Mise à jour du **statut** du document
-   - Enregistrement d’une entrée dans le **journal d’audit**
+It addresses a real operational problem: medical reimbursement workflows often depend on slow manual review of invoice-like documents, repeated data entry, weak traceability, and fragmented coordination between preparation, review, and hierarchical supervision.
 
-### Cycle des statuts
+The platform solves this by combining three complementary layers:
 
-Le document suit typiquement le cycle :
+1. **Document processing**
+   - upload of medical invoices and similar supporting documents,
+   - asynchronous OCR and structured field extraction,
+   - confidence-aware review,
+   - human validation and correction history.
 
-`UPLOADED → PROCESSING → PROCESSED → VALIDATED / FAILED`
+2. **Business workflow management**
+   - grouping validated documents into **rubriques** inside a **dossier**,
+   - document-level reimbursement decisions,
+   - rubrique-level aggregation,
+   - dossier submission, review, final processing, escalation, and reopen cycles.
 
-Ces statuts sont gérés côté backend et exposés au frontend via l’API REST.
+3. **Operational governance**
+   - role-based access control,
+   - persistent notifications,
+   - protected source-document access,
+   - immutable workflow history,
+   - bilingual UI.
 
----
+The result is not a generic OCR demo. It is a **role-based internal workflow application** centered on the domain model:
 
-## Fonctionnalités principales
-
-### 1. Upload et gestion des documents
-
-- Support des formats **image** et **PDF** (niveau MVP)
-- Suivi du **statut de traitement** (UPLOADED, PROCESSING, PROCESSED, VALIDATED, FAILED)
-- Association des extractions successives à un même document (versioning)
-
-### 2. OCR et extraction automatique
-
-- Utilisation de **Tesseract OCR** via un service **FastAPI**
-- Prétraitement basique avec **OpenCV** (redressement simple, nettoyage léger – selon implémentation)
-- Extraction des champs clés :
-  - Date de facture
-  - Nom du prestataire / fournisseur
-  - Montant total TTC
-- Calcul d’un **score de confiance** par champ
-- Détection des champs à **faible confiance** pour revue humaine
-
-### 3. Validation Human-in-the-Loop
-
-- Interface React dédiée à la **correction** des champs extraits
-- Possibilité de modifier et valider chaque champ individuellement
-- Validation finale de l’extraction par un utilisateur habilité
-- Marquage des champs comme **validés** pour une version donnée
-
-### 4. Versioning et traçabilité (audit trail)
-
-- **Version 1** : extraction IA initiale (OCR)
-- **Versions suivantes** : corrections et validations humaines successives
-- Journalisation fine des corrections :
-
-  - Champ modifié
-  - Ancienne valeur
-  - Nouvelle valeur
-  - Utilisateur
-  - Date et heure
-
-- Conservation de l’historique complet des versions pour **audit** et **traçabilité**
-
-### 5. Règles métiers intégrées
-
-- Avertissement si **date de facture dans le futur**
-- Rejet des **montants nuls ou négatifs**
-- Signalement des **montants élevés** (seuil configurable dans la configuration / code)
-- Vérifications basiques d’intégrité (champs obligatoires, formats, etc.)
-
-### 6. Sécurité et cohérence des données
-
-- **Authentification** basée sur **Laravel Sanctum**
-- Protection des **routes API** et des vues critiques du frontend
-- **Transactions atomiques** pour les opérations critiques (validation, versioning, audit)  
-  → soit toutes les opérations réussissent, soit aucune n’est appliquée
-- Gestion des **sessions expirées** et redirection côté frontend
+**Dossier → Rubriques → Documents**
 
 ---
 
-## Exemple d’API REST
+## Core Capabilities
 
-*(Les endpoints exacts peuvent varier selon l’implémentation réelle.)*
+### Document processing
+- Secure upload of medical documents
+- Asynchronous OCR processing through Laravel queue workers
+- FastAPI extraction service with **PaddleOCR as the main OCR engine** and **Tesseract as fallback**
+- Structured extraction of key fields such as:
+  - invoice date
+  - provider name
+  - total TTC amount
+- Extraction versioning
+- Confidence and warning generation
+- Human validation and correction audit trail
 
-| Méthode | Endpoint                          | Description                                      |
-| ------- | --------------------------------- | ------------------------------------------------ |
-| POST    | `/api/auth/login`                | Authentification de l’utilisateur                |
-| POST    | `/api/documents`                 | Upload d’un document et démarrage du traitement  |
-| GET     | `/api/documents`                 | Liste paginée des documents                      |
-| GET     | `/api/documents/{id}`            | Détails d’un document et dernière extraction     |
-| POST    | `/api/documents/{id}/validate`   | Validation/correction Human-in-the-Loop          |
-| GET     | `/api/documents/{id}/versions`   | Historique des versions d’extraction             |
-| GET     | `/api/audit`                     | Consultation du journal d’audit (selon droits)   |
+### Dossier workflow
+- Case file creation and management
+- Rubrique-based organization of supporting documents
+- Attachment of **validated** documents only
+- Document-level business decisions:
+  - `PENDING`
+  - `ACCEPTED`
+  - `REJECTED`
+- Rubrique-level status aggregation
+- Dossier submission and final processing
 
-Le backend Laravel orchestre les appels au service FastAPI (par ex. `/ocr/extract`) et persiste les données dans MySQL.
+### Hierarchical review
+- Escalation from normal review to supervisor review
+- Supervisor approval, return, or complement request
+- Reopened preparation flow after complement request
+- Current-context cards in dossier detail for active review states
+- Full immutable workflow history timeline
+
+### Operational polish
+- Protected file preview/download through Laravel
+- Persistent workflow notifications in the navbar
+- EN/FR language switcher
+- Enterprise-style operational UI for documents, dossiers, review, and administration
 
 ---
 
-## Prérequis et environnement
+## Architecture
 
-Pour exécuter le projet en environnement de développement :
+The platform uses a **three-part architecture** with strict responsibility boundaries.
 
-- **Système** : Windows / Linux / macOS
-- **Node.js** : v18+  
-- **npm** : v9+ (ou Yarn équivalent)
-- **PHP** : v8.1+  
-- **Composer** : v2+
-- **Python** : v3.10+  
-- **MySQL** : v8+ (ou MariaDB compatible)
-- **Tesseract OCR** : installé sur le système et accessible dans le PATH
-- **Outils Python** : `pip`, `virtualenv` (recommandé)
+| Layer | Technology | Responsibility |
+|---|---|---|
+| Frontend | React + Vite + Bootstrap | User interface, lists, forms, review surfaces, localization |
+| Backend | Laravel 10 + Sanctum + MySQL | Business workflow, RBAC, persistence, orchestration, protected file access |
+| AI Service | FastAPI + PaddleOCR + Tesseract + spaCy | OCR, extraction, preprocessing, structured AI response |
+
+### Key architectural rules
+
+- **React communicates only with Laravel**
+- **Laravel is the source of truth** for workflow, RBAC, notifications, persistence, and protected access
+- **FastAPI is stateless** and limited to OCR / extraction concerns
+- No direct React → FastAPI communication
+- Business workflow remains fully outside the AI service
+
+This separation keeps the project easier to reason about, safer to evolve, and more defensible academically.
 
 ---
 
-## Installation et lancement
+## Business Model
 
-### 1. Clonage du dépôt
+The application is built around four core roles:
 
-```bash
-git clone https://github.com/votre-utilisateur/votre-repo.git
-cd votre-repo
+- `AGENT`
+- `CLAIMS_MANAGER`
+- `SUPERVISOR`
+- `ADMIN`
+
+`ADMIN` acts as the super-role.
+
+### Core hierarchy
+
+```text
+Dossier
+  └── Rubriques
+        └── Documents
 ```
 
-### 2. Backend (Laravel)
+### Design principle
+
+The project deliberately separates:
+
+- the **technical document lifecycle**,
+- the **business reimbursement decisions**,
+- and the **dossier workflow state machine**.
+
+This avoids mixing OCR pipeline state with reimbursement review state.
+
+---
+
+## Workflows
+
+### 1) Technical document lifecycle
+
+```text
+UPLOADED → PROCESSING → PROCESSED → VALIDATED
+```
+
+- `UPLOADED`: file stored successfully
+- `PROCESSING`: OCR job running through the queue
+- `PROCESSED`: extraction result available
+- `VALIDATED`: human-reviewed version accepted
+
+### 2) Document reimbursement decision lifecycle
+
+```text
+PENDING → ACCEPTED / REJECTED
+```
+
+This decision layer is separate from OCR status.
+
+### 3) Dossier business workflow
+
+```text
+RECEIVED → IN_PROGRESS → UNDER_REVIEW → PROCESSED
+```
+
+### 4) Hierarchical exception workflow
+
+```text
+UNDER_REVIEW → IN_ESCALATION
+```
+
+From `IN_ESCALATION`, the supervisor can:
+- approve the dossier → `PROCESSED`
+- return it to the claims manager → `UNDER_REVIEW`
+- request complement → `AWAITING_COMPLEMENT`
+
+Then:
+
+```text
+AWAITING_COMPLEMENT → UNDER_REVIEW
+```
+
+after the preparation owner updates the required elements and resubmits the dossier.
+
+---
+
+## Security and Access Control
+
+The platform includes a real access-control layer, not just a demo login.
+
+### Implemented security elements
+- API authentication with **Laravel Sanctum**
+- Protected routes on both backend and frontend
+- Role-based action visibility and controller-level authorization
+- Protected source-document preview and download through Laravel streaming
+- Safe account management:
+  - activation / deactivation
+  - role updates
+  - self password change
+  - admin password reset
+- Best-effort notification emission after successful workflow transitions
+
+### Protected file access model
+
+Source files are **not** exposed publicly.
+
+```text
+React → Laravel API → private storage
+```
+
+This keeps RBAC enforced at the backend and avoids direct storage leakage.
+
+---
+
+## Internationalization
+
+The frontend supports two real UI languages:
+
+- **English** (default)
+- **French**
+
+The i18n layer was implemented at the **presentation level only**:
+- internal backend values remain stable,
+- enums and workflow constants stay canonical,
+- the UI renders translated labels, badges, notifications, and workflow surfaces.
+
+This keeps the business model clean while making the application usable in both languages.
+
+---
+
+## Repository Structure
+
+```text
+backend/   Laravel API, business logic, migrations, queue jobs, notifications
+frontend/  React + Vite application, workflow UI, i18n, admin screens
+ai/        FastAPI OCR/extraction service
+README.md  Root project documentation
+```
+
+### Backend highlights
+- API controllers for documents, dossiers, rubriques, escalation, notifications, and admin users
+- Queue-based document processing
+- MySQL-backed persistence
+- Workflow events and notification services
+
+### Frontend highlights
+- Documents list and validation workspace
+- Dossiers list and dossier detail workspace
+- Workflow actions, supervisor panel, and timeline surfaces
+- Admin user management
+- Notification bell
+- Language switcher and localized dictionaries
+
+### AI service highlights
+- OCR pipeline with PaddleOCR primary engine
+- Tesseract fallback strategy
+- spaCy-assisted provider extraction
+- stable JSON response contract consumed by Laravel
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- **Node.js** 18+
+- **npm** 9+
+- **PHP** 8.1+
+- **Composer** 2+
+- **Python** 3.10+
+- **MySQL** 8+
+- **Tesseract OCR** installed and available in `PATH`
+- Optional but recommended: GPU-ready environment for PaddleOCR acceleration
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/chiheb-xhbb/medical_claims_doc_processing.git
+cd medical_claims_doc_processing
+```
+
+### 2. Backend setup
 
 ```bash
 cd backend
 composer install
 cp .env.example .env
-
-# Configurer la connexion MySQL dans .env, puis :
 php artisan key:generate
 php artisan migrate
+```
 
-# Lancer le serveur Laravel (par défaut sur http://127.0.0.1:8000)
+Configure your `.env` for:
+- MySQL connection
+- Sanctum / app URL
+- `FASTAPI_URL`
+
+Start the Laravel API:
+
+```bash
 php artisan serve
 ```
 
-### 3. Service IA (FastAPI)
+Start a queue worker in a second terminal:
+
+```bash
+php artisan queue:work
+```
+
+### 3. AI service setup
 
 ```bash
 cd ai
-# (optionnel) python -m venv venv && source venv/bin/activate  # ou .\venv\Scripts\activate sous Windows
-pip install -r requirements.txt
-
-# Lancer le service FastAPI (par défaut sur http://127.0.0.1:8000 ou 8001 selon config)
-uvicorn main:app --reload
+python -m venv venv
 ```
 
-### 4. Frontend (React)
+Activate the environment:
+
+**Windows**
+```bash
+venv\Scripts\activate
+```
+
+**Linux / macOS**
+```bash
+source venv/bin/activate
+```
+
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+Run FastAPI:
+
+```bash
+uvicorn main:app --reload --port 8001
+```
+
+### 4. Frontend setup
 
 ```bash
 cd frontend
@@ -233,77 +374,106 @@ npm install
 npm run dev
 ```
 
-Le frontend (React + Vite) consomme l’API Laravel (URL configurable via les fichiers `.env` du frontend) ; Laravel consomme à son tour le service FastAPI pour la partie OCR / extraction.
+---
+
+## Environment Notes
+
+### Queue worker required
+Document processing is asynchronous. Uploads will not move from `UPLOADED` / `PROCESSING` to extracted results unless a Laravel queue worker is running.
+
+### FastAPI contract stability
+The AI service returns a structured JSON payload consumed by Laravel. The project keeps this contract stable so OCR improvements do not break the application workflow.
+
+### Local development URLs
+The codebase is currently oriented toward local development defaults. Review environment variables before deployment.
+
+### PDF handling
+The OCR service is designed for invoice-like document processing. Multi-page PDF handling is not the main focus of the current academic prototype.
 
 ---
 
-## Structure du projet
+## API Overview
 
-```text
-/backend         API Laravel (règles métiers, sécurité, versioning, audit, migrations dans backend/database)
-/frontend        Application React + Vite + Bootstrap (UI, Human-in-the-Loop)
-/ai              Service FastAPI (OCR, Tesseract, OpenCV, PyMuPDF)
-/docs            Documentation projet (journal DEVLOG, conception BDD, diagrammes)
-README.md        Documentation racine du monorepo
-```
+The exact route set is defined in the Laravel application, but the platform currently includes protected endpoints for:
 
----
+### Authentication and account control
+- login / logout
+- current user
+- self password change
+- forgot/reset password flows
+- admin user management
 
-## Limitations du MVP
+### Documents
+- upload
+- list / filters / pagination
+- detail
+- validation
+- protected preview / download
 
-Afin de rester réaliste et aligné avec un périmètre MVP :
+### Dossiers and rubriques
+- dossier CRUD
+- dossier submit / process
+- rubrique CRUD
+- attach / detach validated documents
+- document accept / reject
+- rubrique reject-all
 
-- L’interface de validation est **fonctionnelle mais simple** (UX et design perfectibles).
-- Le prétraitement d’images via OpenCV est **basique** (optimisations possibles).
-- Les **règles métiers** sont limitées à un ensemble restreint mais représentatif de cas réels.
-- La détection avancée de type de document et les modèles NLP ne sont **pas encore** généralisés.
+### Hierarchical review
+- escalate dossier
+- supervisor approve
+- supervisor return
+- supervisor request complement
+- claims manager return to preparation
 
-Ces limitations sont assumées et documentées dans le cadre du PFE.
-
----
-
-## Améliorations prévues
-
-Les évolutions suivantes sont envisagées pour renforcer la robustesse et la précision du système :
-
-- Optimisation du **prétraitement OCR** :
-  - Deskew (redressement)
-  - Réduction du bruit
-  - Binarisation adaptative
-- Extraction hybride basée sur **regex** et **analyse contextuelle**
-- Détection automatique du **type de document**
-- Tableau de bord **KPI** :
-  - Taux d’automatisation
-  - Taux de correction humaine
-  - Temps moyen de traitement
-- Intégration avancée de **PaddleOCR** (amélioration de la précision OCR)
-- Intégration de **spaCy (NER)** pour enrichir l’extraction d’entités
-
-> Ces points sont planifiés ou en cours d’étude et ne sont pas tous inclus dans la version MVP actuelle.
+### Notifications and traceability
+- notifications list
+- unread count
+- mark one as read
+- mark all as read
+- workflow history per dossier
 
 ---
 
-## Contexte académique
+## Current Scope
 
-- **Type** : Projet de Fin d’Études (PFE)  
-- **Filière** : Licence en Computer Science : Génie Logiciel et Système d’Information
-- **Domaine** : Assurance
+### Included in the final implemented scope
+- secure upload pipeline
+- OCR + extraction + confidence/warnings
+- human validation and correction history
+- dossier / rubrique / document workflow
+- hierarchical supervisor review
+- protected source-document access
+- persistent notifications
+- immutable workflow history
+- EN/FR interface localization
+- admin user management
 
-Le projet met en œuvre :
+### Explicitly out of scope
+- dashboard analytics
+- advanced reporting exports
+- WebSocket-based real-time notifications
+- direct public file URLs
+- generic CMS features unrelated to the claims domain
 
-- Une **architecture distribuée** (frontend, backend, service IA, base de données)
-- Un système **Human-in-the-Loop** pour assurer la qualité des données
-- Un mécanisme de **versioning** et de **traçabilité** (audit trail complet)
-- Des **règles métiers** appliquées aux documents médicaux
-- Une intégration **OCR** avec extraction structurée et **scoring de confiance**
+---
 
-## Auteur
+## Academic Context
 
-Chihebddine Selmi  
-Projet de Fin d’Études – GLSI  
+This repository contains the implementation of a **PFE (Projet de Fin d’Études)** focused on building a serious, production-like academic prototype rather than a superficial demo.
 
-Encadrante académique :  
-Mme Sana Younes  
+The main engineering themes covered by the project are:
+- OCR and structured extraction,
+- human-in-the-loop validation,
+- role-based workflow design,
+- hierarchical exception review,
+- secure document handling,
+- notification and traceability patterns,
+- and bilingual presentation-layer stabilization.
 
-Encadrant professionnel :  
-M. Yassine Kasmi
+---
+
+## Author
+
+**Chihebddine Selmi**  
+PFE – Medical Claims Document Processing Platform
+
