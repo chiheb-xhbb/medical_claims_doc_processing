@@ -273,6 +273,7 @@
     },
     "newCaseFile": "New Case File",
     "createCaseFile": "Create Case File",
+    "openAction": "Open",
     "searchPlaceholder": "Search by case file number or assured identifier",
     "columns": {
       "caseFileNumber": "Case File #",
@@ -293,8 +294,8 @@
     "summaryLabel": "case files"
   },
   "dossierDetail": {
-    "pageTitle": "Case File Details",
-    "pageSubtitle": "Review dossier identity, workflow state, escalation history, and section-level document decisions.",
+    "pageTitle": "Case File Workspace",
+    "pageSubtitle": "Manage case information, workflow state, document decisions, and history.",
     "backToCaseFiles": "Back to Case Files",
     "loadingMessage": "Loading case file details...",
     "errorTitle": "Unable to Load Case File",
@@ -313,13 +314,31 @@
     "returnNote": "Return note",
     "assured": "Assured",
     "requestedTotal": "Requested Total",
-    "currentTotal": "Current Total",
-    "displayTotal": "Display Total",
-    "storedTotal": "Stored Total",
+    "acceptedTotal": "Accepted Total",
+    "rejectedTotal": "Rejected Total",
+    "finalReimbursableTotal": "Final Reimbursable Total",
+    "lastUpdate": "Last update",
     "episodeDescription": "Episode Description",
     "notes": "Notes",
     "created": "Created",
-    "updated": "Updated"
+    "updated": "Updated",
+    "activeContext": {
+      "title": "Current Workflow Context",
+      "badges": {
+        "complementRequested": "Complement Requested",
+        "returned": "Returned",
+        "escalated": "Escalated",
+        "preparationReopened": "Preparation Reopened"
+      },
+      "waitingForRole": "Waiting for action from {{role}}",
+      "requestedBy": "Requested by",
+      "returnedBy": "Returned by",
+      "escalatedBy": "Escalated by",
+      "recordedBy": "Recorded by",
+      "date": "Date",
+      "reason": "Reason",
+      "latestNote": "Latest note"
+    }
   },
   "workflow": {
     "title": "Workflow Actions",
@@ -395,13 +414,19 @@
     "loading": "Loading workflow history...",
     "eventCount_one": "{{count}} event",
     "eventCount_other": "{{count}} events",
+    "event": "event",
+    "events": "events",
+    "immutableLog": "Immutable log",
     "emptyTitle": "No Workflow Events",
     "emptyDescription": "No immutable workflow events are available for this case file yet.",
     "error": "Unable to load workflow history",
     "errorDescription": "Check your connection and retry.",
     "systemActor": "System",
     "transitionLabel": "Transition",
+    "initialState": "Initial state",
+    "note": "Note",
     "noteLabel": "Note",
+    "endOfHistory": "End of history",
     "eventLabels": {
       "DOSSIER_CREATED": "Case File Created",
       "DOSSIER_SUBMITTED_FOR_REVIEW": "Submitted for Review",

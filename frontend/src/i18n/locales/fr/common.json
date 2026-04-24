@@ -273,6 +273,7 @@
     },
     "newCaseFile": "Nouveau dossier",
     "createCaseFile": "Créer un dossier",
+    "openAction": "Ouvrir",
     "searchPlaceholder": "Rechercher par numéro de dossier ou identifiant assuré",
     "columns": {
       "caseFileNumber": "Dossier n°",
@@ -293,8 +294,8 @@
     "summaryLabel": "dossiers"
   },
   "dossierDetail": {
-    "pageTitle": "Détails du dossier",
-    "pageSubtitle": "Examinez l'identité, l'état du flux, l'historique d'escalade et les décisions par rubrique.",
+    "pageTitle": "Espace dossier",
+    "pageSubtitle": "Gérez les informations du dossier, son état de traitement, les décisions sur documents et l’historique.",
     "backToCaseFiles": "Retour aux dossiers",
     "loadingMessage": "Chargement des détails du dossier…",
     "errorTitle": "Impossible de charger le dossier",
@@ -313,13 +314,31 @@
     "returnNote": "Note de retour",
     "assured": "Assuré",
     "requestedTotal": "Total demandé",
-    "currentTotal": "Total actuel",
-    "displayTotal": "Total affiché",
-    "storedTotal": "Total enregistré",
+    "acceptedTotal": "Total accepté",
+    "rejectedTotal": "Total rejeté",
+    "finalReimbursableTotal": "Total remboursable final",
+    "lastUpdate": "Dernière mise à jour",
     "episodeDescription": "Description de l'épisode",
     "notes": "Notes",
     "created": "Créé le",
-    "updated": "Mis à jour le"
+    "updated": "Mis à jour le",
+    "activeContext": {
+      "title": "Contexte de traitement actuel",
+      "badges": {
+        "complementRequested": "Complément demandé",
+        "returned": "Retourné",
+        "escalated": "Escaladé",
+        "preparationReopened": "Préparation rouverte"
+      },
+      "waitingForRole": "En attente d'action de la part du {{role}}",
+      "requestedBy": "Demandé par",
+      "returnedBy": "Retourné par",
+      "escalatedBy": "Escaladé par",
+      "recordedBy": "Enregistré par",
+      "date": "Date",
+      "reason": "Motif",
+      "latestNote": "Dernière note"
+    }
   },
   "workflow": {
     "title": "Actions de traitement",
@@ -395,13 +414,19 @@
     "loading": "Chargement de l'historique du traitement…",
     "eventCount_one": "{{count}} événement",
     "eventCount_other": "{{count}} événements",
+    "event": "événement",
+    "events": "événements",
+    "immutableLog": "Journal immuable",
     "emptyTitle": "Aucun événement de traitement",
     "emptyDescription": "Aucun événement immuable n'est disponible pour ce dossier pour le moment.",
     "error": "Impossible de charger l'historique du traitement",
     "errorDescription": "Vérifiez votre connexion puis réessayez.",
     "systemActor": "Système",
     "transitionLabel": "Transition",
+    "initialState": "État initial",
+    "note": "Note",
     "noteLabel": "Note",
+    "endOfHistory": "Fin de l’historique",
     "eventLabels": {
       "DOSSIER_CREATED": "Dossier créé",
       "DOSSIER_SUBMITTED_FOR_REVIEW": "Soumis pour révision",
