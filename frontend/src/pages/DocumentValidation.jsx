@@ -556,13 +556,6 @@ function DocumentValidation() {
               </span>
             </>
           )}
-
-          <span className="dv-timestamps__divider" aria-hidden="true"></span>
-          <span className="dv-timestamps__item">
-            <i className="bi bi-arrow-repeat"></i>
-            <strong>{t('documentValidation.timestamps.updated')}</strong>
-            {formatDateTime(document.updated_at)}
-          </span>
         </div>
       )}
 

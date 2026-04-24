@@ -235,8 +235,7 @@
     },
     "timestamps": {
       "created": "Created",
-      "validated": "Validated",
-      "updated": "Updated"
+      "validated": "Validated"
     },
     "complianceNote": "All data is securely processed and validated in compliance with medical data regulations."
   },
