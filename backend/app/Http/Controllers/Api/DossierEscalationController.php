@@ -116,9 +116,7 @@ class DossierEscalationController extends Controller
         return response()->json([
             'message' => 'Case file escalated successfully.',
             'dossier' => $this->formatDossierPayload($updatedDossier),
-            'requested_total' => $updatedDossier->getRequestedTotal(),
-            'current_total' => $updatedDossier->getCurrentTotal(),
-            'display_total' => $updatedDossier->getDisplayTotal(),
+            ...$updatedDossier->toFinancialTotalsPayload(),
         ], 200);
     }
 
@@ -202,9 +200,7 @@ class DossierEscalationController extends Controller
         return response()->json([
             'message' => 'Escalation approved. Case file is now processed.',
             'dossier' => $this->formatDossierPayload($updatedDossier),
-            'requested_total' => $updatedDossier->getRequestedTotal(),
-            'current_total' => $updatedDossier->getCurrentTotal(),
-            'display_total' => $updatedDossier->getDisplayTotal(),
+            ...$updatedDossier->toFinancialTotalsPayload(),
         ], 200);
     }
 
@@ -289,9 +285,7 @@ class DossierEscalationController extends Controller
         return response()->json([
             'message' => 'Case file returned to the Claims Manager successfully.',
             'dossier' => $this->formatDossierPayload($updatedDossier),
-            'requested_total' => $updatedDossier->getRequestedTotal(),
-            'current_total' => $updatedDossier->getCurrentTotal(),
-            'display_total' => $updatedDossier->getDisplayTotal(),
+            ...$updatedDossier->toFinancialTotalsPayload(),
         ], 200);
     }
 
@@ -376,9 +370,7 @@ class DossierEscalationController extends Controller
         return response()->json([
             'message' => 'Complement requested successfully.',
             'dossier' => $this->formatDossierPayload($updatedDossier),
-            'requested_total' => $updatedDossier->getRequestedTotal(),
-            'current_total' => $updatedDossier->getCurrentTotal(),
-            'display_total' => $updatedDossier->getDisplayTotal(),
+            ...$updatedDossier->toFinancialTotalsPayload(),
         ], 200);
     }
 

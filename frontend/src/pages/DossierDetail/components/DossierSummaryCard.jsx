@@ -1,8 +1,37 @@
 import { useTranslation } from 'react-i18next';
 import { CaseFileStatusBadge } from '../../../ui';
 
-function DossierSummaryCard({ dossier, dossierData, formatAmount, formatDateTime, formatDisplayTotal }) {
+const PLACEHOLDER_VALUE = '\u2014';
+
+function DossierSummaryCard({ dossier, dossierData, formatAmount, formatDateTime }) {
   const { t } = useTranslation();
+  const financialSummary = dossierData?.financial_summary || {};
+  const requestedTotal = financialSummary?.requested_total ?? dossierData?.requested_total;
+  const acceptedTotal = financialSummary?.accepted_total ?? dossierData?.current_total;
+  const rejectedTotal = financialSummary?.rejected_total ?? null;
+  const isProcessed = String(dossier?.status || '').toUpperCase() === 'PROCESSED';
+
+  const formatTotalOrPlaceholder = (value) => {
+    if (value === null || value === undefined || value === '') {
+      return PLACEHOLDER_VALUE;
+    }
+
+    return formatAmount(value);
+  };
+
+  const finalReimbursableTotal = (() => {
+    if (!isProcessed) {
+      return PLACEHOLDER_VALUE;
+    }
+
+    const backendFinal = financialSummary?.final_reimbursable_total;
+
+    if (backendFinal !== null && backendFinal !== undefined && backendFinal !== '') {
+      return formatAmount(backendFinal);
+    }
+
+    return formatTotalOrPlaceholder(dossier?.montant_total);
+  })();
 
   return (
     <div className="card mb-4 dossier-summary-card">
@@ -32,25 +61,25 @@ function DossierSummaryCard({ dossier, dossierData, formatAmount, formatDateTime
           <div className="col-sm-6 col-lg-3">
             <div className="summary-detail-item summary-detail-item--total">
               <p className="summary-detail-label">{t('dossierDetail.requestedTotal')}</p>
-              <p className="summary-detail-value summary-detail-value--total">{formatAmount(dossierData?.requested_total)}</p>
+              <p className="summary-detail-value summary-detail-value--total">{formatTotalOrPlaceholder(requestedTotal)}</p>
             </div>
           </div>
           <div className="col-sm-6 col-lg-3">
             <div className="summary-detail-item summary-detail-item--total">
-              <p className="summary-detail-label">{t('dossierDetail.currentTotal')}</p>
-              <p className="summary-detail-value summary-detail-value--total">{formatAmount(dossierData?.current_total)}</p>
+              <p className="summary-detail-label">{t('dossierDetail.acceptedTotal')}</p>
+              <p className="summary-detail-value summary-detail-value--total">{formatTotalOrPlaceholder(acceptedTotal)}</p>
             </div>
           </div>
           <div className="col-sm-6 col-lg-3">
             <div className="summary-detail-item summary-detail-item--total">
-              <p className="summary-detail-label">{t('dossierDetail.displayTotal')}</p>
-              <p className="summary-detail-value summary-detail-value--total">{formatDisplayTotal(dossierData?.display_total)}</p>
+              <p className="summary-detail-label">{t('dossierDetail.rejectedTotal')}</p>
+              <p className="summary-detail-value summary-detail-value--total">{formatTotalOrPlaceholder(rejectedTotal)}</p>
             </div>
           </div>
           <div className="col-sm-6 col-lg-3">
             <div className="summary-detail-item summary-detail-item--total">
-              <p className="summary-detail-label">{t('dossierDetail.storedTotal')}</p>
-              <p className="summary-detail-value summary-detail-value--total">{formatAmount(dossier.montant_total)}</p>
+              <p className="summary-detail-label">{t('dossierDetail.finalReimbursableTotal')}</p>
+              <p className="summary-detail-value summary-detail-value--total">{finalReimbursableTotal}</p>
             </div>
           </div>
         </div>
@@ -92,3 +121,4 @@ function DossierSummaryCard({ dossier, dossierData, formatAmount, formatDateTime
 }
 
 export default DossierSummaryCard;
+

@@ -156,9 +156,7 @@ class DossierController extends Controller
             return response()->json([
                 'message' => 'Case file created successfully.',
                 'dossier' => $this->formatDossierDetail($dossier),
-                'requested_total' => $dossier->getRequestedTotal(),
-                'current_total' => $dossier->getCurrentTotal(),
-                'display_total' => $dossier->getDisplayTotal(),
+                ...$dossier->toFinancialTotalsPayload(),
             ], 201);
         });
     }
@@ -194,9 +192,7 @@ class DossierController extends Controller
             'rubriques' => $dossier->rubriques
                 ->map(fn ($rubrique) => $this->formatRubriqueDetail($rubrique))
                 ->values(),
-            'requested_total' => $dossier->getRequestedTotal(),
-            'current_total' => $dossier->getCurrentTotal(),
-            'display_total' => $dossier->getDisplayTotal(),
+            ...$dossier->toFinancialTotalsPayload(),
         ], 200);
     }
 
@@ -292,9 +288,7 @@ class DossierController extends Controller
         return response()->json([
             'message' => 'Case file updated successfully.',
             'dossier' => $this->formatDossierDetail($dossier),
-            'requested_total' => $dossier->getRequestedTotal(),
-            'current_total' => $dossier->getCurrentTotal(),
-            'display_total' => $dossier->getDisplayTotal(),
+            ...$dossier->toFinancialTotalsPayload(),
         ], 200);
     }
 
@@ -421,9 +415,7 @@ class DossierController extends Controller
             return response()->json([
                 'message' => 'Case file submitted successfully.',
                 'dossier' => $this->formatDossierDetail($lockedDossier),
-                'requested_total' => $lockedDossier->getRequestedTotal(),
-                'current_total' => $lockedDossier->getCurrentTotal(),
-                'display_total' => $lockedDossier->getDisplayTotal(),
+                ...$lockedDossier->toFinancialTotalsPayload(),
             ], 200);
         });
     }
@@ -504,9 +496,7 @@ class DossierController extends Controller
             return response()->json([
                 'message' => 'Case file processed successfully.',
                 'dossier' => $this->formatDossierDetail($lockedDossier),
-                'requested_total' => $lockedDossier->getRequestedTotal(),
-                'current_total' => $lockedDossier->getCurrentTotal(),
-                'display_total' => $lockedDossier->getDisplayTotal(),
+                ...$lockedDossier->toFinancialTotalsPayload(),
             ], 200);
         });
     }
@@ -595,22 +585,22 @@ class DossierController extends Controller
             return response()->json([
                 'message' => 'Case file returned to preparation successfully.',
                 'dossier' => $this->formatDossierDetail($lockedDossier),
-                'requested_total' => $lockedDossier->getRequestedTotal(),
-                'current_total' => $lockedDossier->getCurrentTotal(),
-                'display_total' => $lockedDossier->getDisplayTotal(),
+                ...$lockedDossier->toFinancialTotalsPayload(),
             ], 200);
         });
     }
 
     private function formatDossierSummary(Dossier $dossier): array
     {
+        $financialTotals = $dossier->toFinancialTotalsPayload();
+
         return [
             'id' => $dossier->id,
             'numero_dossier' => $dossier->numero_dossier,
             'assured_identifier' => $dossier->assured_identifier,
             'status' => $dossier->status->value,
             'montant_total' => $dossier->montant_total,
-            'display_total' => $dossier->getDisplayTotal(),
+            ...$financialTotals,
             'rubriques_count' => $dossier->rubriques_count ?? 0,
             'documents_count' => $dossier->documents_count ?? 0,
 

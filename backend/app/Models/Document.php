@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Document extends Model
 {
@@ -49,6 +50,11 @@ class Document extends Model
         return $this->hasMany(Extraction::class);
     }
 
+    public function latestExtraction(): HasOne
+    {
+        return $this->hasOne(Extraction::class)->latestOfMany('version');
+    }
+
     public function fieldCorrections(): HasMany
     {
         return $this->hasMany(FieldCorrection::class);
@@ -73,5 +79,46 @@ class Document extends Model
     public function rubrique(): BelongsTo
     {
         return $this->belongsTo(Rubrique::class);
+    }
+
+    public function getLatestExtractedTotalTtc(): float
+    {
+        $latestExtraction = $this->resolveLatestExtraction();
+        $resultJson = $latestExtraction?->result_json;
+
+        if (! is_array($resultJson)) {
+            return 0.0;
+        }
+
+        $fields = $resultJson['fields'] ?? null;
+
+        if (! is_array($fields)) {
+            return 0.0;
+        }
+
+        $totalTtc = $fields['total_ttc'] ?? null;
+
+        if (is_string($totalTtc)) {
+            $totalTtc = str_replace(',', '.', trim($totalTtc));
+        }
+
+        if (! is_numeric($totalTtc)) {
+            return 0.0;
+        }
+
+        return (float) $totalTtc;
+    }
+
+    private function resolveLatestExtraction(): ?Extraction
+    {
+        if ($this->relationLoaded('latestExtraction')) {
+            return $this->getRelation('latestExtraction');
+        }
+
+        if ($this->relationLoaded('extractions')) {
+            return $this->extractions->sortByDesc('version')->first();
+        }
+
+        return $this->latestExtraction()->first();
     }
 }

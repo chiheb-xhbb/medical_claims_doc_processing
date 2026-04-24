@@ -34,7 +34,7 @@ import {
   returnDossierToPreparation,
 } from '../services/dossierWorkflow';
 import { Loader, EmptyState, ConfirmationModal, PageHeader, WorkflowBanner } from '../ui';
-import { formatAmountTnd, formatDisplayAmountTnd, formatDateTime } from '../utils/formatters';
+import { formatAmountTnd, formatDateTime } from '../utils/formatters';
 import DossierSummaryCard from './DossierDetail/components/DossierSummaryCard';
 import WorkflowActionsCard from './DossierDetail/components/WorkflowActionsCard';
 import RubriquesSection from './DossierDetail/components/RubriquesSection';
@@ -101,6 +101,50 @@ const mapDossierDetailResponse = (apiResponse) => {
     : Array.isArray(dossier?.rubriques)
       ? dossier.rubriques
       : [];
+  const status = String(dossier?.status || '').toUpperCase();
+  const isProcessed = status === DOSSIER_STATUSES.PROCESSED;
+  const payloadFinancialSummary = payload.financial_summary;
+  const dossierFinancialSummary = dossier?.financial_summary;
+  const sourceFinancialSummary =
+    (payloadFinancialSummary && typeof payloadFinancialSummary === 'object')
+      ? payloadFinancialSummary
+      : (dossierFinancialSummary && typeof dossierFinancialSummary === 'object')
+        ? dossierFinancialSummary
+        : null;
+
+  const requestedTotal =
+    sourceFinancialSummary?.requested_total ??
+    payload.requested_total ??
+    dossier?.requested_total ??
+    null;
+
+  const acceptedTotal =
+    sourceFinancialSummary?.accepted_total ??
+    payload.current_total ??
+    dossier?.current_total ??
+    null;
+
+  const rejectedTotal = sourceFinancialSummary?.rejected_total ?? null;
+
+  let finalReimbursableTotal = null;
+
+  if (isProcessed) {
+    finalReimbursableTotal = sourceFinancialSummary?.final_reimbursable_total ?? null;
+
+    if (finalReimbursableTotal === null || finalReimbursableTotal === undefined) {
+      finalReimbursableTotal =
+        dossier?.montant_total ??
+        payload.montant_total ??
+        null;
+    }
+  }
+
+  const financialSummary = {
+    requested_total: requestedTotal,
+    accepted_total: acceptedTotal,
+    rejected_total: rejectedTotal,
+    final_reimbursable_total: finalReimbursableTotal,
+  };
 
   return {
     dossier: dossier || null,
@@ -108,9 +152,15 @@ const mapDossierDetailResponse = (apiResponse) => {
       ...rubrique,
       documents: Array.isArray(rubrique?.documents) ? rubrique.documents : [],
     })),
-    requested_total: payload.requested_total ?? dossier?.requested_total ?? 0,
-    current_total: payload.current_total ?? dossier?.current_total ?? 0,
-    display_total: payload.display_total ?? dossier?.display_total ?? null,
+    requested_total: payload.requested_total ?? dossier?.requested_total ?? requestedTotal ?? 0,
+    current_total: payload.current_total ?? dossier?.current_total ?? acceptedTotal ?? 0,
+    display_total:
+      payload.display_total ??
+      dossier?.display_total ??
+      finalReimbursableTotal ??
+      acceptedTotal ??
+      null,
+    financial_summary: financialSummary,
   };
 };
 
@@ -964,7 +1014,6 @@ function DossierDetail() {
         dossierData={dossierData}
         formatAmount={formatAmountTnd}
         formatDateTime={formatDateTime}
-        formatDisplayTotal={formatDisplayAmountTnd}
       />
 
       <EscalationInfoBlock dossier={dossier} formatDateTime={formatDateTime} />

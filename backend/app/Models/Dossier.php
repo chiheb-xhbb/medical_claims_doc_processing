@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 class Dossier extends Model
@@ -160,50 +161,81 @@ class Dossier extends Model
 
     public function getRequestedTotal(): float
     {
-        $total = 0.0;
-
-        $validatedDocuments = $this->documents()
-            ->where('documents.status', DocumentStatus::VALIDATED->value)
-            ->get();
-
-        foreach ($validatedDocuments as $document) {
-            $latestExtraction = $document->extractions()->latest('version')->first();
-
-            if ($latestExtraction) {
-                $fields = $latestExtraction->result_json['fields'] ?? [];
-                $total += (float) ($fields['total_ttc'] ?? 0);
-            }
-        }
-
-        return $total;
+        return $this->getFinancialSummary()['requested_total'];
     }
 
     public function getCurrentTotal(): float
     {
-        $total = 0.0;
+        return $this->getAcceptedTotal();
+    }
 
-        $acceptedDocuments = $this->documents()
-            ->where('documents.status', DocumentStatus::VALIDATED->value)
-            ->where('documents.decision_status', DocumentDecisionStatus::ACCEPTED->value)
-            ->get();
+    public function getAcceptedTotal(): float
+    {
+        return $this->getFinancialSummary()['accepted_total'];
+    }
 
-        foreach ($acceptedDocuments as $document) {
-            $latestExtraction = $document->extractions()->latest('version')->first();
+    public function getRejectedTotal(): float
+    {
+        return $this->getFinancialSummary()['rejected_total'];
+    }
 
-            if ($latestExtraction) {
-                $fields = $latestExtraction->result_json['fields'] ?? [];
-                $total += (float) ($fields['total_ttc'] ?? 0);
+    public function getFinalReimbursableTotal(): ?float
+    {
+        return $this->status === DossierStatus::PROCESSED
+            ? (float) $this->montant_total
+            : null;
+    }
+
+    public function getFinancialSummary(): array
+    {
+        $requestedTotal = 0.0;
+        $acceptedTotal = 0.0;
+        $rejectedTotal = 0.0;
+
+        $documents = $this->getFinancialSummaryDocuments();
+
+        foreach ($documents as $document) {
+            $documentTotal = $document->getLatestExtractedTotalTtc();
+            $requestedTotal += $documentTotal;
+
+            $decisionStatus = $document->decision_status?->value ?? $document->decision_status;
+
+            if ($decisionStatus === DocumentDecisionStatus::ACCEPTED->value) {
+                $acceptedTotal += $documentTotal;
+            }
+
+            if ($decisionStatus === DocumentDecisionStatus::REJECTED->value) {
+                $rejectedTotal += $documentTotal;
             }
         }
 
-        return $total;
+        return [
+            'requested_total' => $requestedTotal,
+            'accepted_total' => $acceptedTotal,
+            'rejected_total' => $rejectedTotal,
+            'final_reimbursable_total' => $this->getFinalReimbursableTotal(),
+        ];
+    }
+
+    public function toFinancialTotalsPayload(): array
+    {
+        $financialSummary = $this->getFinancialSummary();
+        $acceptedTotal = $financialSummary['accepted_total'];
+        $finalReimbursableTotal = $financialSummary['final_reimbursable_total'];
+
+        return [
+            'requested_total' => $financialSummary['requested_total'],
+            'current_total' => $acceptedTotal,
+            'display_total' => $finalReimbursableTotal ?? $acceptedTotal,
+            'financial_summary' => $financialSummary,
+        ];
     }
 
     public function getDisplayTotal(): float
     {
-        return $this->isFrozen()
-            ? (float) $this->montant_total
-            : $this->getCurrentTotal();
+        $financialSummary = $this->getFinancialSummary();
+
+        return (float) ($financialSummary['final_reimbursable_total'] ?? $financialSummary['accepted_total']);
     }
 
     public function updateTotal(): void
@@ -212,6 +244,47 @@ class Dossier extends Model
             $this->montant_total = $this->getCurrentTotal();
             $this->saveQuietly();
         }
+    }
+
+    private function getFinancialSummaryDocuments(): Collection
+    {
+        $loadedDocuments = $this->getLoadedFinancialSummaryDocuments();
+
+        if ($loadedDocuments !== null) {
+            return $loadedDocuments;
+        }
+
+        return $this->documents()
+            ->where('documents.status', DocumentStatus::VALIDATED->value)
+            ->with('latestExtraction')
+            ->get();
+    }
+
+    private function getLoadedFinancialSummaryDocuments(): ?Collection
+    {
+        if ($this->relationLoaded('documents')) {
+            return collect($this->getRelation('documents'))
+                ->filter(fn (Document $document) => $this->isValidatedDocument($document))
+                ->values();
+        }
+
+        if (! $this->relationLoaded('rubriques')) {
+            return null;
+        }
+
+        if (! $this->rubriques->every(fn (Rubrique $rubrique) => $rubrique->relationLoaded('documents'))) {
+            return null;
+        }
+
+        return $this->rubriques
+            ->flatMap(fn (Rubrique $rubrique) => $rubrique->documents)
+            ->filter(fn (Document $document) => $this->isValidatedDocument($document))
+            ->values();
+    }
+
+    private function isValidatedDocument(Document $document): bool
+    {
+        return ($document->status?->value ?? $document->status) === DocumentStatus::VALIDATED->value;
     }
 
 }
