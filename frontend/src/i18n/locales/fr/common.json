@@ -237,7 +237,7 @@
       "created": "Créé",
       "validated": "Validé"
     },
-    "complianceNote": "Toutes les données sont traitées et validées de manière sécurisée, conformément à la réglementation des données médicales."
+    "complianceNote": "Les documents sources sont accessibles uniquement aux utilisateurs autorisés pendant la validation."
   },
   "dossiersPage": {
     "agent": {

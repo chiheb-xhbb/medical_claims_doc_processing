@@ -237,7 +237,7 @@
       "created": "Created",
       "validated": "Validated"
     },
-    "complianceNote": "All data is securely processed and validated in compliance with medical data regulations."
+    "complianceNote": "Source documents are accessible only to authorized users during validation."
   },
   "dossiersPage": {
     "agent": {
