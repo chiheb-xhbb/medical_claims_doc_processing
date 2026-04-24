@@ -41,7 +41,7 @@ import RubriquesSection from './DossierDetail/components/RubriquesSection';
 import AttachDocumentsModal from './DossierDetail/components/AttachDocumentsModal';
 import RejectDocumentModal from './DossierDetail/components/RejectDocumentModal';
 import RejectRubriqueModal from './DossierDetail/components/RejectRubriqueModal';
-import EscalationInfoBlock from './DossierDetail/components/EscalationInfoBlock';
+import ActiveWorkflowContextCard from './DossierDetail/components/ActiveWorkflowContextCard';
 import WorkflowHistoryCard from './DossierDetail/components/WorkflowHistoryCard';
 import SupervisorActionPanel from './DossierDetail/components/SupervisorActionPanel';
 import DossierModalShell from './DossierDetail/components/DossierModalShell';
@@ -296,7 +296,6 @@ function DossierDetail() {
   const dossierStatusLabel = getDossierStatusLabel(dossierStatus) || dossierStatus || '-';
   const isDossierOwnedByCurrentUser = Number(dossier?.created_by) === currentUserId;
 
-  const isSupervisor = role === USER_ROLES.SUPERVISOR;
   const isSupervisorReviewer = role === USER_ROLES.SUPERVISOR || role === USER_ROLES.ADMIN;
   const canPrepare =
     role === USER_ROLES.AGENT ||
@@ -369,7 +368,7 @@ function DossierDetail() {
     !isFrozen &&
     (canCreateRubrique || canSubmitDossier || canProcessDossier || canEscalate || canReturnToPreparation);
 
-  const isComplementPending = dossierStatus === DOSSIER_STATUSES.AWAITING_COMPLEMENT;
+
 
   const isConfirmingAction =
     (confirmationModal.action === 'submit' && isSubmittingDossier) ||
@@ -950,64 +949,7 @@ function DossierDetail() {
         </WorkflowBanner>
       )}
 
-      {dossierStatus === DOSSIER_STATUSES.IN_ESCALATION && !isSupervisor && (
-        <WorkflowBanner
-          title={t('dossierDetail.pendingSupervisor')}
-          variant="warning"
-          icon="bi-diagram-3"
-        >
-          {t('dossierDetail.pendingSupervisorMessage')}
-        </WorkflowBanner>
-      )}
 
-      {isReturnedForClaimsReview && canReview && (
-        <WorkflowBanner
-          title={t('dossierDetail.returnedBySupervisor')}
-          variant="warning"
-          icon="bi-arrow-return-left"
-        >
-          {t('dossierDetail.returnedBySupervisorMessage')}
-          {dossier.chef_decision_note && (
-            <div className="mt-1">
-              <strong>{t('dossierDetail.supervisorNote')}:</strong> {dossier.chef_decision_note}
-            </div>
-          )}
-        </WorkflowBanner>
-      )}
-
-      {isComplementPending && isDossierOwnedByCurrentUser && (() => {
-        const isSupervisorRequest =
-          dossier.awaiting_complement_source === 'SUPERVISOR_COMPLEMENT_REQUEST';
-        const sourceLabel = isSupervisorRequest
-          ? t('dossierDetail.complementBySupervisor')
-          : t('dossierDetail.returnedByClaimsManager');
-        const noteLabel = isSupervisorRequest ? t('dossierDetail.supervisorNote') : t('dossierDetail.returnNote');
-
-        return (
-          <WorkflowBanner
-            title={t('dossierDetail.preparationReopened')}
-            variant="warning"
-            icon="bi-arrow-return-left"
-          >
-            <div className="d-flex flex-column gap-1">
-              <div className="text-muted small fw-normal lh-sm mb-0">
-                {sourceLabel}
-                {dossier.awaiting_complement_user?.name && (
-                  <> &bull; {dossier.awaiting_complement_user.name}</>
-                )}
-                {dossier.awaiting_complement_at && (
-                  <> &bull; {formatDateTime(dossier.awaiting_complement_at)}</>
-                )}
-              </div>
-              {dossier.awaiting_complement_note && (
-                <div className="text-dark fw-medium lh-sm mb-0">
-                  <strong>{noteLabel}:</strong> {dossier.awaiting_complement_note}
-                </div>
-              )}
-            </div>
-          </WorkflowBanner>
-        );
-      })()}
 
       <DossierSummaryCard
         dossier={dossier}
@@ -1016,7 +958,7 @@ function DossierDetail() {
         formatDateTime={formatDateTime}
       />
 
-      <EscalationInfoBlock dossier={dossier} formatDateTime={formatDateTime} />
+      <ActiveWorkflowContextCard dossier={dossier} role={role} formatDateTime={formatDateTime} />
 
       <WorkflowHistoryCard
         events={workflowEvents}

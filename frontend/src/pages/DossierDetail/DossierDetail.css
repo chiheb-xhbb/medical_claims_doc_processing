@@ -835,3 +835,39 @@
     line-height: 1.2;
   }
 }
+
+/* ─── Active workflow context card ───────────────────────────────────────── */
+
+.dossier-detail-page .active-context-card {
+  border: 1px solid var(--color-gray-200);
+  border-left-width: 3px;
+  box-shadow: none;
+}
+
+.dossier-detail-page .active-context--complement {
+  border-left-color: #534ab7;
+}
+
+.dossier-detail-page .active-context--return {
+  border-left-color: #854f0b;
+}
+
+.dossier-detail-page .active-context--escalation {
+  border-left-color: #993c1d;
+}
+
+.dossier-detail-page .active-context-card__heading {
+  font-size: 0.87rem;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-gray-800);
+}
+
+.dossier-detail-page .active-context-card__note {
+  font-size: 0.81rem;
+  color: var(--color-gray-700);
+  line-height: 1.45;
+  background-color: var(--color-gray-50);
+  border-left: 3px solid rgba(148, 163, 184, 0.45);
+  border-radius: var(--radius-sm);
+  padding: 0.52rem 0.68rem;
+}

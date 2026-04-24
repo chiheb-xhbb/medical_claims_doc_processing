@@ -319,7 +319,19 @@
     "episodeDescription": "Description de l'épisode",
     "notes": "Notes",
     "created": "Créé le",
-    "updated": "Mis à jour le"
+    "updated": "Mis à jour le",
+    "activeContext": {
+      "title": "Contexte de traitement actuel",
+      "preparationReopened": "Préparation rouverte",
+      "complementRequested": "Complément demandé",
+      "returnedToClaimsManager": "Retourné au gestionnaire",
+      "escalatedForSupervisorReview": "Escaladé pour révision hiérarchique",
+      "waitingForRole": "Ce dossier est en attente d’action de la part du {{role}}.",
+      "latestNote": "Dernière note",
+      "reason": "Motif",
+      "by": "Par",
+      "at": "Le"
+    }
   },
   "workflow": {
     "title": "Actions de traitement",

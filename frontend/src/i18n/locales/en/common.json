@@ -319,7 +319,19 @@
     "episodeDescription": "Episode Description",
     "notes": "Notes",
     "created": "Created",
-    "updated": "Updated"
+    "updated": "Updated",
+    "activeContext": {
+      "title": "Current Workflow Context",
+      "preparationReopened": "Preparation reopened",
+      "complementRequested": "Complement requested",
+      "returnedToClaimsManager": "Returned to Claims Manager",
+      "escalatedForSupervisorReview": "Escalated for supervisor review",
+      "waitingForRole": "This case file is waiting for action from {{role}}.",
+      "latestNote": "Latest note",
+      "reason": "Reason",
+      "by": "By",
+      "at": "At"
+    }
   },
   "workflow": {
     "title": "Workflow Actions",
