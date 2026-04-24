@@ -235,9 +235,10 @@
     },
     "timestamps": {
       "created": "Created",
-      "validated": "Validated"
+      "validated": "Validated",
+      "updated": "Updated"
     },
-    "complianceNote": "Source documents are accessible only to authorized users during validation."
+    "complianceNote": "All data is securely processed and validated in compliance with medical data regulations."
   },
   "dossiersPage": {
     "agent": {
@@ -283,7 +284,6 @@
       "actions": "Actions"
     },
     "updatingCaseFiles": "Updating case files...",
-    "openAction": "Open",
     "emptyFilterTitle": "No Case Files Match Your Filters",
     "emptyFilterDescription": "Try adjusting your search, status, or date range and apply again.",
     "deleteTitle": "Delete Case File",
@@ -313,25 +313,13 @@
     "returnNote": "Return note",
     "assured": "Assured",
     "requestedTotal": "Requested Total",
-    "acceptedTotal": "Accepted Total",
-    "rejectedTotal": "Rejected Total",
-    "finalReimbursableTotal": "Final Reimbursable Total",
+    "currentTotal": "Current Total",
+    "displayTotal": "Display Total",
+    "storedTotal": "Stored Total",
     "episodeDescription": "Episode Description",
     "notes": "Notes",
     "created": "Created",
-    "updated": "Updated",
-    "activeContext": {
-      "title": "Current Workflow Context",
-      "preparationReopened": "Preparation reopened",
-      "complementRequested": "Complement requested",
-      "returnedToClaimsManager": "Returned to Claims Manager",
-      "escalatedForSupervisorReview": "Escalated for supervisor review",
-      "waitingForRole": "This case file is waiting for action from {{role}}.",
-      "latestNote": "Latest note",
-      "reason": "Reason",
-      "by": "By",
-      "at": "At"
-    }
+    "updated": "Updated"
   },
   "workflow": {
     "title": "Workflow Actions",
@@ -404,20 +392,12 @@
   },
   "workflowHistory": {
     "title": "Workflow History",
-    "immutableLog": "Immutable log",
-    "events": "events",
-    "event": "event",
-    "endOfHistory": "End of history",
-    "loading": "Loading history...",
-    "empty": "No workflow events recorded yet.",
-    "error": "Could not load workflow history.",
-    "initialState": "Initial state",
-    "transition": "Transition",
-    "note": "Note",
+    "loading": "Loading workflow history...",
     "eventCount_one": "{{count}} event",
     "eventCount_other": "{{count}} events",
     "emptyTitle": "No Workflow Events",
     "emptyDescription": "No immutable workflow events are available for this case file yet.",
+    "error": "Unable to load workflow history",
     "errorDescription": "Check your connection and retry.",
     "systemActor": "System",
     "transitionLabel": "Transition",

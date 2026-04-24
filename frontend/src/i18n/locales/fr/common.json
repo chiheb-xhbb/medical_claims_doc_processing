@@ -235,9 +235,10 @@
     },
     "timestamps": {
       "created": "Créé",
-      "validated": "Validé"
+      "validated": "Validé",
+      "updated": "Mis à jour"
     },
-    "complianceNote": "Les documents sources sont accessibles uniquement aux utilisateurs autorisés pendant la validation."
+    "complianceNote": "Toutes les données sont traitées et validées de manière sécurisée, conformément à la réglementation des données médicales."
   },
   "dossiersPage": {
     "agent": {
@@ -283,7 +284,6 @@
       "actions": "Actions"
     },
     "updatingCaseFiles": "Mise à jour des dossiers…",
-    "openAction": "Ouvrir",
     "emptyFilterTitle": "Aucun dossier ne correspond à vos filtres",
     "emptyFilterDescription": "Ajustez votre recherche, statut ou plage de dates et réappliquez.",
     "deleteTitle": "Supprimer le dossier",
@@ -313,25 +313,13 @@
     "returnNote": "Note de retour",
     "assured": "Assuré",
     "requestedTotal": "Total demandé",
-    "acceptedTotal": "Total accepté",
-    "rejectedTotal": "Total rejeté",
-    "finalReimbursableTotal": "Total remboursable final",
+    "currentTotal": "Total actuel",
+    "displayTotal": "Total affiché",
+    "storedTotal": "Total enregistré",
     "episodeDescription": "Description de l'épisode",
     "notes": "Notes",
     "created": "Créé le",
-    "updated": "Mis à jour le",
-    "activeContext": {
-      "title": "Contexte de traitement actuel",
-      "preparationReopened": "Préparation rouverte",
-      "complementRequested": "Complément demandé",
-      "returnedToClaimsManager": "Retourné au gestionnaire",
-      "escalatedForSupervisorReview": "Escaladé pour révision hiérarchique",
-      "waitingForRole": "Ce dossier est en attente d’action de la part du {{role}}.",
-      "latestNote": "Dernière note",
-      "reason": "Motif",
-      "by": "Par",
-      "at": "Le"
-    }
+    "updated": "Mis à jour le"
   },
   "workflow": {
     "title": "Actions de traitement",
@@ -404,20 +392,12 @@
   },
   "workflowHistory": {
     "title": "Historique du traitement",
-    "immutableLog": "Journal immuable",
-    "events": "\u00e9v\u00e9nements",
-    "event": "\u00e9v\u00e9nement",
-    "endOfHistory": "Fin de l'historique",
-    "loading": "Chargement de l'historique...",
-    "empty": "Aucun \u00e9v\u00e9nement de traitement enregistr\u00e9 pour le moment.",
-    "error": "Impossible de charger l'historique du traitement.",
-    "initialState": "\u00c9tat initial",
-    "transition": "Transition",
-    "note": "Note",
+    "loading": "Chargement de l'historique du traitement…",
     "eventCount_one": "{{count}} événement",
     "eventCount_other": "{{count}} événements",
     "emptyTitle": "Aucun événement de traitement",
     "emptyDescription": "Aucun événement immuable n'est disponible pour ce dossier pour le moment.",
+    "error": "Impossible de charger l'historique du traitement",
     "errorDescription": "Vérifiez votre connexion puis réessayez.",
     "systemActor": "Système",
     "transitionLabel": "Transition",
