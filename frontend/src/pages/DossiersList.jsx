@@ -512,8 +512,8 @@ function DossiersList() {
                             className="btn btn-outline-primary btn-sm dossiers-action-btn dossiers-action-btn--details"
                             onClick={() => navigate(`/dossiers/${dossier.id}`)}
                           >
-                            <i className="bi bi-eye dossiers-action-btn__icon" aria-hidden="true"></i>
-                            {role === USER_ROLES.SUPERVISOR ? t('actions.review') : t('actions.details')}
+                            <i className="bi bi-folder2-open dossiers-action-btn__icon" aria-hidden="true"></i>
+                            {role === USER_ROLES.SUPERVISOR ? t('actions.review') : t('dossiersPage.openAction')}
                           </button>
 
                           {canDeleteDossier(dossier) && (

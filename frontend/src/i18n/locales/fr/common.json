@@ -283,6 +283,7 @@
       "actions": "Actions"
     },
     "updatingCaseFiles": "Mise à jour des dossiers…",
+    "openAction": "Ouvrir",
     "emptyFilterTitle": "Aucun dossier ne correspond à vos filtres",
     "emptyFilterDescription": "Ajustez votre recherche, statut ou plage de dates et réappliquez.",
     "deleteTitle": "Supprimer le dossier",

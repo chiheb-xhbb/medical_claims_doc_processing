@@ -283,6 +283,7 @@
       "actions": "Actions"
     },
     "updatingCaseFiles": "Updating case files...",
+    "openAction": "Open",
     "emptyFilterTitle": "No Case Files Match Your Filters",
     "emptyFilterDescription": "Try adjusting your search, status, or date range and apply again.",
     "deleteTitle": "Delete Case File",
